@@ -22,6 +22,7 @@ export default {
     const description = interaction.fields.getTextInputValue('description').trim();
     const durationRaw = interaction.fields.getTextInputValue('duration').trim();
     const winnersRaw = interaction.fields.getTextInputValue('winners').trim();
+    const prize = interaction.fields.getTextInputValue('prize')?.trim() || null;
 
     // Dauer validieren.
     const dur = parseDuration(durationRaw);
@@ -63,6 +64,7 @@ export default {
         hostId: interaction.user.id,
         title,
         description,
+        prize,
         winnersCount,
         endAt,
       });

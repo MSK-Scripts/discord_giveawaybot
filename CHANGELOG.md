@@ -2,6 +2,19 @@
 
 All notable changes to the **MSK Giveaway Bot**. Format based on [Keep a Changelog](https://keepachangelog.com).
 
+## [1.3.0]
+
+### Added
+- **Winner DMs** — winners now receive a direct message with the prize, optional claim instructions and a link to the giveaway.
+- **Optional prize** — a 5th `/gcreate` modal field; shown in the giveaway embed and the winner DM.
+- **Requirements in the embed** — active giveaways list their eligibility rules (required/blocked roles, min account/membership age).
+- **`/gedit`** — edit a running giveaway (title, description, winners, prize).
+- **`/gextend`** — extend a running giveaway's end time.
+- **`/gstats`** — per-server giveaway statistics (totals, entries, winners, win rate).
+- **`/greroll <id> [winner]`** — optionally replace a single winner instead of redrawing all.
+- **"Ending soon" reminder** — `/gsettings set reminder <minutes>` posts a reminder before a giveaway ends.
+- **Claim instructions** — `/gsettings set|remove claim` adds a custom note to the winner DM.
+
 ## [1.2.0]
 
 ### Added

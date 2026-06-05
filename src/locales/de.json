@@ -152,5 +152,43 @@
 
   "help.gpause": "Pausiert ein aktives Giveaway (friert den Timer ein).",
   "help.gresume": "Setzt ein pausiertes Giveaway fort.",
-  "help.gtemplate": "Vorlagen speichern, auflisten, löschen oder verwenden."
+  "help.gtemplate": "Vorlagen speichern, auflisten, löschen oder verwenden.",
+  "help.gedit": "Laufendes Giveaway bearbeiten (Titel, Beschreibung, Gewinner, Preis).",
+  "help.gextend": "Endzeit eines laufenden Giveaways verlängern.",
+  "help.gstats": "Giveaway-Statistik dieses Servers anzeigen.",
+
+  "giveaway.field.prize": "Preis",
+  "giveaway.field.requirements": "Bedingungen",
+  "req.whitelist": "Erforderliche Rollen",
+  "req.blacklist": "Gesperrte Rollen",
+  "req.minaccount": "Min. Account-Alter: {days} Tag(e)",
+  "req.minmember": "Min. Zugehörigkeit: {days} Tag(e)",
+
+  "dm.winner": "🎉 Glückwunsch! Du hast **{prize}** in **{guild}** gewonnen.",
+  "dm.winner_link": "🔗 Zum Giveaway: {link}",
+
+  "reminder.ending_soon": "⏰ Giveaway **{title}** endet {ends} — letzte Chance zum Mitmachen!",
+
+  "edit.nothing": "ℹ️ Nichts zu ändern — gib mindestens ein Feld an.",
+  "edit.success": "✅ Giveaway `{id}` aktualisiert.",
+  "extend.success": "✅ Giveaway `{id}` verlängert — endet jetzt {ends}.",
+
+  "reroll.not_winner": "⚠️ {user} ist kein aktueller Gewinner dieses Giveaways.",
+  "reroll.replaced": "🔁 {old} wurde bei **{title}** durch {new} ersetzt.",
+
+  "log.edited": "✏️ Giveaway `{id}` **{title}** bearbeitet von {user}.",
+
+  "settings.field.reminder": "Reminder",
+  "settings.field.claim": "Claim-Nachricht",
+  "settings.minutes": "{minutes} Min.",
+  "settings.set.reminder_set": "✅ Reminder auf {minutes} Minute(n) vor Ende gesetzt.",
+  "settings.set.reminder_off": "✅ Reminder deaktiviert.",
+  "settings.set.claim_set": "✅ Claim-Hinweis gespeichert (erscheint in der Gewinner-DM).",
+  "settings.set.claim_cleared": "✅ Claim-Hinweis entfernt.",
+
+  "stats.title": "📊 Giveaway-Statistik",
+  "stats.total": "Giveaways gesamt",
+  "stats.entries": "Teilnahmen gesamt",
+  "stats.winners": "Gewinner gesamt",
+  "stats.winrate": "Gewinnquote"
 }

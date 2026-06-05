@@ -99,6 +99,18 @@ export default {
         )
         .addSubcommand((s) =>
           s.setName('log').setDescription('Toggle the log channel (set/clear)').addChannelOption((o) => o.setName('channel').setDescription('Log channel').setRequired(true)),
+        )
+        .addSubcommand((s) =>
+          s
+            .setName('reminder')
+            .setDescription('"Ending soon" reminder, minutes before the end (0 = off)')
+            .addIntegerOption((o) => o.setName('minutes').setDescription('Minutes (0-1440)').setMinValue(0).setMaxValue(1440).setRequired(true)),
+        )
+        .addSubcommand((s) =>
+          s
+            .setName('claim')
+            .setDescription('Set the claim instructions shown in the winner DM')
+            .addStringOption((o) => o.setName('text').setDescription('Claim instructions').setMaxLength(500).setRequired(true)),
         ),
     )
     .addSubcommandGroup((g) =>
@@ -131,7 +143,8 @@ export default {
         )
         .addSubcommand((s) =>
           s.setName('notify').setDescription('Remove the notify role').addRoleOption((o) => o.setName('role').setDescription('Role').setRequired(true)),
-        ),
+        )
+        .addSubcommand((s) => s.setName('claim').setDescription('Remove the claim instructions')),
     ),
 
   async execute(client, interaction) {
@@ -283,6 +296,16 @@ export default {
           await updateSettings(guildId, { logChannel: clear ? null : channel.id });
           return reply(clear ? t(guildId, 'settings.set.log_cleared') : t(guildId, 'settings.set.log_set', { channel: `<#${channel.id}>` }));
         }
+        case 'reminder': {
+          const minutes = interaction.options.getInteger('minutes', true);
+          await updateSettings(guildId, { reminderMinutes: minutes });
+          return reply(minutes > 0 ? t(guildId, 'settings.set.reminder_set', { minutes }) : t(guildId, 'settings.set.reminder_off'));
+        }
+        case 'claim': {
+          const text = interaction.options.getString('text', true).trim();
+          await updateSettings(guildId, { claimMessage: text });
+          return reply(t(guildId, 'settings.set.claim_set'));
+        }
         default:
           return reply(t(guildId, 'error.generic'));
       }
@@ -308,6 +331,10 @@ export default {
           if (settings.notifyRole !== role.id) return reply(t(guildId, 'settings.remove.notify_mismatch', { role: `<@&${role.id}>` }));
           await updateSettings(guildId, { notifyRole: null });
           return reply(t(guildId, 'settings.set.notify_cleared'));
+        }
+        case 'claim': {
+          await updateSettings(guildId, { claimMessage: null });
+          return reply(t(guildId, 'settings.set.claim_cleared'));
         }
         default:
           return reply(t(guildId, 'error.generic'));

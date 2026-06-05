@@ -24,6 +24,8 @@ model GuildSettings {
   managerRole   String? // optional: Rolle, die Giveaways verwalten darf
   notifyRole    String? // optional: Rolle, die beim Start gepingt wird
   logChannel    String? // optional: Channel für Giveaway-Logs
+  reminderMinutes Int    @default(0) // "Ending soon"-Reminder X Min. vor Ende (0 = aus)
+  claimMessage  String?  @db.Text // optional: Hinweistext in der Gewinner-DM ("So holst du deinen Preis ab")
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
@@ -49,10 +51,13 @@ model Giveaway {
   hostId       String // wer hat erstellt
   title        String
   description  String    @db.Text
+  prize        String?   @db.Text // optionaler Preis (5. Modal-Feld)
   winnersCount Int       @default(1)
   endAt        DateTime
   status       String    @default("ACTIVE") // ACTIVE | PAUSED | ENDED | CANCELLED
   pausedAt     DateTime? // Zeitpunkt der Pausierung (zum Verlängern von endAt beim Resume)
+  reminderAt   DateTime? // Zeitpunkt für den "Ending soon"-Reminder (null = kein Reminder)
+  reminderSent Boolean   @default(false) // ob der Reminder schon gepostet wurde
   blacklistRoles String  @default("[]") @db.Text // JSON-Array: zusätzliche Blacklist-Rollen NUR für dieses Giveaway
   whitelistRoles String  @default("[]") @db.Text // JSON-Array: zusätzliche Whitelist-Rollen NUR für dieses Giveaway
   bonusRoles     String  @default("{}") @db.Text // JSON-Objekt RoleId->Bonus-Lose NUR für dieses Giveaway (additiv zu Guild)

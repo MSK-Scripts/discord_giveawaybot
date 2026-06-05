@@ -1,13 +1,62 @@
 // Poll-basierter, restart-sicherer Scheduler.
-// Alle 10s: fällige ACTIVE-Giveaways finden und beenden (gleiche Logik wie /gend).
+// Alle 10s: "Ending soon"-Reminder versenden + fällige ACTIVE-Giveaways beenden.
 import { prisma } from '../database/prisma.js';
 import { logger } from '../utils/logger.js';
 import { endGiveaway } from './giveawayService.js';
+import { getSettings } from './settingsService.js';
+import { t } from '../utils/i18n.js';
 
 const TICK_MS = 10_000;
 let timer = null;
 
+/** "Ending soon"-Reminder posten (einmal pro Giveaway, atomar geclaimt). */
+async function sendReminders(client) {
+  let due;
+  try {
+    due = await prisma.giveaway.findMany({
+      where: {
+        status: 'ACTIVE',
+        reminderSent: false,
+        reminderAt: { not: null, lte: new Date() },
+        endAt: { gt: new Date() },
+      },
+    });
+  } catch (err) {
+    logger.error('Reminder-Query (DB-Fehler):', err?.message ?? err);
+    return;
+  }
+
+  for (const gw of due) {
+    // Atomar claimen, damit überlappende Ticks keinen Doppel-Reminder senden.
+    try {
+      const claimed = await prisma.giveaway.updateMany({
+        where: { id: gw.id, reminderSent: false },
+        data: { reminderSent: true },
+      });
+      if (claimed.count === 0) continue;
+    } catch {
+      continue;
+    }
+
+    try {
+      const settings = await getSettings(gw.guildId);
+      const channel = await client.channels.fetch(gw.channelId).catch(() => null);
+      if (!channel) continue;
+      const ends = `<t:${Math.floor(new Date(gw.endAt).getTime() / 1000)}:R>`;
+      const ping = settings.notifyRole ? `<@&${settings.notifyRole}> ` : '';
+      await channel.send({
+        content: ping + t(gw.guildId, 'reminder.ending_soon', { title: gw.title, ends }),
+        allowedMentions: { roles: settings.notifyRole ? [settings.notifyRole] : [] },
+      });
+    } catch (err) {
+      logger.warn(`Reminder(${gw.id}):`, err?.message ?? err);
+    }
+  }
+}
+
 async function tick(client) {
+  await sendReminders(client);
+
   let due;
   try {
     due = await prisma.giveaway.findMany({

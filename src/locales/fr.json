@@ -152,5 +152,43 @@
 
   "help.gpause": "Met en pause un giveaway actif (gèle le minuteur).",
   "help.gresume": "Reprend un giveaway en pause.",
-  "help.gtemplate": "Enregistrer, lister, supprimer ou utiliser des modèles."
+  "help.gtemplate": "Enregistrer, lister, supprimer ou utiliser des modèles.",
+  "help.gedit": "Modifier un giveaway en cours (titre, description, gagnants, lot).",
+  "help.gextend": "Prolonger l'heure de fin d'un giveaway en cours.",
+  "help.gstats": "Afficher les statistiques de giveaway de ce serveur.",
+
+  "giveaway.field.prize": "Lot",
+  "giveaway.field.requirements": "Conditions",
+  "req.whitelist": "Rôles requis",
+  "req.blacklist": "Rôles bloqués",
+  "req.minaccount": "Âge min. du compte : {days} jour(s)",
+  "req.minmember": "Ancienneté min. : {days} jour(s)",
+
+  "dm.winner": "🎉 Félicitations ! Tu as gagné **{prize}** sur **{guild}**.",
+  "dm.winner_link": "🔗 Voir le giveaway : {link}",
+
+  "reminder.ending_soon": "⏰ Le giveaway **{title}** se termine {ends} — dernière chance de participer !",
+
+  "edit.nothing": "ℹ️ Rien à modifier — fournis au moins un champ.",
+  "edit.success": "✅ Giveaway `{id}` mis à jour.",
+  "extend.success": "✅ Giveaway `{id}` prolongé — se termine maintenant {ends}.",
+
+  "reroll.not_winner": "⚠️ {user} n'est pas un gagnant actuel de ce giveaway.",
+  "reroll.replaced": "🔁 {old} a été remplacé par {new} pour **{title}**.",
+
+  "log.edited": "✏️ Giveaway `{id}` **{title}** modifié par {user}.",
+
+  "settings.field.reminder": "Rappel",
+  "settings.field.claim": "Message de réclamation",
+  "settings.minutes": "{minutes} min",
+  "settings.set.reminder_set": "✅ Rappel défini à {minutes} minute(s) avant la fin.",
+  "settings.set.reminder_off": "✅ Rappel désactivé.",
+  "settings.set.claim_set": "✅ Instructions de réclamation enregistrées (affichées dans le DM du gagnant).",
+  "settings.set.claim_cleared": "✅ Instructions de réclamation supprimées.",
+
+  "stats.title": "📊 Statistiques des giveaways",
+  "stats.total": "Total des giveaways",
+  "stats.entries": "Total des participations",
+  "stats.winners": "Total des gagnants",
+  "stats.winrate": "Taux de victoire"
 }

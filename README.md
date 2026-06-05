@@ -1,6 +1,6 @@
 # 🎉 Discord Giveaway Bot
 
-Multilingual, per-guild configurable giveaway bot built on **discord.js v14**, persisted via **MariaDB** (Prisma). Restart-safe poll scheduler, entry via button, winner draw with blacklist check, reroll.
+Multilingual, per-guild configurable giveaway bot built on **discord.js v14**, persisted via **MariaDB** (Prisma). Restart-safe poll scheduler, button entry, eligibility rules, weighted bonus entries, templates, pause/resume, edit & extend, "ending soon" reminders, winner DMs and reroll.
 
 ## ➕ Add to your server
 
@@ -72,17 +72,20 @@ npm run i18n:check          # locale completeness en/de/fr/es
 
 | Command | Permissions | Description |
 |---|---|---|
-| `/gcreate` | Manager | Modal → giveaway in the current channel |
+| `/gcreate` | Manager | Modal → giveaway in the current channel (incl. optional prize) |
+| `/gedit <id>` | Manager | Edit a running giveaway (title, description, winners, prize) |
+| `/gextend <id> <duration>` | Manager | Extend a running giveaway's end time |
 | `/gcancel <id>` | Manager | Cancel an active giveaway |
 | `/gend <id>` | Manager | End immediately + draw winners |
-| `/greroll <id>` | Manager | New winners for an ended giveaway |
+| `/greroll <id> [winner]` | Manager | New winners for an ended giveaway — or replace a single `winner` |
 | `/glist` | everyone | List active giveaways |
 | `/ginfo <id>` | everyone | Details about a giveaway |
+| `/gstats` | everyone | This server's giveaway statistics |
 | `/ghelp` | everyone | Command overview |
 | `/ginvite` | everyone | Invite link |
 | `/gsettings show` | ManageGuild | Show settings |
-| `/gsettings set …` | ManageGuild | Set/add a setting: lang, color, emoji, button, blacklist, whitelist, bonus, minaccount, minmember, manager, notify, log |
-| `/gsettings remove …` | ManageGuild | Remove/clear a setting: blacklist, whitelist, bonus, manager, notify |
+| `/gsettings set …` | ManageGuild | Set/add a setting: lang, color, emoji, button, blacklist, whitelist, bonus, minaccount, minmember, manager, notify, log, reminder, claim |
+| `/gsettings remove …` | ManageGuild | Remove/clear a setting: blacklist, whitelist, bonus, manager, notify, claim |
 | `/gpause` `/gresume` | Manager | Pause / resume a giveaway |
 | `/gtemplate save\|list\|delete\|use` | Manager | Giveaway templates |
 

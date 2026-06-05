@@ -180,6 +180,33 @@ export function scheduleEmbedRefresh(client, giveaway, settings) {
   }
 }
 
+/** Link zur Giveaway-Nachricht (oder null). */
+function messageLink(giveaway) {
+  if (!giveaway.messageId) return null;
+  return `https://discord.com/channels/${giveaway.guildId}/${giveaway.channelId}/${giveaway.messageId}`;
+}
+
+/** Schickt jedem Gewinner eine DM (Preis + optionaler Claim-Hinweis + Link). Fehler werden ignoriert. */
+export async function dmWinners(client, giveaway, settings, winnerIds) {
+  if (!winnerIds?.length) return;
+  const g = giveaway.guildId;
+  const prize = giveaway.prize || giveaway.title;
+  const guildName = client.guilds.cache.get(g)?.name ?? '';
+  const link = messageLink(giveaway);
+  let content = t(g, 'dm.winner', { prize, guild: guildName });
+  if (settings.claimMessage) content += `\n${settings.claimMessage}`;
+  if (link) content += `\n${t(g, 'dm.winner_link', { link })}`;
+
+  for (const userId of winnerIds) {
+    try {
+      const user = await client.users.fetch(userId);
+      await user.send({ content });
+    } catch {
+      // DMs deaktiviert / blockiert -> überspringen
+    }
+  }
+}
+
 /** Original-Nachricht editieren (Button disabled, Ended-Embed) + Ergebnis posten. */
 async function finalizeMessages(client, giveaway, settings, winnerIds) {
   const entryCount = await countEntries(giveaway.id);
@@ -213,6 +240,9 @@ async function finalizeMessages(client, giveaway, settings, winnerIds) {
   } catch (err) {
     logger.warn(`finalizeMessages: konnte Ergebnis nicht senden:`, err?.message ?? err);
   }
+
+  // Gewinner per DM benachrichtigen (fire-and-forget, Fehler werden geschluckt).
+  await dmWinners(client, giveaway, settings, winnerIds);
 }
 
 /**
@@ -276,10 +306,18 @@ export async function sendGuildLog(client, settings, content) {
  * Bei Sende-Fehler wird der DB-Eintrag wieder entfernt (kein verwaistes Giveaway).
  * @returns {Promise<string>} die Giveaway-ID
  */
-export async function postGiveaway(client, channel, settings, { guildId, hostId, title, description, winnersCount, endAt }) {
+export async function postGiveaway(client, channel, settings, { guildId, hostId, title, description, prize, winnersCount, endAt }) {
   const id = await generateGiveawayId();
+  // "Ending soon"-Reminder einplanen, falls in der Guild aktiviert und noch in der Zukunft.
+  const reminderMin = Number(settings.reminderMinutes) || 0;
+  let reminderAt = null;
+  if (reminderMin > 0) {
+    const r = new Date(endAt.getTime() - reminderMin * 60000);
+    if (r.getTime() > Date.now()) reminderAt = r;
+  }
   const giveaway = await createGiveaway({
-    id, guildId, channelId: channel.id, hostId, title, description, winnersCount, endAt, status: 'ACTIVE',
+    id, guildId, channelId: channel.id, hostId, title, description,
+    prize: prize || null, winnersCount, endAt, status: 'ACTIVE', reminderAt,
   });
   try {
     const content = settings.notifyRole ? `<@&${settings.notifyRole}>` : undefined;
@@ -300,7 +338,7 @@ export async function postGiveaway(client, channel, settings, { guildId, hostId,
 
 // ── Pause / Resume ───────────────────────────────────────────────────────────
 /** Aktualisiert die aktive Giveaway-Nachricht (Embed + Button-Status). */
-async function editActiveMessage(client, giveaway, settings, { disabled, paused }) {
+export async function editActiveMessage(client, giveaway, settings, { disabled = false, paused = false } = {}) {
   if (!giveaway.messageId) return;
   try {
     const channel = await client.channels.fetch(giveaway.channelId);
@@ -336,6 +374,45 @@ export async function resumeGiveaway(client, giveaway, settings) {
   await editActiveMessage(client, updated, settings, { disabled: false, paused: false });
   await sendGuildLog(client, settings, t(giveaway.guildId, 'log.resumed', { id: giveaway.id, title: giveaway.title }));
   return updated;
+}
+
+// ── Einzelnen Gewinner ersetzen ──────────────────────────────────────────────
+/**
+ * Ersetzt EINEN Gewinner eines beendeten Giveaways durch einen neuen (zieht 1,
+ * schließt alle bisherigen Gewinner aus). Markiert den alten als rerolled.
+ * @returns {Promise<string|null>} neue userId oder null (kein gültiger Ersatz)
+ */
+export async function replaceWinner(giveaway, guild, settings, oldUserId) {
+  const current = await getWinnerIds(giveaway.id); // alle bisherigen Gewinner ausschließen
+  const drawn = await drawWinners(giveaway, guild, settings, { exclude: current });
+  const newWinner = drawn[0] ?? null;
+
+  // Kein gültiger Ersatz -> alten Gewinner NICHT verändern (sonst Dateninkonsistenz).
+  if (!newWinner) return null;
+
+  await prisma.winner.updateMany({
+    where: { giveawayId: giveaway.id, userId: oldUserId },
+    data: { rerolled: true },
+  });
+  await prisma.winner.upsert({
+    where: { giveawayId_userId: { giveawayId: giveaway.id, userId: newWinner } },
+    update: { rerolled: false },
+    create: { giveawayId: giveaway.id, userId: newWinner },
+  });
+  return newWinner;
+}
+
+// ── Statistik pro Guild ──────────────────────────────────────────────────────
+export async function getGuildStats(guildId) {
+  const [active, paused, ended, cancelled, entries, winners] = await prisma.$transaction([
+    prisma.giveaway.count({ where: { guildId, status: 'ACTIVE' } }),
+    prisma.giveaway.count({ where: { guildId, status: 'PAUSED' } }),
+    prisma.giveaway.count({ where: { guildId, status: 'ENDED' } }),
+    prisma.giveaway.count({ where: { guildId, status: 'CANCELLED' } }),
+    prisma.entry.count({ where: { giveaway: { guildId } } }),
+    prisma.winner.count({ where: { giveaway: { guildId }, rerolled: false } }),
+  ]);
+  return { total: active + paused + ended + cancelled, active, paused, ended, cancelled, entries, winners };
 }
 
 export { endingLocks };

@@ -59,11 +59,19 @@ export default {
       .setMaxLength(3)
       .setRequired(true);
 
+    const prizeInput = new TextInputBuilder()
+      .setCustomId('prize')
+      .setLabel(t(guildId, 'modal.field.prize'))
+      .setStyle(TextInputStyle.Short)
+      .setMaxLength(256)
+      .setRequired(false);
+
     modal.addComponents(
       new ActionRowBuilder().addComponents(titleInput),
       new ActionRowBuilder().addComponents(descInput),
       new ActionRowBuilder().addComponents(durationInput),
       new ActionRowBuilder().addComponents(winnersInput),
+      new ActionRowBuilder().addComponents(prizeInput),
     );
 
     // showModal MUSS die erste Acknowledge-Aktion sein (kein vorheriges reply/defer).

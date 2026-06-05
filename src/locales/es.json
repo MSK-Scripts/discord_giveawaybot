@@ -152,5 +152,43 @@
 
   "help.gpause": "Pausa un sorteo activo (congela el temporizador).",
   "help.gresume": "Reanuda un sorteo pausado.",
-  "help.gtemplate": "Guardar, listar, eliminar o usar plantillas de sorteo."
+  "help.gtemplate": "Guardar, listar, eliminar o usar plantillas de sorteo.",
+  "help.gedit": "Editar un sorteo en curso (título, descripción, ganadores, premio).",
+  "help.gextend": "Ampliar la hora de finalización de un sorteo en curso.",
+  "help.gstats": "Mostrar las estadísticas de sorteos de este servidor.",
+
+  "giveaway.field.prize": "Premio",
+  "giveaway.field.requirements": "Requisitos",
+  "req.whitelist": "Roles requeridos",
+  "req.blacklist": "Roles bloqueados",
+  "req.minaccount": "Edad mín. de cuenta: {days} día(s)",
+  "req.minmember": "Antigüedad mín.: {days} día(s)",
+
+  "dm.winner": "🎉 ¡Felicidades! Has ganado **{prize}** en **{guild}**.",
+  "dm.winner_link": "🔗 Ver el sorteo: {link}",
+
+  "reminder.ending_soon": "⏰ El sorteo **{title}** termina {ends} — ¡última oportunidad para participar!",
+
+  "edit.nothing": "ℹ️ Nada que cambiar — indica al menos un campo.",
+  "edit.success": "✅ Sorteo `{id}` actualizado.",
+  "extend.success": "✅ Sorteo `{id}` ampliado — ahora termina {ends}.",
+
+  "reroll.not_winner": "⚠️ {user} no es un ganador actual de este sorteo.",
+  "reroll.replaced": "🔁 {old} fue reemplazado por {new} en **{title}**.",
+
+  "log.edited": "✏️ Sorteo `{id}` **{title}** editado por {user}.",
+
+  "settings.field.reminder": "Recordatorio",
+  "settings.field.claim": "Mensaje de reclamación",
+  "settings.minutes": "{minutes} min",
+  "settings.set.reminder_set": "✅ Recordatorio establecido en {minutes} minuto(s) antes del final.",
+  "settings.set.reminder_off": "✅ Recordatorio desactivado.",
+  "settings.set.claim_set": "✅ Instrucciones de reclamación guardadas (se muestran en el DM del ganador).",
+  "settings.set.claim_cleared": "✅ Instrucciones de reclamación eliminadas.",
+
+  "stats.title": "📊 Estadísticas de sorteos",
+  "stats.total": "Sorteos totales",
+  "stats.entries": "Participaciones totales",
+  "stats.winners": "Ganadores totales",
+  "stats.winrate": "Tasa de victorias"
 }

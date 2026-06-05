@@ -152,5 +152,43 @@
 
   "help.gpause": "Pause an active giveaway (freezes the timer).",
   "help.gresume": "Resume a paused giveaway.",
-  "help.gtemplate": "Save, list, delete or use giveaway templates."
+  "help.gtemplate": "Save, list, delete or use giveaway templates.",
+  "help.gedit": "Edit a running giveaway (title, description, winners, prize).",
+  "help.gextend": "Extend the end time of a running giveaway.",
+  "help.gstats": "Show this server's giveaway statistics.",
+
+  "giveaway.field.prize": "Prize",
+  "giveaway.field.requirements": "Requirements",
+  "req.whitelist": "Required roles",
+  "req.blacklist": "Blocked roles",
+  "req.minaccount": "Min. account age: {days} day(s)",
+  "req.minmember": "Min. membership: {days} day(s)",
+
+  "dm.winner": "🎉 Congratulations! You won **{prize}** in **{guild}**.",
+  "dm.winner_link": "🔗 View the giveaway: {link}",
+
+  "reminder.ending_soon": "⏰ Giveaway **{title}** ends {ends} — last chance to join!",
+
+  "edit.nothing": "ℹ️ Nothing to change — provide at least one field.",
+  "edit.success": "✅ Giveaway `{id}` updated.",
+  "extend.success": "✅ Giveaway `{id}` extended — now ends {ends}.",
+
+  "reroll.not_winner": "⚠️ {user} is not a current winner of this giveaway.",
+  "reroll.replaced": "🔁 {old} was replaced by {new} for **{title}**.",
+
+  "log.edited": "✏️ Giveaway `{id}` **{title}** edited by {user}.",
+
+  "settings.field.reminder": "Reminder",
+  "settings.field.claim": "Claim message",
+  "settings.minutes": "{minutes} min",
+  "settings.set.reminder_set": "✅ Reminder set to {minutes} minute(s) before the end.",
+  "settings.set.reminder_off": "✅ Reminder disabled.",
+  "settings.set.claim_set": "✅ Claim instructions saved (shown in the winner DM).",
+  "settings.set.claim_cleared": "✅ Claim instructions cleared.",
+
+  "stats.title": "📊 Giveaway statistics",
+  "stats.total": "Total giveaways",
+  "stats.entries": "Total entries",
+  "stats.winners": "Total winners",
+  "stats.winrate": "Win rate"
 }
