@@ -1,6 +1,5 @@
 import { logger } from '../utils/logger.js';
-import { prisma } from '../database/prisma.js';
-import { evict } from '../services/settingsService.js';
+import { deleteGuildData } from '../services/cleanupService.js';
 
 export default {
   name: 'guildDelete',
@@ -13,16 +12,10 @@ export default {
     }
 
     // Bot wurde aus der Guild entfernt -> alle Daten dieser Guild umgehend löschen.
-    // Giveaways löschen kaskadiert auf Entry/Winner (onDelete: Cascade im Schema).
     try {
-      const [giveaways, templates] = await prisma.$transaction([
-        prisma.giveaway.deleteMany({ where: { guildId: guild.id } }),
-        prisma.giveawayTemplate.deleteMany({ where: { guildId: guild.id } }),
-        prisma.guildSettings.deleteMany({ where: { guildId: guild.id } }),
-      ]);
-      evict(guild.id);
+      const res = await deleteGuildData(guild.id);
       logger.info(
-        `Guild ${guild.id} entfernt — Daten gelöscht (${giveaways.count} Giveaways inkl. Entries/Winners, ${templates.count} Vorlagen, Settings).`,
+        `Guild ${guild.id} entfernt — Daten gelöscht (${res.giveaways} Giveaways inkl. Entries/Winners, ${res.templates} Vorlagen, Settings).`,
       );
     } catch (err) {
       logger.error(`guildDelete-Cleanup (${guild.id}):`, err);
