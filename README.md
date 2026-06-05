@@ -87,8 +87,6 @@ npm run i18n:check          # locale completeness en/de/fr/es
 ViewChannel, SendMessages, EmbedLinks, ReadMessageHistory, UseExternalEmojis, MentionEveryone (integer **478208**). `allowedMentions` restricts runtime pings specifically to the notify role.
 
 ## Deployment (server)
-Full runbook: **[DEPLOYMENT.md](DEPLOYMENT.md)** (systemd unit + GitHub Actions CI/CD).
-
 Short version:
 - On the server use **`npm ci`** (full install — the `prisma` CLI is a devDependency and is needed for generate/migrate), then `npx prisma generate` + `npx prisma migrate deploy`.
 - Run via **systemd** (`deploy/discord-giveaway.service`), auto-restart, journald logs.
