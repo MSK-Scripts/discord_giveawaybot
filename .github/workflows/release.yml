@@ -1,0 +1,35 @@
+name: Release
+
+# Wird durch ein Versions-Tag (z.B. v1.2.0 oder v1.2.0-rc.1) ausgelöst:
+# erst die Prüfung aus ci.yml, dann ein GitHub-Release mit automatischen Notes.
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: read
+
+jobs:
+  # Gate: gleiche statische Prüfung wie für PRs/Deploy.
+  verify:
+    uses: ./.github/workflows/ci.yml
+
+  release:
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # zum Anlegen des Releases
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0 # volle Historie für die Release-Notes-Generierung
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          draft: false
+          # Tags mit Suffix (z.B. -rc.1, -beta) werden als Pre-Release markiert.
+          prerelease: ${{ contains(github.ref_name, '-') }}
