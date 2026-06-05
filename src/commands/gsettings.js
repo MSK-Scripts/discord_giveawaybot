@@ -5,6 +5,7 @@ import {
   setGiveawayBlacklistRoles,
   setGiveawayWhitelistRoles,
   setGiveawayBonusRoles,
+  sendGuildLog,
 } from '../services/giveawayService.js';
 import { buildSettingsEmbed } from '../utils/embeds.js';
 import { isValidEmoji } from '../utils/emoji.js';
@@ -160,6 +161,14 @@ export default {
     const sub = interaction.options.getSubcommand();
     const reply = (content) => interaction.reply({ content, flags: MessageFlags.Ephemeral });
 
+    // Jede tatsächliche Änderung in den Log-Channel schreiben (mit Akteur).
+    const actor = `<@${interaction.user.id}>`;
+    const logChange = (detail) => void sendGuildLog(client, settings, t(guildId, 'log.setting', { user: actor, detail }));
+    const applyReply = (content) => {
+      logChange(content);
+      return reply(content);
+    };
+
     if (!group && sub === 'show') {
       return interaction.reply({ embeds: [buildSettingsEmbed(guildId, settings)], flags: MessageFlags.Ephemeral });
     }
@@ -204,7 +213,9 @@ export default {
       }
 
       const suffix = gid ? t(guildId, 'settings.scope.giveaway', { id: gid }) : '';
-      return reply(t(guildId, key, { role: roleMention }) + suffix);
+      const content = t(guildId, key, { role: roleMention }) + suffix;
+      if (changed) logChange(content);
+      return reply(content);
     };
 
     // ── Bonus-Lose (serverweit ODER per Giveaway) ──
@@ -228,14 +239,14 @@ export default {
         bonus[role.id] = amount;
         if (gid) await setGiveawayBonusRoles(gid, bonus);
         else await updateSettings(guildId, { bonusRoles: bonus });
-        return reply(t(guildId, 'settings.set.bonus_set', { role: roleMention, amount }) + suffix);
+        return applyReply(t(guildId, 'settings.set.bonus_set', { role: roleMention, amount }) + suffix);
       }
       // remove
       if (!(role.id in bonus)) return reply(t(guildId, 'settings.remove.bonus_absent', { role: roleMention }) + suffix);
       delete bonus[role.id];
       if (gid) await setGiveawayBonusRoles(gid, bonus);
       else await updateSettings(guildId, { bonusRoles: bonus });
-      return reply(t(guildId, 'settings.set.bonus_removed', { role: roleMention }) + suffix);
+      return applyReply(t(guildId, 'settings.set.bonus_removed', { role: roleMention }) + suffix);
     };
 
     // ── SET ──────────────────────────────────────────────────────────────────
@@ -244,25 +255,25 @@ export default {
         case 'lang': {
           const value = interaction.options.getString('value', true);
           await updateSettings(guildId, { lang: value });
-          return reply(t(value, 'settings.set.lang', { lang: value }));
+          return applyReply(t(value, 'settings.set.lang', { lang: value }));
         }
         case 'color': {
           const raw = interaction.options.getString('value', true).trim();
           if (!/^#?[0-9a-fA-F]{6}$/.test(raw)) return reply(t(guildId, 'settings.set.color_invalid'));
           const color = (raw.startsWith('#') ? raw : `#${raw}`).toLowerCase();
           await updateSettings(guildId, { embedColor: color });
-          return reply(t(guildId, 'settings.set.color', { color }));
+          return applyReply(t(guildId, 'settings.set.color', { color }));
         }
         case 'emoji': {
           const value = interaction.options.getString('value', true).trim();
           if (!isValidEmoji(value)) return reply(t(guildId, 'settings.set.emoji_invalid'));
           await updateSettings(guildId, { buttonEmoji: value });
-          return reply(t(guildId, 'settings.set.emoji', { emoji: value }));
+          return applyReply(t(guildId, 'settings.set.emoji', { emoji: value }));
         }
         case 'button': {
           const value = interaction.options.getString('value', true);
           await updateSettings(guildId, { buttonStyle: value });
-          return reply(t(guildId, 'settings.set.button', { style: value }));
+          return applyReply(t(guildId, 'settings.set.button', { style: value }));
         }
         case 'blacklist':
           return handleRoleList('blacklist', 'add');
@@ -273,38 +284,38 @@ export default {
         case 'manager': {
           const role = interaction.options.getRole('role', true);
           await updateSettings(guildId, { managerRole: role.id });
-          return reply(t(guildId, 'settings.set.manager_set', { role: `<@&${role.id}>` }));
+          return applyReply(t(guildId, 'settings.set.manager_set', { role: `<@&${role.id}>` }));
         }
         case 'notify': {
           const role = interaction.options.getRole('role', true);
           await updateSettings(guildId, { notifyRole: role.id });
-          return reply(t(guildId, 'settings.set.notify_set', { role: `<@&${role.id}>` }));
+          return applyReply(t(guildId, 'settings.set.notify_set', { role: `<@&${role.id}>` }));
         }
         case 'minaccount': {
           const days = interaction.options.getInteger('days', true);
           await updateSettings(guildId, { minAccountDays: days });
-          return reply(days > 0 ? t(guildId, 'settings.set.minaccount_set', { days }) : t(guildId, 'settings.set.minaccount_off'));
+          return applyReply(days > 0 ? t(guildId, 'settings.set.minaccount_set', { days }) : t(guildId, 'settings.set.minaccount_off'));
         }
         case 'minmember': {
           const days = interaction.options.getInteger('days', true);
           await updateSettings(guildId, { minMemberDays: days });
-          return reply(days > 0 ? t(guildId, 'settings.set.minmember_set', { days }) : t(guildId, 'settings.set.minmember_off'));
+          return applyReply(days > 0 ? t(guildId, 'settings.set.minmember_set', { days }) : t(guildId, 'settings.set.minmember_off'));
         }
         case 'log': {
           const channel = interaction.options.getChannel('channel', true);
           const clear = settings.logChannel === channel.id;
           await updateSettings(guildId, { logChannel: clear ? null : channel.id });
-          return reply(clear ? t(guildId, 'settings.set.log_cleared') : t(guildId, 'settings.set.log_set', { channel: `<#${channel.id}>` }));
+          return applyReply(clear ? t(guildId, 'settings.set.log_cleared') : t(guildId, 'settings.set.log_set', { channel: `<#${channel.id}>` }));
         }
         case 'reminder': {
           const minutes = interaction.options.getInteger('minutes', true);
           await updateSettings(guildId, { reminderMinutes: minutes });
-          return reply(minutes > 0 ? t(guildId, 'settings.set.reminder_set', { minutes }) : t(guildId, 'settings.set.reminder_off'));
+          return applyReply(minutes > 0 ? t(guildId, 'settings.set.reminder_set', { minutes }) : t(guildId, 'settings.set.reminder_off'));
         }
         case 'claim': {
           const text = interaction.options.getString('text', true).trim();
           await updateSettings(guildId, { claimMessage: text });
-          return reply(t(guildId, 'settings.set.claim_set'));
+          return applyReply(t(guildId, 'settings.set.claim_set'));
         }
         default:
           return reply(t(guildId, 'error.generic'));
@@ -324,17 +335,17 @@ export default {
           const role = interaction.options.getRole('role', true);
           if (settings.managerRole !== role.id) return reply(t(guildId, 'settings.remove.manager_mismatch', { role: `<@&${role.id}>` }));
           await updateSettings(guildId, { managerRole: null });
-          return reply(t(guildId, 'settings.set.manager_cleared'));
+          return applyReply(t(guildId, 'settings.set.manager_cleared'));
         }
         case 'notify': {
           const role = interaction.options.getRole('role', true);
           if (settings.notifyRole !== role.id) return reply(t(guildId, 'settings.remove.notify_mismatch', { role: `<@&${role.id}>` }));
           await updateSettings(guildId, { notifyRole: null });
-          return reply(t(guildId, 'settings.set.notify_cleared'));
+          return applyReply(t(guildId, 'settings.set.notify_cleared'));
         }
         case 'claim': {
           await updateSettings(guildId, { claimMessage: null });
-          return reply(t(guildId, 'settings.set.claim_cleared'));
+          return applyReply(t(guildId, 'settings.set.claim_cleared'));
         }
         default:
           return reply(t(guildId, 'error.generic'));

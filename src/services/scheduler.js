@@ -2,7 +2,7 @@
 // Alle 10s: "Ending soon"-Reminder versenden + fällige ACTIVE-Giveaways beenden.
 import { prisma } from '../database/prisma.js';
 import { logger } from '../utils/logger.js';
-import { endGiveaway } from './giveawayService.js';
+import { endGiveaway, sendGuildLog } from './giveawayService.js';
 import { getSettings } from './settingsService.js';
 import { t } from '../utils/i18n.js';
 
@@ -48,6 +48,7 @@ async function sendReminders(client) {
         content: ping + t(gw.guildId, 'reminder.ending_soon', { title: gw.title, ends }),
         allowedMentions: { roles: settings.notifyRole ? [settings.notifyRole] : [] },
       });
+      await sendGuildLog(client, settings, t(gw.guildId, 'log.reminder', { id: gw.id, title: gw.title }));
     } catch (err) {
       logger.warn(`Reminder(${gw.id}):`, err?.message ?? err);
     }

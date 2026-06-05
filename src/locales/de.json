@@ -177,6 +177,9 @@
   "reroll.replaced": "🔁 {old} wurde bei **{title}** durch {new} ersetzt.",
 
   "log.edited": "✏️ Giveaway `{id}` **{title}** bearbeitet von {user}.",
+  "log.extended": "⏱️ Giveaway `{id}` **{title}** verlängert von {user}.",
+  "log.reminder": "⏰ Reminder gepostet für **{title}** (`{id}`).",
+  "log.setting": "⚙️ {detail} — von {user}",
 
   "settings.field.reminder": "Reminder",
   "settings.field.claim": "Claim-Nachricht",

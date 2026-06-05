@@ -177,6 +177,9 @@
   "reroll.replaced": "🔁 {old} fue reemplazado por {new} en **{title}**.",
 
   "log.edited": "✏️ Sorteo `{id}` **{title}** editado por {user}.",
+  "log.extended": "⏱️ Sorteo `{id}` **{title}** ampliado por {user}.",
+  "log.reminder": "⏰ Recordatorio publicado para **{title}** (`{id}`).",
+  "log.setting": "⚙️ {detail} — por {user}",
 
   "settings.field.reminder": "Recordatorio",
   "settings.field.claim": "Mensaje de reclamación",

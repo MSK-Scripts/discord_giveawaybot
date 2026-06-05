@@ -1,6 +1,6 @@
 import { SlashCommandBuilder, MessageFlags } from 'discord.js';
 import { getSettings } from '../services/settingsService.js';
-import { getGiveaway, editActiveMessage } from '../services/giveawayService.js';
+import { getGiveaway, editActiveMessage, sendGuildLog } from '../services/giveawayService.js';
 import { isManager } from '../utils/permissions.js';
 import { parseDuration } from '../utils/duration.js';
 import { prisma } from '../database/prisma.js';
@@ -54,6 +54,7 @@ export default {
       paused: updated.status === 'PAUSED',
     });
     const ends = `<t:${Math.floor(newEndAt.getTime() / 1000)}:R>`;
+    await sendGuildLog(client, settings, t(guildId, 'log.extended', { id, title: updated.title, user: `<@${interaction.user.id}>` }));
     return interaction.reply({ content: t(guildId, 'extend.success', { id, ends }), flags: MessageFlags.Ephemeral });
   },
 };
