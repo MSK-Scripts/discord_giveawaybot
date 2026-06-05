@@ -7,6 +7,13 @@ name: Deploy
 on:
   push:
     branches: [main]
+    # Reine Doku-/Markdown- und Meta-Änderungen lösen KEINEN Prod-Redeploy aus.
+    # (LICENSE.md & alle *.md sind durch '**.md' abgedeckt.)
+    paths-ignore:
+      - '**.md'
+      - '.github/**'
+      - '.gitignore'
+      - 'ANNOUNCEMENT.md'
   workflow_dispatch:
 
 concurrency:
