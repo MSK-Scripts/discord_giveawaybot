@@ -63,19 +63,38 @@ function parseRoleArray(value) {
   }
 }
 
+function parseRoleObject(value) {
+  try {
+    const v = JSON.parse(value ?? '{}');
+    return v && typeof v === 'object' && !Array.isArray(v) ? v : {};
+  } catch {
+    return {};
+  }
+}
+
 /**
- * Verschmilzt die serverweiten Blacklist/Whitelist-Rollen mit den per-Giveaway
- * gespeicherten Rollen (Vereinigung). So gelten giveaway-spezifische Rollen
- * ZUSÄTZLICH zu den globalen — nur für dieses Giveaway.
- * @returns ein settings-ähnliches Objekt für checkEligibility().
+ * Verschmilzt die serverweiten Blacklist/Whitelist-Rollen und Bonus-Lose mit den
+ * per-Giveaway gespeicherten Werten. Blacklist/Whitelist = Vereinigung;
+ * Bonus-Lose werden je Rolle ADDIERT (giveaway-spezifisch zusätzlich zum globalen).
+ * Gilt nur für dieses Giveaway.
+ * @returns ein settings-ähnliches Objekt für checkEligibility()/ticketWeight().
  */
 export function mergeGiveawayEligibility(settings, giveaway) {
   const gBlack = parseRoleArray(giveaway?.blacklistRoles);
   const gWhite = parseRoleArray(giveaway?.whitelistRoles);
+  const gBonus = parseRoleObject(giveaway?.bonusRoles);
+
+  const bonusRoles = { ...(settings.bonusRoles ?? {}) };
+  for (const [roleId, amount] of Object.entries(gBonus)) {
+    const n = Number(amount);
+    if (Number.isFinite(n) && n !== 0) bonusRoles[roleId] = (Number(bonusRoles[roleId]) || 0) + n;
+  }
+
   return {
     ...settings,
     blacklist: [...new Set([...(settings.blacklist ?? []), ...gBlack])],
     whitelist: [...new Set([...(settings.whitelist ?? []), ...gWhite])],
+    bonusRoles,
   };
 }
 

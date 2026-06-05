@@ -28,6 +28,11 @@ export async function setGiveawayWhitelistRoles(id, roles) {
   return prisma.giveaway.update({ where: { id }, data: { whitelistRoles: JSON.stringify(roles) } });
 }
 
+/** Per-Giveaway Bonus-Lose setzen (Objekt RoleId->Anzahl -> JSON). */
+export async function setGiveawayBonusRoles(id, bonus) {
+  return prisma.giveaway.update({ where: { id }, data: { bonusRoles: JSON.stringify(bonus) } });
+}
+
 export async function listActive(guildId) {
   return prisma.giveaway.findMany({
     where: { guildId, status: 'ACTIVE' },

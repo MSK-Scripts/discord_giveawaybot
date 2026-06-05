@@ -4,6 +4,7 @@ import {
   getGiveaway,
   setGiveawayBlacklistRoles,
   setGiveawayWhitelistRoles,
+  setGiveawayBonusRoles,
 } from '../services/giveawayService.js';
 import { buildSettingsEmbed } from '../utils/embeds.js';
 import { isValidEmoji } from '../utils/emoji.js';
@@ -22,6 +23,15 @@ function parseArr(value) {
     return Array.isArray(v) ? v : [];
   } catch {
     return [];
+  }
+}
+
+function parseObj(value) {
+  try {
+    const v = JSON.parse(value ?? '{}');
+    return v && typeof v === 'object' && !Array.isArray(v) ? v : {};
+  } catch {
+    return {};
   }
 }
 
@@ -70,9 +80,10 @@ export default {
         .addSubcommand((s) =>
           s
             .setName('bonus')
-            .setDescription('Set bonus entries for a role')
+            .setDescription('Set bonus entries for a role (optionally only for one giveaway)')
             .addRoleOption((o) => o.setName('role').setDescription('Role').setRequired(true))
-            .addIntegerOption((o) => o.setName('amount').setDescription('Extra entries (1-100)').setMinValue(1).setMaxValue(100).setRequired(true)),
+            .addIntegerOption((o) => o.setName('amount').setDescription('Extra entries (1-100)').setMinValue(1).setMaxValue(100).setRequired(true))
+            .addStringOption((o) => o.setName('giveaway_id').setDescription('Only for this giveaway (optional)').setRequired(false)),
         )
         .addSubcommand((s) =>
           s.setName('manager').setDescription('Set the manager role').addRoleOption((o) => o.setName('role').setDescription('Role').setRequired(true)),
@@ -109,7 +120,11 @@ export default {
             .addStringOption((o) => o.setName('giveaway_id').setDescription('Only for this giveaway (optional)').setRequired(false)),
         )
         .addSubcommand((s) =>
-          s.setName('bonus').setDescription('Remove bonus entries for a role').addRoleOption((o) => o.setName('role').setDescription('Role').setRequired(true)),
+          s
+            .setName('bonus')
+            .setDescription('Remove bonus entries for a role (optionally only for one giveaway)')
+            .addRoleOption((o) => o.setName('role').setDescription('Role').setRequired(true))
+            .addStringOption((o) => o.setName('giveaway_id').setDescription('Only for this giveaway (optional)').setRequired(false)),
         )
         .addSubcommand((s) =>
           s.setName('manager').setDescription('Remove the manager role').addRoleOption((o) => o.setName('role').setDescription('Role').setRequired(true)),
@@ -179,6 +194,37 @@ export default {
       return reply(t(guildId, key, { role: roleMention }) + suffix);
     };
 
+    // ── Bonus-Lose (serverweit ODER per Giveaway) ──
+    const handleBonus = async (mode) => {
+      const role = interaction.options.getRole('role', true);
+      const roleMention = `<@&${role.id}>`;
+      const gid = interaction.options.getString('giveaway_id', false)?.trim().toUpperCase();
+      const suffix = gid ? t(guildId, 'settings.scope.giveaway', { id: gid }) : '';
+
+      let bonus;
+      if (gid) {
+        const giveaway = await getGiveaway(gid, guildId);
+        if (!giveaway) return reply(t(guildId, 'error.not_found'));
+        bonus = parseObj(giveaway.bonusRoles);
+      } else {
+        bonus = { ...(settings.bonusRoles ?? {}) };
+      }
+
+      if (mode === 'set') {
+        const amount = interaction.options.getInteger('amount', true);
+        bonus[role.id] = amount;
+        if (gid) await setGiveawayBonusRoles(gid, bonus);
+        else await updateSettings(guildId, { bonusRoles: bonus });
+        return reply(t(guildId, 'settings.set.bonus_set', { role: roleMention, amount }) + suffix);
+      }
+      // remove
+      if (!(role.id in bonus)) return reply(t(guildId, 'settings.remove.bonus_absent', { role: roleMention }) + suffix);
+      delete bonus[role.id];
+      if (gid) await setGiveawayBonusRoles(gid, bonus);
+      else await updateSettings(guildId, { bonusRoles: bonus });
+      return reply(t(guildId, 'settings.set.bonus_removed', { role: roleMention }) + suffix);
+    };
+
     // ── SET ──────────────────────────────────────────────────────────────────
     if (group === 'set') {
       switch (sub) {
@@ -209,14 +255,8 @@ export default {
           return handleRoleList('blacklist', 'add');
         case 'whitelist':
           return handleRoleList('whitelist', 'add');
-        case 'bonus': {
-          const role = interaction.options.getRole('role', true);
-          const amount = interaction.options.getInteger('amount', true);
-          const bonus = { ...(settings.bonusRoles ?? {}) };
-          bonus[role.id] = amount;
-          await updateSettings(guildId, { bonusRoles: bonus });
-          return reply(t(guildId, 'settings.set.bonus_set', { role: `<@&${role.id}>`, amount }));
-        }
+        case 'bonus':
+          return handleBonus('set');
         case 'manager': {
           const role = interaction.options.getRole('role', true);
           await updateSettings(guildId, { managerRole: role.id });
@@ -255,14 +295,8 @@ export default {
           return handleRoleList('blacklist', 'remove');
         case 'whitelist':
           return handleRoleList('whitelist', 'remove');
-        case 'bonus': {
-          const role = interaction.options.getRole('role', true);
-          const bonus = { ...(settings.bonusRoles ?? {}) };
-          if (!(role.id in bonus)) return reply(t(guildId, 'settings.remove.bonus_absent', { role: `<@&${role.id}>` }));
-          delete bonus[role.id];
-          await updateSettings(guildId, { bonusRoles: bonus });
-          return reply(t(guildId, 'settings.set.bonus_removed', { role: `<@&${role.id}>` }));
-        }
+        case 'bonus':
+          return handleBonus('remove');
         case 'manager': {
           const role = interaction.options.getRole('role', true);
           if (settings.managerRole !== role.id) return reply(t(guildId, 'settings.remove.manager_mismatch', { role: `<@&${role.id}>` }));

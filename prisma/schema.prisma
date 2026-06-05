@@ -55,6 +55,7 @@ model Giveaway {
   pausedAt     DateTime? // Zeitpunkt der Pausierung (zum Verlängern von endAt beim Resume)
   blacklistRoles String  @default("[]") @db.Text // JSON-Array: zusätzliche Blacklist-Rollen NUR für dieses Giveaway
   whitelistRoles String  @default("[]") @db.Text // JSON-Array: zusätzliche Whitelist-Rollen NUR für dieses Giveaway
+  bonusRoles     String  @default("{}") @db.Text // JSON-Objekt RoleId->Bonus-Lose NUR für dieses Giveaway (additiv zu Guild)
   createdAt    DateTime  @default(now())
   endedAt      DateTime?
 
