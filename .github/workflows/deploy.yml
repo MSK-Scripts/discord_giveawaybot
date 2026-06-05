@@ -59,5 +59,12 @@ jobs:
             npm ci
             npx prisma generate
             npx prisma migrate deploy
+
+            # Eigentümerschaft auf den Service-User setzen: der Deploy läuft als root,
+            # der systemd-Dienst aber als discord:discord. Ohne das gehören Ordner/
+            # Dateien root:root. .env zusätzlich auf 600 beschränken (nur Owner liest).
+            chown -R discord:discord /opt/discord_giveaway
+            chmod 600 /opt/discord_giveaway/.env
+
             sudo systemctl restart discord-giveaway
             sudo systemctl --no-pager status discord-giveaway | head -n 5
