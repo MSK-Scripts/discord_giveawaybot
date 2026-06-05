@@ -2,6 +2,12 @@
 
 Multilingual, per-guild configurable giveaway bot built on **discord.js v14**, persisted via **MariaDB** (Prisma). Restart-safe poll scheduler, entry via button, winner draw with blacklist check, reroll.
 
+## ➕ Add to your server
+
+> [**Invite the bot →**](https://discord.com/oauth2/authorize?client_id=1512397062652690502&scope=bot+applications.commands&permissions=478208)
+
+This is the easiest way to use the bot — just invite the official instance. (You can also get this link any time via the `/ginvite` command.)
+
 ## Requirements
 - Node.js **22.x**
 - MariaDB (locally via Docker or a server)
