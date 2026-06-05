@@ -54,4 +54,29 @@ export function ticketWeight(member, settings) {
   return 1 + extra;
 }
 
+function parseRoleArray(value) {
+  try {
+    const v = JSON.parse(value ?? '[]');
+    return Array.isArray(v) ? v : [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Verschmilzt die serverweiten Blacklist/Whitelist-Rollen mit den per-Giveaway
+ * gespeicherten Rollen (Vereinigung). So gelten giveaway-spezifische Rollen
+ * ZUSÄTZLICH zu den globalen — nur für dieses Giveaway.
+ * @returns ein settings-ähnliches Objekt für checkEligibility().
+ */
+export function mergeGiveawayEligibility(settings, giveaway) {
+  const gBlack = parseRoleArray(giveaway?.blacklistRoles);
+  const gWhite = parseRoleArray(giveaway?.whitelistRoles);
+  return {
+    ...settings,
+    blacklist: [...new Set([...(settings.blacklist ?? []), ...gBlack])],
+    whitelist: [...new Set([...(settings.whitelist ?? []), ...gWhite])],
+  };
+}
+
 export default checkEligibility;

@@ -3,7 +3,7 @@ import { prisma } from '../database/prisma.js';
 import { logger } from '../utils/logger.js';
 import { getSettings } from './settingsService.js';
 import { buildGiveawayEmbed, buildEndedEmbed, buildButtonRow, buildResultContent } from '../utils/embeds.js';
-import { checkEligibility, ticketWeight } from '../utils/eligibility.js';
+import { checkEligibility, ticketWeight, mergeGiveawayEligibility } from '../utils/eligibility.js';
 import { generateGiveawayId } from '../utils/id.js';
 import { t } from '../utils/i18n.js';
 
@@ -16,6 +16,16 @@ export async function createGiveaway(data) {
 
 export async function getGiveaway(id, guildId) {
   return prisma.giveaway.findFirst({ where: { id, guildId } });
+}
+
+/** Per-Giveaway Blacklist-Rollen setzen (Array -> JSON). */
+export async function setGiveawayBlacklistRoles(id, roles) {
+  return prisma.giveaway.update({ where: { id }, data: { blacklistRoles: JSON.stringify(roles) } });
+}
+
+/** Per-Giveaway Whitelist-Rollen setzen (Array -> JSON). */
+export async function setGiveawayWhitelistRoles(id, roles) {
+  return prisma.giveaway.update({ where: { id }, data: { whitelistRoles: JSON.stringify(roles) } });
 }
 
 export async function listActive(guildId) {
@@ -86,6 +96,9 @@ export async function drawWinners(giveaway, guild, settings, { exclude = [] } = 
     membersMap = null;
   }
 
+  // Serverweite + per-Giveaway Blacklist/Whitelist zusammenführen.
+  const effective = mergeGiveawayEligibility(settings, giveaway);
+
   // Gültige Teilnehmer mit Gewicht (1 + Bonus-Lose) sammeln.
   const tickets = []; // userId pro Los (gewichtet)
   for (const id of pool) {
@@ -97,8 +110,8 @@ export async function drawWinners(giveaway, guild, settings, { exclude = [] } = 
         continue; // 10007 Unknown Member -> nicht mehr in Guild -> überspringen
       }
     }
-    if (!checkEligibility(member, settings).ok) continue;
-    const weight = ticketWeight(member, settings);
+    if (!checkEligibility(member, effective).ok) continue;
+    const weight = ticketWeight(member, effective);
     for (let i = 0; i < weight; i++) tickets.push(id);
   }
 

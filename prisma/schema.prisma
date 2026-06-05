@@ -53,6 +53,8 @@ model Giveaway {
   endAt        DateTime
   status       String    @default("ACTIVE") // ACTIVE | PAUSED | ENDED | CANCELLED
   pausedAt     DateTime? // Zeitpunkt der Pausierung (zum Verlängern von endAt beim Resume)
+  blacklistRoles String  @default("[]") @db.Text // JSON-Array: zusätzliche Blacklist-Rollen NUR für dieses Giveaway
+  whitelistRoles String  @default("[]") @db.Text // JSON-Array: zusätzliche Whitelist-Rollen NUR für dieses Giveaway
   createdAt    DateTime  @default(now())
   endedAt      DateTime?
 
