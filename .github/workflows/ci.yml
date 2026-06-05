@@ -16,9 +16,9 @@ jobs:
       # Dummy-URL: prisma validate/generate brauchen die Variable, aber keine echte DB.
       DATABASE_URL: "mysql://user:pass@localhost:3306/giveaway_bot"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: npm
