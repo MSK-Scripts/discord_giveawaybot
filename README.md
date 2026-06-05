@@ -88,3 +88,12 @@ Short version:
 - Run via **systemd** (`deploy/discord-giveaway.service`), auto-restart, journald logs.
 - Register commands globally: `npm run deploy:global` (registers global + removes guild commands).
 - Only the `Guilds` gateway intent is needed — no privileged intents, no inbound port.
+
+## Self-Hosting
+
+Running your own copy of this bot is **neither supported nor encouraged**. The code is published for transparency — so users can see exactly how the bot behaves and fellow bot developers can learn from the implementation — not as a ready-made product to redeploy.
+
+In practice this means:
+- There is **no support** for installing, modifying, building, or otherwise getting your own instance to run. Questions of that kind will not be answered.
+- The setup and deployment notes in this repository exist for operating the official instance; use them at your own risk.
+- Any modifications must be documented as required by the project [license](LICENSE.md).
