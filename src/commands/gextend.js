@@ -1,6 +1,6 @@
 import { SlashCommandBuilder, MessageFlags } from 'discord.js';
 import { getSettings } from '../services/settingsService.js';
-import { getGiveaway, editActiveMessage, sendGuildLog } from '../services/giveawayService.js';
+import { getGiveaway, editActiveMessage } from '../services/giveawayService.js';
 import { isManager } from '../utils/permissions.js';
 import { parseDuration } from '../utils/duration.js';
 import { prisma } from '../database/prisma.js';
