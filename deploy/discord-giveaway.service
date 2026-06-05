@@ -1,6 +1,6 @@
 [Unit]
 Description=Discord Giveaway Bot (MSK Scripts)
-Documentation=https://github.com/musiker15/discord_giveaway
+Documentation=https://github.com/MSK-Scripts/discord_giveawaybot
 After=network-online.target mariadb.service
 Wants=network-online.target
 

@@ -29,11 +29,31 @@ jobs:
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT }}
-          script_stop: true
           script: |
             set -euo pipefail
+            REPO="https://github.com/MSK-Scripts/discord_giveawaybot.git"
+            mkdir -p /opt/discord_giveaway
             cd /opt/discord_giveaway
-            git pull --ff-only
+
+            # Selbstheilend: Verzeichnis ggf. als Git-Repo initialisieren und hart
+            # auf origin/main setzen — funktioniert auch beim ersten Deploy bzw.
+            # wenn /opt/discord_giveaway (noch) kein Clone war.
+            # .env und node_modules bleiben dabei erhalten.
+            git config --global --add safe.directory /opt/discord_giveaway 2>/dev/null || true
+            git init -q
+            git remote get-url origin >/dev/null 2>&1 \
+              && git remote set-url origin "$REPO" \
+              || git remote add origin "$REPO"
+            git fetch --depth=1 origin main
+            git reset --hard origin/main
+            git clean -dfx -e .env -e node_modules
+
+            # Prod-.env muss vorhanden sein (wird bewusst NIE aus Git übertragen).
+            if [ ! -f .env ]; then
+              echo "ERROR: /opt/discord_giveaway/.env fehlt — bitte Prod-.env anlegen (siehe DEPLOYMENT.md)."
+              exit 1
+            fi
+
             # Volle Installation: das prisma-CLI ist devDependency und wird für
             # generate/migrate gebraucht.
             npm ci

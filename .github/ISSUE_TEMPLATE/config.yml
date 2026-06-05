@@ -1,8 +1,8 @@
 blank_issues_enabled: false
 contact_links:
   - name: 🔒 Report a security vulnerability
-    url: https://github.com/musiker15/discord_giveaway/security/advisories/new
+    url: https://github.com/MSK-Scripts/discord_giveawaybot/security/advisories/new
     about: Please report security issues privately — not as a public issue. See SECURITY.md.
   - name: 💬 Questions & support
-    url: https://github.com/musiker15/discord_giveaway/discussions
+    url: https://github.com/MSK-Scripts/discord_giveawaybot/discussions
     about: Ask questions or get help in Discussions.
