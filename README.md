@@ -4,7 +4,7 @@ Multilingual, per-guild configurable giveaway bot built on **discord.js v14**, p
 
 ## ➕ Add to your server
 
-> [**Invite the bot →**](https://discord.com/oauth2/authorize?client_id=1512397062652690502&scope=bot+applications.commands&permissions=478208)
+> [**Invite the bot →**](https://discord.com/oauth2/authorize?client_id=1512465732179329065&scope=bot+applications.commands&permissions=478208)
 
 This is the easiest way to use the bot — just invite the official instance. (You can also get this link any time via the `/ginvite` command.)
 
