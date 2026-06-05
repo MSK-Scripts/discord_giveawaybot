@@ -8,6 +8,11 @@ Multilingual, per-guild configurable giveaway bot built on **discord.js v14**, p
 
 This is the easiest way to use the bot — just invite the official instance. (You can also get this link any time via the `/ginvite` command.)
 
+## 📚 Documentation
+
+Full guide — getting started, the complete command reference and per-server configuration:
+**[docu.msk-scripts.de → Giveaway Bot](https://docu.msk-scripts.de/discord/discord_giveaway/getting-started)**
+
 ## Requirements
 - Node.js **22.x**
 - MariaDB (locally via Docker or a server)
@@ -76,11 +81,14 @@ npm run i18n:check          # locale completeness en/de/fr/es
 | `/ghelp` | everyone | Command overview |
 | `/ginvite` | everyone | Invite link |
 | `/gsettings show` | ManageGuild | Show settings |
-| `/gsettings set …` | ManageGuild | lang/color/emoji/button/blacklist/whitelist/bonus/minaccount/minmember/manager/notify/log |
+| `/gsettings set …` | ManageGuild | Set/add a setting: lang, color, emoji, button, blacklist, whitelist, bonus, minaccount, minmember, manager, notify, log |
+| `/gsettings remove …` | ManageGuild | Remove/clear a setting: blacklist, whitelist, bonus, manager, notify |
 | `/gpause` `/gresume` | Manager | Pause / resume a giveaway |
 | `/gtemplate save\|list\|delete\|use` | Manager | Giveaway templates |
 
 "Manager" = **Manage Server** OR the configured `manager` role.
+
+`set`/`remove blacklist` and `whitelist` accept an optional `giveaway_id` to scope a role to a single giveaway (in addition to the server-wide lists). See the **[documentation](https://docu.msk-scripts.de/discord/discord_giveaway/configuration)** for the full command and configuration reference.
 
 ## Permissions / Invite
 `/ginvite` builds the invite URL from `PermissionFlagsBits` (not hardcoded):
