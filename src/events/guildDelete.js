@@ -1,10 +1,31 @@
 import { logger } from '../utils/logger.js';
+import { prisma } from '../database/prisma.js';
+import { evict } from '../services/settingsService.js';
 
 export default {
   name: 'guildDelete',
   async execute(client, guild) {
-    // MVP: kein automatisches Löschen der Daten (Wiederbeitritt soll Settings/
-    // Giveaways behalten). Nur loggen. Cleanup kann später ergänzt werden.
-    logger.info(`Guild verlassen/entfernt: ${guild.id}.`);
+    // guildDelete feuert auch bei einem Discord-Ausfall (Guild „unavailable").
+    // In dem Fall NICHT löschen — der Bot wurde nicht entfernt.
+    if (guild.available === false) {
+      logger.warn(`Guild ${guild.id} momentan nicht verfügbar (Ausfall) — keine Löschung.`);
+      return;
+    }
+
+    // Bot wurde aus der Guild entfernt -> alle Daten dieser Guild umgehend löschen.
+    // Giveaways löschen kaskadiert auf Entry/Winner (onDelete: Cascade im Schema).
+    try {
+      const [giveaways, templates] = await prisma.$transaction([
+        prisma.giveaway.deleteMany({ where: { guildId: guild.id } }),
+        prisma.giveawayTemplate.deleteMany({ where: { guildId: guild.id } }),
+        prisma.guildSettings.deleteMany({ where: { guildId: guild.id } }),
+      ]);
+      evict(guild.id);
+      logger.info(
+        `Guild ${guild.id} entfernt — Daten gelöscht (${giveaways.count} Giveaways inkl. Entries/Winners, ${templates.count} Vorlagen, Settings).`,
+      );
+    } catch (err) {
+      logger.error(`guildDelete-Cleanup (${guild.id}):`, err);
+    }
   },
 };

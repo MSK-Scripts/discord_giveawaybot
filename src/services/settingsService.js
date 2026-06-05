@@ -59,6 +59,11 @@ export function getCached(guildId) {
   return cache.get(guildId);
 }
 
+/** Entfernt eine Guild aus dem Cache (z.B. nach Datenlöschung beim Guild-Leave). */
+export function evict(guildId) {
+  cache.delete(guildId);
+}
+
 /** Cache -> DB -> on-the-fly Default-Insert. Füllt den Cache. */
 export async function getSettings(guildId) {
   const cached = cache.get(guildId);
