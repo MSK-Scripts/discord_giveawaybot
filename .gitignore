@@ -26,3 +26,6 @@ ANNOUNCEMENT.md
 Thumbs.db
 .vscode/
 .idea/
+
+# Others
+scripts/dbl-commands.json
