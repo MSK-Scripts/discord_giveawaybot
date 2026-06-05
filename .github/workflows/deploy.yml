@@ -75,3 +75,8 @@ jobs:
 
             sudo systemctl restart discord-giveaway
             sudo systemctl --no-pager status discord-giveaway | head -n 5
+
+            # Slash-Commands global registrieren (idempotent): geänderte Command-
+            # Definitionen müssen so nicht mehr manuell deployt werden. Läuft als
+            # letzter Schritt — der Bot ist da bereits mit dem neuen Code neugestartet.
+            npm run deploy:global
