@@ -4,6 +4,11 @@ Documentation=https://github.com/MSK-Scripts/discord_giveawaybot
 After=network-online.target mariadb.service
 Wants=network-online.target
 
+# Crash-Loop-Bremse: max. StartLimitBurst Neustarts in StartLimitIntervalSec.
+# (Diese Keys gehören in [Unit], NICHT in [Service].)
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
 [Service]
 Type=simple
 User=discord
@@ -19,9 +24,6 @@ Environment=NODE_ENV=production
 
 Restart=on-failure
 RestartSec=5
-# Bei wiederholten Crashes nicht in Endlosschleife rennen.
-StartLimitIntervalSec=60
-StartLimitBurst=5
 
 # Logs gehen an journald: `journalctl -u discord-giveaway -f`
 StandardOutput=journal
