@@ -1,0 +1,39 @@
+[Unit]
+Description=Discord Giveaway Bot (MSK Scripts)
+Documentation=https://github.com/musiker15/discord_giveaway
+After=network-online.target mariadb.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=discord
+Group=discord
+WorkingDirectory=/opt/discord_giveaway
+
+# Pfad ggf. an `which node` anpassen (Node 22). Bei nvm: absoluter Pfad zur node-Binary.
+ExecStart=/usr/bin/node src/index.js
+
+# Lädt DISCORD_TOKEN / CLIENT_ID / DATABASE_URL etc. (Datei NICHT ins Repo!)
+EnvironmentFile=/opt/discord_giveaway/.env
+Environment=NODE_ENV=production
+
+Restart=on-failure
+RestartSec=5
+# Bei wiederholten Crashes nicht in Endlosschleife rennen.
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+# Logs gehen an journald: `journalctl -u discord-giveaway -f`
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=discord-giveaway
+
+# Hardening (optional, bei Problemen einzeln deaktivieren)
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=read-only
+ReadWritePaths=/opt/discord_giveaway
+
+[Install]
+WantedBy=multi-user.target

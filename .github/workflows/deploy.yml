@@ -1,0 +1,43 @@
+name: Deploy
+
+# Bei jedem Push auf main: erst prüfen (verify aus ci.yml), dann per SSH auf den
+# Debian-Server deployen und den systemd-Dienst neu starten.
+# Manuell auslösbar via "Run workflow".
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  # Gate: derselbe verify-Job wie für PRs (prisma validate/generate, i18n, smoke, node --check).
+  verify:
+    uses: ./.github/workflows/ci.yml
+
+  deploy:
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT }}
+          script_stop: true
+          script: |
+            set -euo pipefail
+            cd /opt/discord_giveaway
+            git pull --ff-only
+            # Volle Installation: das prisma-CLI ist devDependency und wird für
+            # generate/migrate gebraucht.
+            npm ci
+            npx prisma generate
+            npx prisma migrate deploy
+            sudo systemctl restart discord-giveaway
+            sudo systemctl --no-pager status discord-giveaway | head -n 5

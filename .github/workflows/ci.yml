@@ -1,0 +1,41 @@
+name: CI
+
+# Statische Prüfung ohne DB/Token. Läuft bei Pull Requests, ist manuell auslösbar
+# und wird vom Deploy-Workflow als Gate wiederverwendet (workflow_call).
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_call:
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    env:
+      # Dummy-URL: prisma validate/generate brauchen die Variable, aber keine echte DB.
+      DATABASE_URL: "mysql://user:pass@localhost:3306/giveaway_bot"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Prisma validate & generate
+        run: |
+          npx prisma validate
+          npx prisma generate
+
+      - name: i18n completeness check
+        run: npm run i18n:check
+
+      - name: Smoke test (Exporte + SlashCommand-Builder)
+        run: npm run smoke
+
+      - name: Syntax check (node --check)
+        run: find src scripts deploy-commands.js -name '*.js' -print0 | xargs -0 -n1 node --check

@@ -1,0 +1,323 @@
+// Giveaway-CRUD, Gewinnerziehung, Beenden (mit zentralem In-Memory-Lock).
+import { prisma } from '../database/prisma.js';
+import { logger } from '../utils/logger.js';
+import { getSettings } from './settingsService.js';
+import { buildGiveawayEmbed, buildEndedEmbed, buildButtonRow, buildResultContent } from '../utils/embeds.js';
+import { checkEligibility, ticketWeight } from '../utils/eligibility.js';
+import { generateGiveawayId } from '../utils/id.js';
+import { t } from '../utils/i18n.js';
+
+// Zentraler Lock gegen Doppel-Beendigung (Scheduler-Tick vs. /gend).
+const endingLocks = new Set();
+
+export async function createGiveaway(data) {
+  return prisma.giveaway.create({ data });
+}
+
+export async function getGiveaway(id, guildId) {
+  return prisma.giveaway.findFirst({ where: { id, guildId } });
+}
+
+export async function listActive(guildId) {
+  return prisma.giveaway.findMany({
+    where: { guildId, status: 'ACTIVE' },
+    orderBy: { endAt: 'asc' },
+  });
+}
+
+export async function countEntries(giveawayId) {
+  return prisma.entry.count({ where: { giveawayId } });
+}
+
+export async function getWinnerIds(giveawayId, { onlyActive = false } = {}) {
+  const winners = await prisma.winner.findMany({
+    where: { giveawayId, ...(onlyActive ? { rerolled: false } : {}) },
+    select: { userId: true },
+  });
+  return winners.map((w) => w.userId);
+}
+
+/** Teilnahme toggeln. @returns {'added'|'removed'} */
+export async function addOrRemoveEntry(giveawayId, userId) {
+  const existing = await prisma.entry.findUnique({
+    where: { giveawayId_userId: { giveawayId, userId } },
+  });
+  if (existing) {
+    await prisma.entry.delete({ where: { giveawayId_userId: { giveawayId, userId } } });
+    return 'removed';
+  }
+  await prisma.entry.create({ data: { giveawayId, userId } });
+  return 'added';
+}
+
+export async function cancelGiveaway(id, guildId) {
+  return prisma.giveaway.update({
+    where: { id },
+    data: { status: 'CANCELLED', endedAt: new Date() },
+  });
+}
+
+function shuffle(arr) {
+  // Fisher-Yates
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+/**
+ * Zieht Gewinner. Prüft nachträglich Teilnahmebedingungen (Blacklist/Whitelist/
+ * Account-Alter/Server-Zugehörigkeit), berücksichtigt Bonus-Lose (gewichtete
+ * Ziehung) und überspringt Mitglieder, die nicht mehr in der Guild sind.
+ * Kein GuildMembers-Intent nötig.
+ * @returns {Promise<string[]>} userIds der Gewinner
+ */
+export async function drawWinners(giveaway, guild, settings, { exclude = [] } = {}) {
+  const entries = await prisma.entry.findMany({ where: { giveawayId: giveaway.id } });
+  let pool = entries.map((e) => e.userId).filter((id) => !exclude.includes(id));
+  if (pool.length === 0) return [];
+
+  // Bulk-Fetch (ein REST-Call) mit Einzel-Fallback.
+  let membersMap = null;
+  try {
+    membersMap = await guild.members.fetch({ user: pool });
+  } catch {
+    membersMap = null;
+  }
+
+  // Gültige Teilnehmer mit Gewicht (1 + Bonus-Lose) sammeln.
+  const tickets = []; // userId pro Los (gewichtet)
+  for (const id of pool) {
+    let member = membersMap?.get(id) ?? null;
+    if (!member) {
+      try {
+        member = await guild.members.fetch(id);
+      } catch {
+        continue; // 10007 Unknown Member -> nicht mehr in Guild -> überspringen
+      }
+    }
+    if (!checkEligibility(member, settings).ok) continue;
+    const weight = ticketWeight(member, settings);
+    for (let i = 0; i < weight; i++) tickets.push(id);
+  }
+
+  if (tickets.length === 0) return [];
+
+  // Gewichtete Ziehung ohne Zurücklegen: Lose mischen, eindeutige Gewinner sammeln.
+  shuffle(tickets);
+  const winners = [];
+  const seen = new Set();
+  for (const id of tickets) {
+    if (seen.has(id)) continue;
+    seen.add(id);
+    winners.push(id);
+    if (winners.length >= giveaway.winnersCount) break;
+  }
+  return winners;
+}
+
+// ── Live-Update der Teilnehmerzahl im aktiven Embed (gedrosselt) ──────────────
+// Pro Giveaway max. ~1 Edit / THROTTLE_MS; ein Trailing-Edit stellt sicher, dass
+// der zuletzt gültige Stand abgebildet wird (Discord-Rate-Limits schonen).
+const EMBED_THROTTLE_MS = 4000;
+const embedThrottle = new Map(); // giveawayId -> { last: number, timer: NodeJS.Timeout|null }
+
+async function refreshActiveEmbed(client, giveaway, settings) {
+  try {
+    if (!giveaway.messageId) return;
+    const fresh = await prisma.giveaway.findUnique({ where: { id: giveaway.id } });
+    if (!fresh || fresh.status !== 'ACTIVE') return; // beendete/abgebrochene nicht anfassen
+    const channel = await client.channels.fetch(giveaway.channelId);
+    const msg = await channel.messages.fetch(giveaway.messageId);
+    const entryCount = await countEntries(giveaway.id);
+    await msg.edit({
+      embeds: [buildGiveawayEmbed(fresh, settings, { entryCount })],
+      components: [buildButtonRow(fresh, settings, { disabled: false })],
+    });
+  } catch (err) {
+    logger.warn(`refreshActiveEmbed(${giveaway.id}):`, err?.message ?? err);
+  }
+}
+
+/** Plant ein gedrosseltes Embed-Update (fire-and-forget). */
+export function scheduleEmbedRefresh(client, giveaway, settings) {
+  const id = giveaway.id;
+  const state = embedThrottle.get(id) ?? { last: 0, timer: null };
+  embedThrottle.set(id, state);
+
+  if (state.timer) return; // ein Trailing-Edit ist bereits eingeplant -> deckt neuesten Stand ab
+
+  const sinceLast = Date.now() - state.last;
+  const run = async () => {
+    state.timer = null;
+    state.last = Date.now();
+    await refreshActiveEmbed(client, giveaway, settings);
+  };
+
+  if (sinceLast >= EMBED_THROTTLE_MS) {
+    run(); // Leading-Edit sofort
+  } else {
+    state.timer = setTimeout(run, EMBED_THROTTLE_MS - sinceLast); // Trailing-Edit
+  }
+}
+
+/** Original-Nachricht editieren (Button disabled, Ended-Embed) + Ergebnis posten. */
+async function finalizeMessages(client, giveaway, settings, winnerIds) {
+  const entryCount = await countEntries(giveaway.id);
+  let channel = null;
+  try {
+    channel = await client.channels.fetch(giveaway.channelId);
+  } catch {
+    channel = null;
+  }
+  if (!channel) return;
+
+  // Original-Embed aktualisieren (gelöschte Nachricht abfangen).
+  if (giveaway.messageId) {
+    try {
+      const msg = await channel.messages.fetch(giveaway.messageId);
+      await msg.edit({
+        embeds: [buildEndedEmbed(giveaway, settings, { winnerIds, entryCount })],
+        components: [buildButtonRow(giveaway, settings, { disabled: true })],
+      });
+    } catch (err) {
+      logger.warn(`finalizeMessages: konnte Original-Nachricht ${giveaway.messageId} nicht editieren:`, err?.message ?? err);
+    }
+  }
+
+  // Ergebnis-Nachricht posten.
+  try {
+    await channel.send({
+      content: buildResultContent(giveaway, winnerIds, entryCount),
+      allowedMentions: { users: winnerIds },
+    });
+  } catch (err) {
+    logger.warn(`finalizeMessages: konnte Ergebnis nicht senden:`, err?.message ?? err);
+  }
+}
+
+/**
+ * Beendet ein aktives Giveaway: zieht Gewinner, setzt Status, postet Ergebnis.
+ * Idempotent durch Lock + Status-Re-Read.
+ * @returns {Promise<string[]|null>} winnerIds, oder null wenn nichts zu tun
+ */
+export async function endGiveaway(giveaway, client) {
+  const id = giveaway.id;
+  if (endingLocks.has(id)) return null;
+  endingLocks.add(id);
+  try {
+    const fresh = await prisma.giveaway.findUnique({ where: { id } });
+    if (!fresh || fresh.status !== 'ACTIVE') return null;
+
+    const settings = await getSettings(fresh.guildId);
+    const guild = await client.guilds.fetch(fresh.guildId).catch(() => null);
+
+    let winnerIds = [];
+    if (guild) winnerIds = await drawWinners(fresh, guild, settings, {});
+
+    await prisma.giveaway.update({
+      where: { id },
+      data: { status: 'ENDED', endedAt: new Date() },
+    });
+    if (winnerIds.length) {
+      await prisma.winner.createMany({
+        data: winnerIds.map((userId) => ({ giveawayId: id, userId })),
+        skipDuplicates: true,
+      });
+    }
+
+    await finalizeMessages(client, fresh, settings, winnerIds);
+    await sendGuildLog(client, settings, t(fresh.guildId, 'log.ended', {
+      id, title: fresh.title, count: winnerIds.length,
+    }));
+    return winnerIds;
+  } catch (err) {
+    logger.error(`endGiveaway(${id}):`, err);
+    return null;
+  } finally {
+    endingLocks.delete(id);
+  }
+}
+
+// ── Logging-Channel pro Guild ────────────────────────────────────────────────
+/** Postet eine Log-Zeile in den konfigurierten Log-Channel (ohne Pings). */
+export async function sendGuildLog(client, settings, content) {
+  if (!settings?.logChannel) return;
+  try {
+    const ch = await client.channels.fetch(settings.logChannel);
+    await ch.send({ content, allowedMentions: { parse: [] } });
+  } catch (err) {
+    logger.warn('sendGuildLog:', err?.message ?? err);
+  }
+}
+
+// ── Gemeinsame Erstellung (Modal + Vorlage nutzen dies) ──────────────────────
+/**
+ * Legt ein Giveaway an, postet die Nachricht und speichert die messageId.
+ * Bei Sende-Fehler wird der DB-Eintrag wieder entfernt (kein verwaistes Giveaway).
+ * @returns {Promise<string>} die Giveaway-ID
+ */
+export async function postGiveaway(client, channel, settings, { guildId, hostId, title, description, winnersCount, endAt }) {
+  const id = await generateGiveawayId();
+  const giveaway = await createGiveaway({
+    id, guildId, channelId: channel.id, hostId, title, description, winnersCount, endAt, status: 'ACTIVE',
+  });
+  try {
+    const content = settings.notifyRole ? `<@&${settings.notifyRole}>` : undefined;
+    const msg = await channel.send({
+      content,
+      embeds: [buildGiveawayEmbed(giveaway, settings, { entryCount: 0 })],
+      components: [buildButtonRow(giveaway, settings, { disabled: false })],
+      allowedMentions: { roles: settings.notifyRole ? [settings.notifyRole] : [] },
+    });
+    await prisma.giveaway.update({ where: { id }, data: { messageId: msg.id } });
+    await sendGuildLog(client, settings, t(guildId, 'log.created', { id, title, user: `<@${hostId}>` }));
+    return id;
+  } catch (err) {
+    await prisma.giveaway.delete({ where: { id } }).catch(() => {});
+    throw err;
+  }
+}
+
+// ── Pause / Resume ───────────────────────────────────────────────────────────
+/** Aktualisiert die aktive Giveaway-Nachricht (Embed + Button-Status). */
+async function editActiveMessage(client, giveaway, settings, { disabled, paused }) {
+  if (!giveaway.messageId) return;
+  try {
+    const channel = await client.channels.fetch(giveaway.channelId);
+    const msg = await channel.messages.fetch(giveaway.messageId);
+    const entryCount = await countEntries(giveaway.id);
+    const embed = buildGiveawayEmbed(giveaway, settings, { entryCount });
+    if (paused) embed.setTitle(`⏸️ ${giveaway.title}`);
+    await msg.edit({ embeds: [embed], components: [buildButtonRow(giveaway, settings, { disabled })] });
+  } catch (err) {
+    logger.warn(`editActiveMessage(${giveaway.id}):`, err?.message ?? err);
+  }
+}
+
+/** Pausiert ein aktives Giveaway (Button deaktiviert, Timer eingefroren). */
+export async function pauseGiveaway(client, giveaway, settings) {
+  const updated = await prisma.giveaway.update({
+    where: { id: giveaway.id },
+    data: { status: 'PAUSED', pausedAt: new Date() },
+  });
+  await editActiveMessage(client, updated, settings, { disabled: true, paused: true });
+  await sendGuildLog(client, settings, t(giveaway.guildId, 'log.paused', { id: giveaway.id, title: giveaway.title }));
+  return updated;
+}
+
+/** Setzt ein pausiertes Giveaway fort und verlängert endAt um die Pausendauer. */
+export async function resumeGiveaway(client, giveaway, settings) {
+  const pausedMs = giveaway.pausedAt ? Date.now() - new Date(giveaway.pausedAt).getTime() : 0;
+  const newEndAt = new Date(new Date(giveaway.endAt).getTime() + pausedMs);
+  const updated = await prisma.giveaway.update({
+    where: { id: giveaway.id },
+    data: { status: 'ACTIVE', pausedAt: null, endAt: newEndAt },
+  });
+  await editActiveMessage(client, updated, settings, { disabled: false, paused: false });
+  await sendGuildLog(client, settings, t(giveaway.guildId, 'log.resumed', { id: giveaway.id, title: giveaway.title }));
+  return updated;
+}
+
+export { endingLocks };

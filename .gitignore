@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+
+# Environment / Secrets (alle .env-Varianten, außer dem Beispiel)
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+
+# Prisma (lokale SQLite-Artefakte; Migrationen werden committet)
+/prisma/*.db
+/prisma/*.db-journal
+
+# Claude
+.claude
+CLAUDE.md
+Konzept.md
+DEPLOYMENT.md
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

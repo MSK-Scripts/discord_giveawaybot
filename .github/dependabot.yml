@@ -1,0 +1,50 @@
+version: 2
+
+updates:
+  # ── npm-Abhängigkeiten ──────────────────────────────────────────────────────
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: "Europe/Berlin"
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+    commit-message:
+      prefix: deps
+      prefix-development: deps-dev
+    # Minor/Patch gebündelt -> weniger PR-Rauschen. Major bleibt einzeln (Review nötig).
+    groups:
+      production-minor-patch:
+        dependency-type: production
+        update-types: [minor, patch]
+      development-minor-patch:
+        dependency-type: development
+        update-types: [minor, patch]
+    ignore:
+      # discord.js-Major (v15) bewusst manuell migrieren (Breaking Changes).
+      - dependency-name: discord.js
+        update-types: [version-update:semver-major]
+      # Prisma-Major manuell migrieren (Engine-/Schema-Änderungen).
+      - dependency-name: prisma
+        update-types: [version-update:semver-major]
+      - dependency-name: "@prisma/client"
+        update-types: [version-update:semver-major]
+
+  # ── GitHub-Actions-Versionen ────────────────────────────────────────────────
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      timezone: "Europe/Berlin"
+    labels:
+      - ci
+    commit-message:
+      prefix: ci
+    groups:
+      actions:
+        patterns:
+          - "*"

@@ -1,0 +1,83 @@
+// Prisma schema — Discord Giveaway Bot
+// MariaDB spricht das MySQL-Protokoll -> provider = "mysql".
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model GuildSettings {
+  guildId       String   @id // Discord Guild Snowflake
+  lang          String   @default("en")
+  embedColor    String   @default("#00e676") // Hex (MSK Grün)
+  buttonEmoji   String   @default("🎉")
+  buttonStyle   String   @default("PRIMARY") // PRIMARY|SECONDARY|SUCCESS|DANGER
+  blacklist     String   @default("[]") @db.Text // JSON-Array von Role-IDs (dürfen NICHT teilnehmen)
+  whitelist     String   @default("[]") @db.Text // JSON-Array von Role-IDs (≥1 nötig, leer = keine Pflicht)
+  bonusRoles    String   @default("{}") @db.Text // JSON-Objekt RoleId -> Bonus-Lose (gewichtete Ziehung)
+  minAccountDays Int     @default(0) // Mindest-Account-Alter in Tagen (0 = aus)
+  minMemberDays Int      @default(0) // Mindest-Server-Zugehörigkeit in Tagen (0 = aus)
+  managerRole   String? // optional: Rolle, die Giveaways verwalten darf
+  notifyRole    String? // optional: Rolle, die beim Start gepingt wird
+  logChannel    String? // optional: Channel für Giveaway-Logs
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model GiveawayTemplate {
+  id           Int      @id @default(autoincrement())
+  guildId      String
+  name         String
+  title        String
+  description  String   @db.Text
+  duration     String // z.B. "1d2h30m"
+  winnersCount Int      @default(1)
+  createdAt    DateTime @default(now())
+
+  @@unique([guildId, name])
+}
+
+model Giveaway {
+  id           String    @id // kurze öffentliche ID, z.B. "A1B2C3"
+  guildId      String
+  channelId    String
+  messageId    String? // Nachricht mit Embed + Button
+  hostId       String // wer hat erstellt
+  title        String
+  description  String    @db.Text
+  winnersCount Int       @default(1)
+  endAt        DateTime
+  status       String    @default("ACTIVE") // ACTIVE | PAUSED | ENDED | CANCELLED
+  pausedAt     DateTime? // Zeitpunkt der Pausierung (zum Verlängern von endAt beim Resume)
+  createdAt    DateTime  @default(now())
+  endedAt      DateTime?
+
+  entries Entry[]
+  winners Winner[]
+
+  @@index([guildId, status])
+  @@index([status, endAt])
+}
+
+model Entry {
+  giveawayId String
+  userId     String
+  joinedAt   DateTime @default(now())
+  giveaway   Giveaway @relation(fields: [giveawayId], references: [id], onDelete: Cascade)
+
+  @@id([giveawayId, userId])
+}
+
+model Winner {
+  giveawayId String
+  userId     String
+  rerolled   Boolean  @default(false)
+  pickedAt   DateTime @default(now())
+  giveaway   Giveaway @relation(fields: [giveawayId], references: [id], onDelete: Cascade)
+
+  @@id([giveawayId, userId])
+}

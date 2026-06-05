@@ -1,0 +1,35 @@
+name: CodeQL
+
+# Statische Security-Analyse (GitHub Code Scanning) für JavaScript.
+# Findet u. a. Injection-Risiken, unsichere Patterns, fehlerhafte Datenflüsse.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Wöchentlich montags 05:30 UTC (fängt neue CodeQL-Regeln/CVE-Patterns ab).
+    - cron: "30 5 * * 1"
+
+jobs:
+  analyze:
+    name: Analyze (javascript)
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+          queries: security-and-quality
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:javascript-typescript"

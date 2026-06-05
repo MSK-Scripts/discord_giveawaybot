@@ -1,30 +1,31 @@
 # 🎉 Discord Giveaway Bot
 
-Mehrsprachiger, pro Guild konfigurierbarer Giveaway-Bot auf Basis von **discord.js v14**, persistent über **MariaDB** (Prisma). Restart-sicherer Poll-Scheduler, Teilnahme über Button, Gewinnerziehung mit Blacklist-Prüfung, Reroll.
+Multilingual, per-guild configurable giveaway bot built on **discord.js v14**, persisted via **MariaDB** (Prisma). Restart-safe poll scheduler, entry via button, winner draw with blacklist check, reroll.
 
-Vollständiges Konzept: [Konzept.md](Konzept.md) · Entwickler-Kontext: [CLAUDE.md](CLAUDE.md)
-
-## Voraussetzungen
+## Requirements
 - Node.js **22.x**
-- MariaDB (lokal via Docker oder Server)
-- Eine Discord-Application mit Bot-Token
+- MariaDB (locally via Docker or a server)
+- A Discord application with a bot token
 
 ## Setup
 
 ```bash
 npm install
-cp .env.example .env   # Werte eintragen (Windows: copy)
+cp .env.example .env
 ```
 
 `.env`:
-```
-DISCORD_TOKEN=...
-CLIENT_ID=...
+```bash
+DISCORD_TOKEN=
+CLIENT_ID=
+
+# optional, for fast dev deploy
+GUILD_ID=
+
 DATABASE_URL="mysql://user:pass@localhost:3306/giveaway_bot"
-GUILD_ID=            # optional, für schnelles Dev-Deploy
 ```
 
-### MariaDB via Docker (lokal/Test)
+### MariaDB via Docker (local/test)
 ```bash
 docker run -d --name giveaway-mariadb \
   -e MARIADB_ROOT_PASSWORD=root \
@@ -32,58 +33,58 @@ docker run -d --name giveaway-mariadb \
   -p 3306:3306 mariadb:11
 ```
 
-### Datenbank migrieren
+### Migrate the database
 ```bash
 npm run prisma:generate
-npm run prisma:migrate      # legt die Tabellen an (DB muss laufen)
+npm run prisma:migrate      # creates the tables (DB must be running)
 ```
 
-### Slash-Commands registrieren
+### Register slash commands
 ```bash
-npm run deploy              # Guild-Commands wenn GUILD_ID gesetzt, sonst global
+npm run deploy              # guild commands if GUILD_ID is set, otherwise global
 ```
 
-### Bot starten
+### Start the bot
 ```bash
-npm start                   # bzw. npm run dev (node --watch)
+npm start                   # or npm run dev (node --watch)
 ```
 
-## Statische Verifikation (ohne DB/Token)
+## Static verification (no DB/token)
 ```bash
 npx prisma validate
 npm run prisma:generate
-npm run smoke               # Lade-Smoke-Test (Exporte + Builder-Constraints)
-npm run i18n:check          # Locale-Vollständigkeit en/de/fr/es
+npm run smoke               # load smoke test (exports + builder constraints)
+npm run i18n:check          # locale completeness en/de/fr/es
 ```
 
 ## Commands
 
-| Command | Rechte | Beschreibung |
+| Command | Permissions | Description |
 |---|---|---|
-| `/gcreate` | Manager | Modal → Giveaway im aktuellen Channel |
-| `/gcancel <id>` | Manager | Aktives Giveaway abbrechen |
-| `/gend <id>` | Manager | Sofort beenden + Gewinner ziehen |
-| `/greroll <id>` | Manager | Neue Gewinner für beendetes Giveaway |
-| `/glist` | alle | Aktive Giveaways auflisten |
-| `/ginfo <id>` | alle | Details zu einem Giveaway |
-| `/ghelp` | alle | Command-Übersicht |
-| `/ginvite` | alle | Invite-Link |
-| `/gsettings show` | ManageGuild | Einstellungen anzeigen |
+| `/gcreate` | Manager | Modal → giveaway in the current channel |
+| `/gcancel <id>` | Manager | Cancel an active giveaway |
+| `/gend <id>` | Manager | End immediately + draw winners |
+| `/greroll <id>` | Manager | New winners for an ended giveaway |
+| `/glist` | everyone | List active giveaways |
+| `/ginfo <id>` | everyone | Details about a giveaway |
+| `/ghelp` | everyone | Command overview |
+| `/ginvite` | everyone | Invite link |
+| `/gsettings show` | ManageGuild | Show settings |
 | `/gsettings set …` | ManageGuild | lang/color/emoji/button/blacklist/whitelist/bonus/minaccount/minmember/manager/notify/log |
-| `/gpause` `/gresume` | Manager | Giveaway pausieren / fortsetzen |
-| `/gtemplate save\|list\|delete\|use` | Manager | Giveaway-Vorlagen |
+| `/gpause` `/gresume` | Manager | Pause / resume a giveaway |
+| `/gtemplate save\|list\|delete\|use` | Manager | Giveaway templates |
 
-„Manager" = **Manage Server** ODER die konfigurierte `manager`-Rolle.
+"Manager" = **Manage Server** OR the configured `manager` role.
 
 ## Permissions / Invite
-`/ginvite` baut die Invite-URL aus `PermissionFlagsBits` (nicht hartkodiert):
-ViewChannel, SendMessages, EmbedLinks, ReadMessageHistory, UseExternalEmojis, MentionEveryone (Integer **478208**). `allowedMentions` begrenzt Pings zur Laufzeit gezielt auf die Notify-Rolle.
+`/ginvite` builds the invite URL from `PermissionFlagsBits` (not hardcoded):
+ViewChannel, SendMessages, EmbedLinks, ReadMessageHistory, UseExternalEmojis, MentionEveryone (integer **478208**). `allowedMentions` restricts runtime pings specifically to the notify role.
 
-## Deployment (Server)
-Vollständiges Runbook: **[DEPLOYMENT.md](DEPLOYMENT.md)** (systemd-Unit + GitHub Actions CI/CD).
+## Deployment (server)
+Full runbook: **[DEPLOYMENT.md](DEPLOYMENT.md)** (systemd unit + GitHub Actions CI/CD).
 
-Kurzfassung:
-- Auf dem Server **`npm ci`** (volle Installation — das `prisma`-CLI ist devDependency und wird für generate/migrate gebraucht), dann `npx prisma generate` + `npx prisma migrate deploy`.
-- Dienst via **systemd** (`deploy/discord-giveaway.service`), Auto-Restart, journald-Logs.
-- Commands global registrieren: `npm run deploy:global` (registriert global + entfernt Guild-Commands).
-- Nur der `Guilds`-Gateway-Intent ist nötig — keine privilegierten Intents, kein eingehender Port.
+Short version:
+- On the server use **`npm ci`** (full install — the `prisma` CLI is a devDependency and is needed for generate/migrate), then `npx prisma generate` + `npx prisma migrate deploy`.
+- Run via **systemd** (`deploy/discord-giveaway.service`), auto-restart, journald logs.
+- Register commands globally: `npm run deploy:global` (registers global + removes guild commands).
+- Only the `Guilds` gateway intent is needed — no privileged intents, no inbound port.

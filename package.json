@@ -1,0 +1,31 @@
+{
+  "name": "discord-giveaway-bot",
+  "version": "1.0.0",
+  "description": "Discord Giveaway Bot (discord.js v14, Prisma/MariaDB, mehrsprachig) — MSK Scripts",
+  "type": "module",
+  "main": "src/index.js",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "deploy": "node deploy-commands.js",
+    "deploy:global": "node deploy-commands.js --global",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "smoke": "node scripts/smoke.js",
+    "i18n:check": "node scripts/i18n-check.js"
+  },
+  "author": "Moritz Kohm (MSK Scripts)",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "@prisma/client": "^5.20.0",
+    "discord.js": "^14.16.0",
+    "dotenv": "^16.4.5",
+    "nanoid": "^5.0.7"
+  },
+  "devDependencies": {
+    "prisma": "^5.20.0"
+  }
+}
