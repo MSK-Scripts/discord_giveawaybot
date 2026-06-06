@@ -8,8 +8,10 @@ All notable changes to the **MSK Giveaway Bot**. Format based on [Keep a Changel
 - **Web dashboard (msk-scripts.de/giveaway/dashboard)** — manage giveaways from the browser: create, edit, extend, pause/resume, end, cancel, reroll (all or a single winner) and edit per-server settings. Access via Discord login (Manage Server). All actions are forwarded to the running bot, so the Discord embed/button/DMs/log and the settings cache stay consistent.
 - **Localhost control endpoint** (`services/controlServer.js`) — a lightweight HTTP server bound to `127.0.0.1` only, authenticated with a shared secret (`CONTROL_SECRET`), that the shop's dashboard proxies management actions to.
 - **Public results pages (msk-scripts.de/giveaway/g/…)** — when a giveaway ends (or is rerolled), the bot publishes a hosted results page showing the **winners (username)** and the **anonymous participant count** (never the participant list), and links it in the results message and winner DMs. New `result.link` locale key (en/de/fr/es).
+- New locale keys for the expanded logging: `log.setting`, `log.extended`, `log.reminder` (en/de/fr/es).
 
 ### Changed
+- **Complete event logging** — the configured log channel now records **everything the bot does and every setting that is changed**, not just a subset. This covers the full giveaway lifecycle (create / edit / extend / end / cancel / reroll — including single-winner reroll, pause and resume), posted "ending soon" reminders, **and every actual `/gsettings` change** (with the acting user and the changed detail). No-op or invalid settings inputs are not logged, and individual entries (button join/leave) are deliberately excluded to avoid channel spam.
 - Discord side-effects for cancel/reroll were extracted into the service layer (`cancelAndFinalize`, `rerollAll`, `rerollSingle`) so the slash commands and the dashboard share one implementation.
 
 ### Security / hardening
