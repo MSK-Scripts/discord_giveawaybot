@@ -166,6 +166,7 @@
 
   "dm.winner": "🎉 Glückwunsch! Du hast **{prize}** in **{guild}** gewonnen.",
   "dm.winner_link": "🔗 Zum Giveaway: {link}",
+  "result.link": "🔗 Ergebnisse & Gewinner: {url}",
 
   "reminder.ending_soon": "⏰ Giveaway **{title}** endet {ends} — letzte Chance zum Mitmachen!",
 

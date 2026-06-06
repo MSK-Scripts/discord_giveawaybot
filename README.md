@@ -97,6 +97,13 @@ npm run i18n:check          # locale completeness en/de/fr/es
 `/ginvite` builds the invite URL from `PermissionFlagsBits` (not hardcoded):
 ViewChannel, SendMessages, EmbedLinks, ReadMessageHistory, UseExternalEmojis, MentionEveryone (integer **478208**). `allowedMentions` restricts runtime pings specifically to the notify role.
 
+## Web dashboard & public results (msk-scripts.de)
+The official instance integrates with **msk-scripts.de**:
+- **Web dashboard** — `…/giveaway/dashboard` lets server admins (Discord login, Manage Server) create and fully manage giveaways and per-server settings from the browser. The shop proxies every action to a **localhost-only** HTTP control endpoint in the bot (`services/controlServer.js`, header `X-Control-Secret` = `CONTROL_SECRET`), so all Discord side-effects and the settings cache stay consistent. No public port is opened.
+- **Public results page** — when a giveaway ends, the bot pushes the winners (username) and the anonymous participant count to the shop (`RESULT_PUBLISH_URL`, `Authorization: Bearer ${RESULT_PUBLISH_SECRET}`), which hosts a results page at `…/giveaway/g/<token>` and links it in the results message + winner DMs. The full participant list is never published.
+
+Both features are **optional** and disabled until their env vars are set (`CONTROL_SECRET`, `RESULT_PUBLISH_URL` + `RESULT_PUBLISH_SECRET`). See `.env.example`.
+
 ## Deployment (server)
 Short version:
 - On the server use **`npm ci`** (full install — the `prisma` CLI is a devDependency and is needed for generate/migrate), then `npx prisma generate` + `npx prisma migrate deploy`.

@@ -3,6 +3,7 @@
 import { prisma } from '../database/prisma.js';
 import { logger } from '../utils/logger.js';
 import { evict } from './settingsService.js';
+import { deleteGuildResults } from './resultPublisher.js';
 
 /**
  * Löscht ALLE Daten einer Guild. Giveaways kaskadieren auf Entry/Winner.
@@ -15,6 +16,8 @@ export async function deleteGuildData(guildId) {
     prisma.guildSettings.deleteMany({ where: { guildId } }),
   ]);
   evict(guildId);
+  // Öffentliche Ergebnis-Seiten im msk-shop ebenfalls entfernen (fire-and-forget).
+  deleteGuildResults(guildId).catch(() => {});
   return { giveaways: giveaways.count, templates: templates.count };
 }
 

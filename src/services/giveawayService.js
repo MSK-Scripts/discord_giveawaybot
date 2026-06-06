@@ -2,9 +2,10 @@
 import { prisma } from '../database/prisma.js';
 import { logger } from '../utils/logger.js';
 import { getSettings } from './settingsService.js';
-import { buildGiveawayEmbed, buildEndedEmbed, buildButtonRow, buildResultContent } from '../utils/embeds.js';
+import { buildGiveawayEmbed, buildEndedEmbed, buildCancelledEmbed, buildButtonRow, buildResultContent } from '../utils/embeds.js';
 import { checkEligibility, ticketWeight, mergeGiveawayEligibility } from '../utils/eligibility.js';
 import { generateGiveawayId } from '../utils/id.js';
+import { publishResult } from './resultPublisher.js';
 import { t } from '../utils/i18n.js';
 
 // Zentraler Lock gegen Doppel-Beendigung (Scheduler-Tick vs. /gend).
@@ -187,7 +188,7 @@ function messageLink(giveaway) {
 }
 
 /** Schickt jedem Gewinner eine DM (Preis + optionaler Claim-Hinweis + Link). Fehler werden ignoriert. */
-export async function dmWinners(client, giveaway, settings, winnerIds) {
+export async function dmWinners(client, giveaway, settings, winnerIds, { resultUrl = null } = {}) {
   if (!winnerIds?.length) return;
   const g = giveaway.guildId;
   const prize = giveaway.prize || giveaway.title;
@@ -196,6 +197,7 @@ export async function dmWinners(client, giveaway, settings, winnerIds) {
   let content = t(g, 'dm.winner', { prize, guild: guildName });
   if (settings.claimMessage) content += `\n${settings.claimMessage}`;
   if (link) content += `\n${t(g, 'dm.winner_link', { link })}`;
+  if (resultUrl) content += `\n${t(g, 'result.link', { url: resultUrl })}`;
 
   for (const userId of winnerIds) {
     try {
@@ -208,7 +210,7 @@ export async function dmWinners(client, giveaway, settings, winnerIds) {
 }
 
 /** Original-Nachricht editieren (Button disabled, Ended-Embed) + Ergebnis posten. */
-async function finalizeMessages(client, giveaway, settings, winnerIds) {
+async function finalizeMessages(client, giveaway, settings, winnerIds, { resultUrl = null } = {}) {
   const entryCount = await countEntries(giveaway.id);
   let channel = null;
   try {
@@ -231,10 +233,12 @@ async function finalizeMessages(client, giveaway, settings, winnerIds) {
     }
   }
 
-  // Ergebnis-Nachricht posten.
+  // Ergebnis-Nachricht posten (mit optionalem Link zur öffentlichen Ergebnis-Seite).
   try {
+    let content = buildResultContent(giveaway, winnerIds, entryCount);
+    if (resultUrl) content += `\n${t(giveaway.guildId, 'result.link', { url: resultUrl })}`;
     await channel.send({
-      content: buildResultContent(giveaway, winnerIds, entryCount),
+      content,
       allowedMentions: { users: winnerIds },
     });
   } catch (err) {
@@ -242,7 +246,7 @@ async function finalizeMessages(client, giveaway, settings, winnerIds) {
   }
 
   // Gewinner per DM benachrichtigen (fire-and-forget, Fehler werden geschluckt).
-  await dmWinners(client, giveaway, settings, winnerIds);
+  await dmWinners(client, giveaway, settings, winnerIds, { resultUrl });
 }
 
 /**
@@ -275,7 +279,10 @@ export async function endGiveaway(giveaway, client) {
       });
     }
 
-    await finalizeMessages(client, fresh, settings, winnerIds);
+    // Öffentliche Ergebnis-Seite veröffentlichen (gibt URL zurück oder null).
+    const resultUrl = await publishResult(client, fresh, settings, winnerIds);
+
+    await finalizeMessages(client, fresh, settings, winnerIds, { resultUrl });
     await sendGuildLog(client, settings, t(fresh.guildId, 'log.ended', {
       id, title: fresh.title, count: winnerIds.length,
     }));
@@ -400,6 +407,94 @@ export async function replaceWinner(giveaway, guild, settings, oldUserId) {
     create: { giveawayId: giveaway.id, userId: newWinner },
   });
   return newWinner;
+}
+
+// ── Abbrechen mit Discord-Finalisierung (Command + Dashboard teilen sich dies) ─
+/**
+ * Bricht ein aktives Giveaway ab: Status CANCELLED, Original-Nachricht auf
+ * "Cancelled" + Button disabled, Log-Eintrag. Kein Gewinner, keine DMs.
+ * @param {string} actor Mention/Label des Auslösers (für den Log)
+ * @returns {Promise<object>} das aktualisierte Giveaway
+ */
+export async function cancelAndFinalize(client, giveaway, settings, { actor } = {}) {
+  const updated = await cancelGiveaway(giveaway.id, giveaway.guildId);
+  if (giveaway.messageId) {
+    try {
+      const channel = await client.channels.fetch(giveaway.channelId);
+      const msg = await channel.messages.fetch(giveaway.messageId);
+      await msg.edit({
+        embeds: [buildCancelledEmbed(giveaway, settings)],
+        components: [buildButtonRow(giveaway, settings, { disabled: true })],
+      });
+    } catch (err) {
+      logger.warn(`cancelAndFinalize(${giveaway.id}): Original-Nachricht nicht editierbar:`, err?.message ?? err);
+    }
+  }
+  await sendGuildLog(client, settings, t(giveaway.guildId, 'log.cancelled', { id: giveaway.id, title: giveaway.title, user: actor }));
+  return updated;
+}
+
+// ── Reroll (Command + Dashboard teilen sich dies) ────────────────────────────
+/**
+ * Zieht ALLE Gewinner eines beendeten Giveaways neu (schließt bisherige aus),
+ * postet die Ergebnis-Nachricht, schickt DMs, loggt und aktualisiert die
+ * öffentliche Ergebnis-Seite.
+ * @returns {Promise<string[]>} neue Gewinner-IDs (leer = kein gültiger Ersatz)
+ */
+export async function rerollAll(client, giveaway, settings, { actor } = {}) {
+  const guild = await client.guilds.fetch(giveaway.guildId).catch(() => null);
+  const previousWinners = await getWinnerIds(giveaway.id);
+  const newWinners = guild ? await drawWinners(giveaway, guild, settings, { exclude: previousWinners }) : [];
+  if (newWinners.length === 0) return [];
+
+  await prisma.winner.updateMany({ where: { giveawayId: giveaway.id }, data: { rerolled: true } });
+  await prisma.winner.createMany({ data: newWinners.map((userId) => ({ giveawayId: giveaway.id, userId })), skipDuplicates: true });
+
+  const resultUrl = await publishResult(client, giveaway, settings, newWinners);
+
+  try {
+    const channel = await client.channels.fetch(giveaway.channelId);
+    const mentions = newWinners.map((u) => `<@${u}>`).join(', ');
+    let content = t(giveaway.guildId, 'reroll.winners', { title: giveaway.title, winners: mentions });
+    if (resultUrl) content += `\n${t(giveaway.guildId, 'result.link', { url: resultUrl })}`;
+    await channel.send({ content, allowedMentions: { users: newWinners } });
+  } catch (err) {
+    logger.warn(`rerollAll(${giveaway.id}): Nachricht konnte nicht gepostet werden:`, err?.message ?? err);
+  }
+
+  await dmWinners(client, giveaway, settings, newWinners, { resultUrl });
+  await sendGuildLog(client, settings, t(giveaway.guildId, 'log.rerolled', { id: giveaway.id, title: giveaway.title, user: actor }));
+  return newWinners;
+}
+
+/**
+ * Ersetzt EINEN Gewinner eines beendeten Giveaways. Postet Hinweis, DM, Log und
+ * aktualisiert die öffentliche Ergebnis-Seite.
+ * @returns {Promise<{newWinner?:string, error?:'not_winner'|'no_valid'}>}
+ */
+export async function rerollSingle(client, giveaway, settings, oldUserId, { actor } = {}) {
+  const activeWinners = await getWinnerIds(giveaway.id, { onlyActive: true });
+  if (!activeWinners.includes(oldUserId)) return { error: 'not_winner' };
+
+  const guild = await client.guilds.fetch(giveaway.guildId).catch(() => null);
+  const newWinner = guild ? await replaceWinner(giveaway, guild, settings, oldUserId) : null;
+  if (!newWinner) return { error: 'no_valid' };
+
+  const resultUrl = await publishResult(client, giveaway, settings, await getWinnerIds(giveaway.id, { onlyActive: true }));
+
+  try {
+    const channel = await client.channels.fetch(giveaway.channelId);
+    await channel.send({
+      content: t(giveaway.guildId, 'reroll.replaced', { old: `<@${oldUserId}>`, new: `<@${newWinner}>`, title: giveaway.title }),
+      allowedMentions: { users: [newWinner] },
+    });
+  } catch (err) {
+    logger.warn(`rerollSingle(${giveaway.id}): Nachricht konnte nicht gepostet werden:`, err?.message ?? err);
+  }
+
+  await dmWinners(client, giveaway, settings, [newWinner], { resultUrl });
+  await sendGuildLog(client, settings, t(giveaway.guildId, 'log.rerolled', { id: giveaway.id, title: giveaway.title, user: actor }));
+  return { newWinner };
 }
 
 // ── Statistik pro Guild ──────────────────────────────────────────────────────

@@ -1,10 +1,8 @@
 import { SlashCommandBuilder, MessageFlags } from 'discord.js';
 import { getSettings } from '../services/settingsService.js';
-import { getGiveaway, cancelGiveaway, sendGuildLog } from '../services/giveawayService.js';
+import { getGiveaway, cancelAndFinalize } from '../services/giveawayService.js';
 import { isManager } from '../utils/permissions.js';
-import { buildCancelledEmbed, buildButtonRow } from '../utils/embeds.js';
 import { t } from '../utils/i18n.js';
-import { logger } from '../utils/logger.js';
 
 export default {
   data: new SlashCommandBuilder()
@@ -29,23 +27,7 @@ export default {
       return interaction.reply({ content: t(guildId, 'error.not_active'), flags: MessageFlags.Ephemeral });
     }
 
-    await cancelGiveaway(id, guildId);
-
-    // Original-Nachricht aktualisieren (gelöschte Nachricht abfangen).
-    if (giveaway.messageId) {
-      try {
-        const channel = await client.channels.fetch(giveaway.channelId);
-        const msg = await channel.messages.fetch(giveaway.messageId);
-        await msg.edit({
-          embeds: [buildCancelledEmbed(giveaway, settings)],
-          components: [buildButtonRow(giveaway, settings, { disabled: true })],
-        });
-      } catch (err) {
-        logger.warn(`gcancel: Original-Nachricht nicht editierbar:`, err?.message ?? err);
-      }
-    }
-
-    await sendGuildLog(client, settings, t(guildId, 'log.cancelled', { id, title: giveaway.title, user: `<@${interaction.user.id}>` }));
+    await cancelAndFinalize(client, giveaway, settings, { actor: `<@${interaction.user.id}>` });
     return interaction.reply({ content: t(guildId, 'cancel.success', { id }), flags: MessageFlags.Ephemeral });
   },
 };

@@ -2,6 +2,21 @@
 
 All notable changes to the **MSK Giveaway Bot**. Format based on [Keep a Changelog](https://keepachangelog.com).
 
+## [1.4.0]
+
+### Added
+- **Web dashboard (msk-scripts.de/giveaway/dashboard)** — manage giveaways from the browser: create, edit, extend, pause/resume, end, cancel, reroll (all or a single winner) and edit per-server settings. Access via Discord login (Manage Server). All actions are forwarded to the running bot, so the Discord embed/button/DMs/log and the settings cache stay consistent.
+- **Localhost control endpoint** (`services/controlServer.js`) — a lightweight HTTP server bound to `127.0.0.1` only, authenticated with a shared secret (`CONTROL_SECRET`), that the shop's dashboard proxies management actions to.
+- **Public results pages (msk-scripts.de/giveaway/g/…)** — when a giveaway ends (or is rerolled), the bot publishes a hosted results page showing the **winners (username)** and the **anonymous participant count** (never the participant list), and links it in the results message and winner DMs. New `result.link` locale key (en/de/fr/es).
+
+### Changed
+- Discord side-effects for cancel/reroll were extracted into the service layer (`cancelAndFinalize`, `rerollAll`, `rerollSingle`) so the slash commands and the dashboard share one implementation.
+
+### Security / hardening
+- The post-OAuth intermediate session for the dashboard is now **scope-bound** (`giveaway-verify`), so a ticketbot session token can never be reused as a giveaway one (and vice-versa).
+- Public results pages store **winner usernames only — no Discord user IDs** (data minimisation).
+- Control endpoint: oversized request bodies return `413` without tearing down the socket mid-stream; `end` reports `409` when there was nothing to end. Winner username resolution is parallelised. Discord OAuth responses are checked for `ok` before use.
+
 ## [1.3.0]
 
 ### Added

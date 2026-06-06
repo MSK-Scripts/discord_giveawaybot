@@ -1,17 +1,8 @@
 import { SlashCommandBuilder, MessageFlags } from 'discord.js';
 import { getSettings } from '../services/settingsService.js';
-import {
-  getGiveaway,
-  drawWinners,
-  getWinnerIds,
-  replaceWinner,
-  dmWinners,
-  sendGuildLog,
-} from '../services/giveawayService.js';
+import { getGiveaway, rerollAll, rerollSingle } from '../services/giveawayService.js';
 import { isManager } from '../utils/permissions.js';
-import { prisma } from '../database/prisma.js';
 import { t } from '../utils/i18n.js';
-import { logger } from '../utils/logger.js';
 
 export default {
   data: new SlashCommandBuilder()
@@ -39,56 +30,25 @@ export default {
     }
 
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-    const guild = await client.guilds.fetch(guildId).catch(() => null);
+    const actor = `<@${interaction.user.id}>`;
 
     // ── Einzelnen Gewinner ersetzen ──────────────────────────────────────────
     if (targetWinner) {
-      const activeWinners = await getWinnerIds(id, { onlyActive: true });
-      if (!activeWinners.includes(targetWinner.id)) {
+      const res = await rerollSingle(client, giveaway, settings, targetWinner.id, { actor });
+      if (res.error === 'not_winner') {
         return interaction.editReply({ content: t(guildId, 'reroll.not_winner', { user: `<@${targetWinner.id}>` }) });
       }
-      const newWinner = guild ? await replaceWinner(giveaway, guild, settings, targetWinner.id) : null;
-      if (!newWinner) {
+      if (res.error === 'no_valid' || !res.newWinner) {
         return interaction.editReply({ content: t(guildId, 'reroll.no_valid', { title: giveaway.title }) });
       }
-      try {
-        const channel = await client.channels.fetch(giveaway.channelId);
-        await channel.send({
-          content: t(guildId, 'reroll.replaced', { old: `<@${targetWinner.id}>`, new: `<@${newWinner}>`, title: giveaway.title }),
-          allowedMentions: { users: [newWinner] },
-        });
-      } catch (err) {
-        logger.warn('greroll(single): Nachricht konnte nicht gepostet werden:', err?.message ?? err);
-      }
-      await dmWinners(client, giveaway, settings, [newWinner]);
-      await sendGuildLog(client, settings, t(guildId, 'log.rerolled', { id, title: giveaway.title, user: `<@${interaction.user.id}>` }));
       return interaction.editReply({ content: t(guildId, 'reroll.success', { id }) });
     }
 
     // ── Alle Gewinner neu ziehen ─────────────────────────────────────────────
-    const previousWinners = await getWinnerIds(id);
-    const newWinners = guild ? await drawWinners(giveaway, guild, settings, { exclude: previousWinners }) : [];
-
+    const newWinners = await rerollAll(client, giveaway, settings, { actor });
     if (newWinners.length === 0) {
       return interaction.editReply({ content: t(guildId, 'reroll.no_valid', { title: giveaway.title }) });
     }
-
-    await prisma.winner.updateMany({ where: { giveawayId: id }, data: { rerolled: true } });
-    await prisma.winner.createMany({ data: newWinners.map((userId) => ({ giveawayId: id, userId })), skipDuplicates: true });
-
-    try {
-      const channel = await client.channels.fetch(giveaway.channelId);
-      const mentions = newWinners.map((u) => `<@${u}>`).join(', ');
-      await channel.send({
-        content: t(guildId, 'reroll.winners', { title: giveaway.title, winners: mentions }),
-        allowedMentions: { users: newWinners },
-      });
-    } catch (err) {
-      logger.warn('greroll: Nachricht konnte nicht gepostet werden:', err?.message ?? err);
-    }
-
-    await dmWinners(client, giveaway, settings, newWinners);
-    await sendGuildLog(client, settings, t(guildId, 'log.rerolled', { id, title: giveaway.title, user: `<@${interaction.user.id}>` }));
     return interaction.editReply({ content: t(guildId, 'reroll.success', { id }) });
   },
 };

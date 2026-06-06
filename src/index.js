@@ -5,6 +5,7 @@ import { loadCommands } from './handlers/commandHandler.js';
 import { loadEvents } from './handlers/eventHandler.js';
 import { loadComponents } from './handlers/componentHandler.js';
 import { loadLocales } from './utils/i18n.js';
+import { startControlServer } from './services/controlServer.js';
 import { logger } from './utils/logger.js';
 
 process.on('unhandledRejection', (reason) => logger.error('unhandledRejection:', reason));
@@ -25,6 +26,9 @@ async function main() {
   await loadEvents(client);
 
   await client.login(token);
+
+  // Localhost-Steuer-Endpunkt für das msk-shop Web-Dashboard (no-op ohne CONTROL_SECRET).
+  startControlServer(client);
 }
 
 main().catch((err) => {
