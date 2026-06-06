@@ -1,4 +1,5 @@
 // Giveaway-CRUD, Gewinnerziehung, Beenden (mit zentralem In-Memory-Lock).
+import { MessageFlags } from 'discord.js';
 import { prisma } from '../database/prisma.js';
 import { logger } from '../utils/logger.js';
 import { getSettings } from './settingsService.js';
@@ -202,7 +203,7 @@ export async function dmWinners(client, giveaway, settings, winnerIds, { resultU
   for (const userId of winnerIds) {
     try {
       const user = await client.users.fetch(userId);
-      await user.send({ content });
+      await user.send({ content, flags: MessageFlags.SuppressEmbeds });
     } catch {
       // DMs deaktiviert / blockiert -> überspringen
     }
@@ -240,6 +241,7 @@ async function finalizeMessages(client, giveaway, settings, winnerIds, { resultU
     await channel.send({
       content,
       allowedMentions: { users: winnerIds },
+      flags: MessageFlags.SuppressEmbeds,
     });
   } catch (err) {
     logger.warn(`finalizeMessages: konnte Ergebnis nicht senden:`, err?.message ?? err);
@@ -457,7 +459,7 @@ export async function rerollAll(client, giveaway, settings, { actor } = {}) {
     const mentions = newWinners.map((u) => `<@${u}>`).join(', ');
     let content = t(giveaway.guildId, 'reroll.winners', { title: giveaway.title, winners: mentions });
     if (resultUrl) content += `\n${t(giveaway.guildId, 'result.link', { url: resultUrl })}`;
-    await channel.send({ content, allowedMentions: { users: newWinners } });
+    await channel.send({ content, allowedMentions: { users: newWinners }, flags: MessageFlags.SuppressEmbeds });
   } catch (err) {
     logger.warn(`rerollAll(${giveaway.id}): Nachricht konnte nicht gepostet werden:`, err?.message ?? err);
   }
