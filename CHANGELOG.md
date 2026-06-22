@@ -2,6 +2,11 @@
 
 All notable changes to the **MSK Giveaway Bot**. Format based on [Keep a Changelog](https://keepachangelog.com).
 
+## [Unreleased]
+
+### Security / hardening
+- Pinned a patched **`undici` (`^6.27.0`)** via an npm `overrides` entry, resolving 4 transitive advisories (1 high / 3 moderate) pulled in through `discord.js` → `@discordjs/rest`/`@discordjs/ws` (HTTP header injection via `Set-Cookie`, WebSocket DoS, response-queue poisoning, `SameSite` downgrade). discord.js itself is already on the latest 14.x but still pins the vulnerable `undici@6.24.1`; the override stays inside the same 6.x major, so it is API-compatible. `npm audit` now reports **0 vulnerabilities** — no discord.js downgrade required.
+
 ## [1.4.0]
 
 ### Added
