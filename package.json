@@ -21,7 +21,7 @@
   "license": "UNLICENSED",
   "dependencies": {
     "@prisma/client": "^5.20.0",
-    "discord.js": "^14.16.0",
+    "discord.js": "^14.26.5",
     "dotenv": "^17.4.2",
     "nanoid": "^5.1.16"
   },
