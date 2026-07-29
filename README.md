@@ -1,4 +1,4 @@
-# 🎉 Discord Giveaway Bot
+![Discord Giveawaybot](.assets/msk-giveaway-bot-banner.png)
 
 Multilingual, per-guild configurable giveaway bot built on **discord.js v14**, persisted via **MariaDB** (Prisma). Restart-safe poll scheduler, button entry, eligibility rules, weighted bonus entries, templates, pause/resume, edit & extend, "ending soon" reminders, winner DMs and reroll.
 
