@@ -60,6 +60,7 @@
       "_origin": "ast",
       "id": "deploy_commands",
       "community": 0,
+      "community_name": "logger.js",
       "norm_label": "deploy-commands.js"
     },
     {
@@ -70,6 +71,7 @@
       "_origin": "ast",
       "id": "deploy_commands_dirname",
       "community": 0,
+      "community_name": "logger.js",
       "norm_label": "__dirname"
     },
     {
@@ -80,6 +82,7 @@
       "_origin": "ast",
       "id": "deploy_commands_main",
       "community": 0,
+      "community_name": "logger.js",
       "norm_label": "main()"
     },
     {
@@ -90,6 +93,7 @@
       "_origin": "ast",
       "id": "package",
       "community": 2,
+      "community_name": "package.json",
       "norm_label": "package.json"
     },
     {
@@ -100,6 +104,7 @@
       "_origin": "ast",
       "id": "package_name",
       "community": 2,
+      "community_name": "package.json",
       "norm_label": "name"
     },
     {
@@ -110,6 +115,7 @@
       "_origin": "ast",
       "id": "package_version",
       "community": 2,
+      "community_name": "package.json",
       "norm_label": "version"
     },
     {
@@ -120,6 +126,7 @@
       "_origin": "ast",
       "id": "package_description",
       "community": 2,
+      "community_name": "package.json",
       "norm_label": "description"
     },
     {
@@ -130,6 +137,7 @@
       "_origin": "ast",
       "id": "package_type",
       "community": 2,
+      "community_name": "package.json",
       "norm_label": "type"
     },
     {
@@ -140,6 +148,7 @@
       "_origin": "ast",
       "id": "package_main",
       "community": 2,
+      "community_name": "package.json",
       "norm_label": "main"
     },
     {
@@ -150,6 +159,7 @@
       "_origin": "ast",
       "id": "package_engines",
       "community": 2,
+      "community_name": "package.json",
       "norm_label": "engines"
     },
     {
@@ -160,6 +170,7 @@
       "_origin": "ast",
       "id": "package_engines_node",
       "community": 2,
+      "community_name": "package.json",
       "norm_label": "node"
     },
     {
@@ -170,6 +181,7 @@
       "_origin": "ast",
       "id": "package_scripts",
       "community": 2,
+      "community_name": "package.json",
       "norm_label": "scripts"
     },
     {
@@ -180,6 +192,7 @@
       "_origin": "ast",
       "id": "package_scripts_start",
       "community": 2,
+      "community_name": "package.json",
       "norm_label": "start"
     },
     {
@@ -190,6 +203,7 @@
       "_origin": "ast",
       "id": "package_scripts_dev",
       "community": 2,
+      "community_name": "package.json",
       "norm_label": "dev"
     },
     {
@@ -200,6 +214,7 @@
       "_origin": "ast",
       "id": "package_scripts_deploy",
       "community": 2,
+      "community_name": "package.json",
       "norm_label": "deploy"
     },
     {
@@ -210,6 +225,7 @@
       "_origin": "ast",
       "id": "package_scripts_deploy_global",
       "community": 2,
+      "community_name": "package.json",
       "norm_label": "deploy:global"
     },
     {
@@ -220,6 +236,7 @@
       "_origin": "ast",
       "id": "package_scripts_prisma_generate",
       "community": 2,
+      "community_name": "package.json",
       "norm_label": "prisma:generate"
     },
     {
@@ -230,6 +247,7 @@
       "_origin": "ast",
       "id": "package_scripts_prisma_migrate",
       "community": 2,
+      "community_name": "package.json",
       "norm_label": "prisma:migrate"
     },
     {
@@ -240,6 +258,7 @@
       "_origin": "ast",
       "id": "package_scripts_smoke",
       "community": 2,
+      "community_name": "package.json",
       "norm_label": "smoke"
     },
     {
@@ -250,6 +269,7 @@
       "_origin": "ast",
       "id": "package_scripts_i18n_check",
       "community": 2,
+      "community_name": "package.json",
       "norm_label": "i18n:check"
     },
     {
@@ -260,6 +280,7 @@
       "_origin": "ast",
       "id": "package_author",
       "community": 2,
+      "community_name": "package.json",
       "norm_label": "author"
     },
     {
@@ -270,6 +291,7 @@
       "_origin": "ast",
       "id": "package_license",
       "community": 2,
+      "community_name": "package.json",
       "norm_label": "license"
     },
     {
@@ -280,6 +302,7 @@
       "_origin": "ast",
       "id": "package_dependencies",
       "community": 2,
+      "community_name": "package.json",
       "norm_label": "dependencies"
     },
     {
@@ -290,6 +313,7 @@
       "_origin": "ast",
       "id": "package_dependencies_prisma_client",
       "community": 2,
+      "community_name": "package.json",
       "norm_label": "@prisma/client"
     },
     {
@@ -300,6 +324,7 @@
       "_origin": "ast",
       "id": "prisma_client",
       "community": 2,
+      "community_name": "package.json",
       "norm_label": "@prisma/client"
     },
     {
@@ -310,6 +335,7 @@
       "_origin": "ast",
       "id": "package_dependencies_discord_js",
       "community": 2,
+      "community_name": "package.json",
       "norm_label": "discord.js"
     },
     {
@@ -320,6 +346,7 @@
       "_origin": "ast",
       "id": "discord_js",
       "community": 2,
+      "community_name": "package.json",
       "norm_label": "discord.js"
     },
     {
@@ -330,6 +357,7 @@
       "_origin": "ast",
       "id": "package_dependencies_dotenv",
       "community": 2,
+      "community_name": "package.json",
       "norm_label": "dotenv"
     },
     {
@@ -340,6 +368,7 @@
       "_origin": "ast",
       "id": "dotenv",
       "community": 2,
+      "community_name": "package.json",
       "norm_label": "dotenv"
     },
     {
@@ -350,6 +379,7 @@
       "_origin": "ast",
       "id": "package_dependencies_nanoid",
       "community": 2,
+      "community_name": "package.json",
       "norm_label": "nanoid"
     },
     {
@@ -360,6 +390,7 @@
       "_origin": "ast",
       "id": "nanoid",
       "community": 2,
+      "community_name": "package.json",
       "norm_label": "nanoid"
     },
     {
@@ -370,6 +401,7 @@
       "_origin": "ast",
       "id": "package_devdependencies",
       "community": 2,
+      "community_name": "package.json",
       "norm_label": "devdependencies"
     },
     {
@@ -380,6 +412,7 @@
       "_origin": "ast",
       "id": "package_devdependencies_prisma",
       "community": 2,
+      "community_name": "package.json",
       "norm_label": "prisma"
     },
     {
@@ -390,6 +423,7 @@
       "_origin": "ast",
       "id": "prisma",
       "community": 2,
+      "community_name": "package.json",
       "norm_label": "prisma"
     },
     {
@@ -400,6 +434,7 @@
       "_origin": "ast",
       "id": "package_overrides",
       "community": 2,
+      "community_name": "package.json",
       "norm_label": "overrides"
     },
     {
@@ -410,7 +445,118 @@
       "_origin": "ast",
       "id": "package_overrides_undici",
       "community": 2,
+      "community_name": "package.json",
       "norm_label": "undici"
+    },
+    {
+      "label": "20260605100105_init/migration.sql",
+      "file_type": "code",
+      "source_file": "prisma/migrations/20260605100105_init/migration.sql",
+      "source_location": null,
+      "_origin": "ast",
+      "id": "prisma_migrations_20260605100105_init_migration",
+      "community": 17,
+      "community_name": "20260605100105_init/migration.sql",
+      "norm_label": "20260605100105_init/migration.sql"
+    },
+    {
+      "label": "`GuildSettings`",
+      "file_type": "code",
+      "source_file": "prisma/migrations/20260605100105_init/migration.sql",
+      "source_location": "L2",
+      "_origin": "ast",
+      "id": "prisma_migrations_20260605100105_init_migration_guildsettings",
+      "community": 17,
+      "community_name": "20260605100105_init/migration.sql",
+      "norm_label": "`guildsettings`"
+    },
+    {
+      "label": "`Giveaway`",
+      "file_type": "code",
+      "source_file": "prisma/migrations/20260605100105_init/migration.sql",
+      "source_location": "L18",
+      "_origin": "ast",
+      "id": "prisma_migrations_20260605100105_init_migration_giveaway",
+      "community": 17,
+      "community_name": "20260605100105_init/migration.sql",
+      "norm_label": "`giveaway`"
+    },
+    {
+      "label": "`Entry`",
+      "file_type": "code",
+      "source_file": "prisma/migrations/20260605100105_init/migration.sql",
+      "source_location": "L38",
+      "_origin": "ast",
+      "id": "prisma_migrations_20260605100105_init_migration_entry",
+      "community": 17,
+      "community_name": "20260605100105_init/migration.sql",
+      "norm_label": "`entry`"
+    },
+    {
+      "label": "`Winner`",
+      "file_type": "code",
+      "source_file": "prisma/migrations/20260605100105_init/migration.sql",
+      "source_location": "L47",
+      "_origin": "ast",
+      "id": "prisma_migrations_20260605100105_init_migration_winner",
+      "community": 17,
+      "community_name": "20260605100105_init/migration.sql",
+      "norm_label": "`winner`"
+    },
+    {
+      "label": "20260605103450_backlog_features/migration.sql",
+      "file_type": "code",
+      "source_file": "prisma/migrations/20260605103450_backlog_features/migration.sql",
+      "source_location": null,
+      "_origin": "ast",
+      "id": "prisma_migrations_20260605103450_backlog_features_migration",
+      "community": 18,
+      "community_name": "20260605103450_backlog_features/migration.sql",
+      "norm_label": "20260605103450_backlog_features/migration.sql"
+    },
+    {
+      "label": "`GiveawayTemplate`",
+      "file_type": "code",
+      "source_file": "prisma/migrations/20260605103450_backlog_features/migration.sql",
+      "source_location": "L13",
+      "_origin": "ast",
+      "id": "prisma_migrations_20260605103450_backlog_features_migration_giveawaytemplate",
+      "community": 18,
+      "community_name": "20260605103450_backlog_features/migration.sql",
+      "norm_label": "`giveawaytemplate`"
+    },
+    {
+      "label": "20260605161921_per_giveaway_roles/migration.sql",
+      "file_type": "code",
+      "source_file": "prisma/migrations/20260605161921_per_giveaway_roles/migration.sql",
+      "source_location": null,
+      "_origin": "ast",
+      "id": "prisma_migrations_20260605161921_per_giveaway_roles_migration",
+      "community": 19,
+      "community_name": "20260605161921_per_giveaway_roles/migration.sql",
+      "norm_label": "20260605161921_per_giveaway_roles/migration.sql"
+    },
+    {
+      "label": "20260605164738_per_giveaway_bonus/migration.sql",
+      "file_type": "code",
+      "source_file": "prisma/migrations/20260605164738_per_giveaway_bonus/migration.sql",
+      "source_location": null,
+      "_origin": "ast",
+      "id": "prisma_migrations_20260605164738_per_giveaway_bonus_migration",
+      "community": 20,
+      "community_name": "20260605164738_per_giveaway_bonus/migration.sql",
+      "norm_label": "20260605164738_per_giveaway_bonus/migration.sql"
+    },
+    {
+      "label": "20260605214702_winner_dm_edit_stats/migration.sql",
+      "file_type": "code",
+      "source_file": "prisma/migrations/20260605214702_winner_dm_edit_stats/migration.sql",
+      "source_location": null,
+      "_origin": "ast",
+      "id": "prisma_migrations_20260605214702_winner_dm_edit_stats_migration",
+      "community": 21,
+      "community_name": "20260605214702_winner_dm_edit_stats/migration.sql",
+      "norm_label": "20260605214702_winner_dm_edit_stats/migration.sql"
     },
     {
       "label": "i18n-check.js",
@@ -420,56 +566,73 @@
       "_origin": "ast",
       "id": "scripts_i18n_check",
       "community": 15,
+      "community_name": "i18n-check.js",
       "norm_label": "i18n-check.js"
     },
     {
       "label": "__dirname",
       "file_type": "code",
       "source_file": "scripts/i18n-check.js",
-      "source_location": "L6",
+      "source_location": "L7",
       "_origin": "ast",
       "id": "scripts_i18n_check_dirname",
       "community": 15,
+      "community_name": "i18n-check.js",
       "norm_label": "__dirname"
     },
     {
       "label": "DIR",
       "file_type": "code",
       "source_file": "scripts/i18n-check.js",
-      "source_location": "L7",
+      "source_location": "L8",
       "_origin": "ast",
       "id": "scripts_i18n_check_dir",
       "community": 15,
+      "community_name": "i18n-check.js",
       "norm_label": "dir"
     },
     {
       "label": "load()",
       "file_type": "code",
       "source_file": "scripts/i18n-check.js",
-      "source_location": "L9",
+      "source_location": "L10",
       "_origin": "ast",
       "id": "scripts_i18n_check_load",
       "community": 15,
+      "community_name": "i18n-check.js",
       "norm_label": "load()"
+    },
+    {
+      "label": "placeholders()",
+      "file_type": "code",
+      "source_file": "scripts/i18n-check.js",
+      "source_location": "L13",
+      "_origin": "ast",
+      "id": "scripts_i18n_check_placeholders",
+      "community": 15,
+      "community_name": "i18n-check.js",
+      "norm_label": "placeholders()"
     },
     {
       "label": "en",
       "file_type": "code",
       "source_file": "scripts/i18n-check.js",
-      "source_location": "L11",
+      "source_location": "L16",
       "_origin": "ast",
       "id": "scripts_i18n_check_en",
       "community": 15,
+      "community_name": "i18n-check.js",
       "norm_label": "en"
     },
     {
       "label": "enKeys",
       "file_type": "code",
       "source_file": "scripts/i18n-check.js",
-      "source_location": "L12",
+      "source_location": "L17",
       "_origin": "ast",
       "id": "scripts_i18n_check_enkeys",
       "community": 15,
+      "community_name": "i18n-check.js",
       "norm_label": "enkeys"
     },
     {
@@ -480,6 +643,7 @@
       "_origin": "ast",
       "id": "scripts_smoke",
       "community": 0,
+      "community_name": "logger.js",
       "norm_label": "smoke.js"
     },
     {
@@ -490,6 +654,7 @@
       "_origin": "ast",
       "id": "scripts_smoke_dirname",
       "community": 0,
+      "community_name": "logger.js",
       "norm_label": "__dirname"
     },
     {
@@ -500,6 +665,7 @@
       "_origin": "ast",
       "id": "scripts_smoke_src",
       "community": 0,
+      "community_name": "logger.js",
       "norm_label": "src"
     },
     {
@@ -510,6 +676,7 @@
       "_origin": "ast",
       "id": "scripts_smoke_fail",
       "community": 0,
+      "community_name": "logger.js",
       "norm_label": "fail()"
     },
     {
@@ -520,6 +687,7 @@
       "_origin": "ast",
       "id": "scripts_smoke_ok",
       "community": 0,
+      "community_name": "logger.js",
       "norm_label": "ok()"
     },
     {
@@ -530,6 +698,7 @@
       "_origin": "ast",
       "id": "scripts_smoke_main",
       "community": 0,
+      "community_name": "logger.js",
       "norm_label": "main()"
     },
     {
@@ -540,6 +709,7 @@
       "_origin": "ast",
       "id": "src_client",
       "community": 0,
+      "community_name": "logger.js",
       "norm_label": "client.js"
     },
     {
@@ -550,6 +720,7 @@
       "_origin": "ast",
       "id": "src_client_client",
       "community": 0,
+      "community_name": "logger.js",
       "norm_label": "client"
     },
     {
@@ -560,6 +731,7 @@
       "_origin": "ast",
       "id": "src_commands_gcancel",
       "community": 3,
+      "community_name": "t",
       "norm_label": "gcancel.js"
     },
     {
@@ -570,6 +742,7 @@
       "_origin": "ast",
       "id": "src_commands_gcancel_execute",
       "community": 3,
+      "community_name": "t",
       "norm_label": "execute()"
     },
     {
@@ -580,6 +753,7 @@
       "_origin": "ast",
       "id": "src_commands_gcreate",
       "community": 3,
+      "community_name": "t",
       "norm_label": "gcreate.js"
     },
     {
@@ -590,6 +764,7 @@
       "_origin": "ast",
       "id": "src_commands_gcreate_execute",
       "community": 3,
+      "community_name": "t",
       "norm_label": "execute()"
     },
     {
@@ -600,6 +775,7 @@
       "_origin": "ast",
       "id": "src_commands_gedit",
       "community": 3,
+      "community_name": "t",
       "norm_label": "gedit.js"
     },
     {
@@ -610,6 +786,7 @@
       "_origin": "ast",
       "id": "src_commands_gedit_execute",
       "community": 3,
+      "community_name": "t",
       "norm_label": "execute()"
     },
     {
@@ -620,6 +797,7 @@
       "_origin": "ast",
       "id": "src_commands_gend",
       "community": 3,
+      "community_name": "t",
       "norm_label": "gend.js"
     },
     {
@@ -630,6 +808,7 @@
       "_origin": "ast",
       "id": "src_commands_gend_execute",
       "community": 3,
+      "community_name": "t",
       "norm_label": "execute()"
     },
     {
@@ -640,6 +819,7 @@
       "_origin": "ast",
       "id": "src_commands_gextend",
       "community": 3,
+      "community_name": "t",
       "norm_label": "gextend.js"
     },
     {
@@ -650,6 +830,7 @@
       "_origin": "ast",
       "id": "src_commands_gextend_execute",
       "community": 3,
+      "community_name": "t",
       "norm_label": "execute()"
     },
     {
@@ -660,6 +841,7 @@
       "_origin": "ast",
       "id": "src_commands_ghelp",
       "community": 4,
+      "community_name": "embeds.js",
       "norm_label": "ghelp.js"
     },
     {
@@ -670,6 +852,7 @@
       "_origin": "ast",
       "id": "src_commands_ghelp_execute",
       "community": 4,
+      "community_name": "embeds.js",
       "norm_label": "execute()"
     },
     {
@@ -680,6 +863,7 @@
       "_origin": "ast",
       "id": "src_commands_ginfo",
       "community": 4,
+      "community_name": "embeds.js",
       "norm_label": "ginfo.js"
     },
     {
@@ -690,6 +874,7 @@
       "_origin": "ast",
       "id": "src_commands_ginfo_execute",
       "community": 4,
+      "community_name": "embeds.js",
       "norm_label": "execute()"
     },
     {
@@ -700,6 +885,7 @@
       "_origin": "ast",
       "id": "src_commands_ginvite",
       "community": 4,
+      "community_name": "embeds.js",
       "norm_label": "ginvite.js"
     },
     {
@@ -710,6 +896,7 @@
       "_origin": "ast",
       "id": "src_commands_ginvite_permissions",
       "community": 4,
+      "community_name": "embeds.js",
       "norm_label": "permissions"
     },
     {
@@ -720,6 +907,7 @@
       "_origin": "ast",
       "id": "src_commands_ginvite_execute",
       "community": 4,
+      "community_name": "embeds.js",
       "norm_label": "execute()"
     },
     {
@@ -730,6 +918,7 @@
       "_origin": "ast",
       "id": "src_commands_glist",
       "community": 4,
+      "community_name": "embeds.js",
       "norm_label": "glist.js"
     },
     {
@@ -740,6 +929,7 @@
       "_origin": "ast",
       "id": "src_commands_glist_execute",
       "community": 4,
+      "community_name": "embeds.js",
       "norm_label": "execute()"
     },
     {
@@ -750,6 +940,7 @@
       "_origin": "ast",
       "id": "src_commands_gpause",
       "community": 3,
+      "community_name": "t",
       "norm_label": "gpause.js"
     },
     {
@@ -760,6 +951,7 @@
       "_origin": "ast",
       "id": "src_commands_gpause_execute",
       "community": 3,
+      "community_name": "t",
       "norm_label": "execute()"
     },
     {
@@ -769,7 +961,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_commands_greroll",
-      "community": 1,
+      "community": 3,
+      "community_name": "t",
       "norm_label": "greroll.js"
     },
     {
@@ -779,7 +972,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "src_commands_greroll_execute",
-      "community": 1,
+      "community": 3,
+      "community_name": "t",
       "norm_label": "execute()"
     },
     {
@@ -790,6 +984,7 @@
       "_origin": "ast",
       "id": "src_commands_gresume",
       "community": 3,
+      "community_name": "t",
       "norm_label": "gresume.js"
     },
     {
@@ -800,6 +995,7 @@
       "_origin": "ast",
       "id": "src_commands_gresume_execute",
       "community": 3,
+      "community_name": "t",
       "norm_label": "execute()"
     },
     {
@@ -809,7 +1005,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_commands_gsettings",
-      "community": 5,
+      "community": 22,
+      "community_name": "gsettings.js",
       "norm_label": "gsettings.js"
     },
     {
@@ -819,7 +1016,8 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "src_commands_gsettings_button_choices",
-      "community": 5,
+      "community": 22,
+      "community_name": "gsettings.js",
       "norm_label": "button_choices"
     },
     {
@@ -829,7 +1027,8 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "src_commands_gsettings_parsearr",
-      "community": 5,
+      "community": 22,
+      "community_name": "gsettings.js",
       "norm_label": "parsearr()"
     },
     {
@@ -839,7 +1038,8 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "src_commands_gsettings_parseobj",
-      "community": 5,
+      "community": 22,
+      "community_name": "gsettings.js",
       "norm_label": "parseobj()"
     },
     {
@@ -849,7 +1049,8 @@
       "source_location": "L151",
       "_origin": "ast",
       "id": "src_commands_gsettings_execute",
-      "community": 5,
+      "community": 22,
+      "community_name": "gsettings.js",
       "norm_label": "execute()"
     },
     {
@@ -860,6 +1061,7 @@
       "_origin": "ast",
       "id": "src_commands_gstats",
       "community": 4,
+      "community_name": "embeds.js",
       "norm_label": "gstats.js"
     },
     {
@@ -870,6 +1072,7 @@
       "_origin": "ast",
       "id": "src_commands_gstats_execute",
       "community": 4,
+      "community_name": "embeds.js",
       "norm_label": "execute()"
     },
     {
@@ -880,6 +1083,7 @@
       "_origin": "ast",
       "id": "src_commands_gtemplate",
       "community": 7,
+      "community_name": "gtemplate.js",
       "norm_label": "gtemplate.js"
     },
     {
@@ -890,6 +1094,7 @@
       "_origin": "ast",
       "id": "src_commands_gtemplate_required_perms",
       "community": 7,
+      "community_name": "gtemplate.js",
       "norm_label": "required_perms"
     },
     {
@@ -900,6 +1105,7 @@
       "_origin": "ast",
       "id": "src_commands_gtemplate_execute",
       "community": 7,
+      "community_name": "gtemplate.js",
       "norm_label": "execute()"
     },
     {
@@ -910,6 +1116,7 @@
       "_origin": "ast",
       "id": "src_components_buttons_participate",
       "community": 1,
+      "community_name": "participate.js",
       "norm_label": "participate.js"
     },
     {
@@ -920,6 +1127,7 @@
       "_origin": "ast",
       "id": "src_components_buttons_participate_execute",
       "community": 1,
+      "community_name": "participate.js",
       "norm_label": "execute()"
     },
     {
@@ -930,6 +1138,7 @@
       "_origin": "ast",
       "id": "src_components_modals_gcreatemodal",
       "community": 7,
+      "community_name": "gtemplate.js",
       "norm_label": "gcreatemodal.js"
     },
     {
@@ -940,6 +1149,7 @@
       "_origin": "ast",
       "id": "src_components_modals_gcreatemodal_required_perms",
       "community": 7,
+      "community_name": "gtemplate.js",
       "norm_label": "required_perms"
     },
     {
@@ -950,6 +1160,7 @@
       "_origin": "ast",
       "id": "src_components_modals_gcreatemodal_execute",
       "community": 7,
+      "community_name": "gtemplate.js",
       "norm_label": "execute()"
     },
     {
@@ -959,8 +1170,20 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_database_prisma",
-      "community": 0,
+      "community": 5,
+      "community_name": "scheduler.js",
       "norm_label": "prisma.js"
+    },
+    {
+      "label": "prisma",
+      "file_type": "code",
+      "source_file": "src/database/prisma.js",
+      "source_location": "L7",
+      "_origin": "ast",
+      "id": "src_database_prisma_prisma",
+      "community": 5,
+      "community_name": "scheduler.js",
+      "norm_label": "prisma"
     },
     {
       "label": "guildCreate.js",
@@ -969,7 +1192,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_events_guildcreate",
-      "community": 5,
+      "community": 3,
+      "community_name": "t",
       "norm_label": "guildcreate.js"
     },
     {
@@ -979,7 +1203,8 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "src_events_guildcreate_execute",
-      "community": 5,
+      "community": 3,
+      "community_name": "t",
       "norm_label": "execute()"
     },
     {
@@ -989,7 +1214,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_events_guilddelete",
-      "community": 0,
+      "community": 5,
+      "community_name": "scheduler.js",
       "norm_label": "guilddelete.js"
     },
     {
@@ -999,7 +1225,8 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "src_events_guilddelete_execute",
-      "community": 0,
+      "community": 5,
+      "community_name": "scheduler.js",
       "norm_label": "execute()"
     },
     {
@@ -1010,6 +1237,7 @@
       "_origin": "ast",
       "id": "src_events_interactioncreate",
       "community": 0,
+      "community_name": "logger.js",
       "norm_label": "interactioncreate.js"
     },
     {
@@ -1020,6 +1248,7 @@
       "_origin": "ast",
       "id": "src_events_interactioncreate_safereply",
       "community": 0,
+      "community_name": "logger.js",
       "norm_label": "safereply()"
     },
     {
@@ -1030,6 +1259,7 @@
       "_origin": "ast",
       "id": "src_events_interactioncreate_execute",
       "community": 0,
+      "community_name": "logger.js",
       "norm_label": "execute()"
     },
     {
@@ -1039,7 +1269,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_events_ready",
-      "community": 0,
+      "community": 5,
+      "community_name": "scheduler.js",
       "norm_label": "ready.js"
     },
     {
@@ -1049,7 +1280,8 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "src_events_ready_execute",
-      "community": 0,
+      "community": 5,
+      "community_name": "scheduler.js",
       "norm_label": "execute()"
     },
     {
@@ -1060,6 +1292,7 @@
       "_origin": "ast",
       "id": "src_handlers_commandhandler",
       "community": 0,
+      "community_name": "logger.js",
       "norm_label": "commandhandler.js"
     },
     {
@@ -1070,6 +1303,7 @@
       "_origin": "ast",
       "id": "src_handlers_commandhandler_dirname",
       "community": 0,
+      "community_name": "logger.js",
       "norm_label": "__dirname"
     },
     {
@@ -1080,6 +1314,7 @@
       "_origin": "ast",
       "id": "src_handlers_commandhandler_commands_dir",
       "community": 0,
+      "community_name": "logger.js",
       "norm_label": "commands_dir"
     },
     {
@@ -1090,6 +1325,7 @@
       "_origin": "ast",
       "id": "src_handlers_commandhandler_loadcommands",
       "community": 0,
+      "community_name": "logger.js",
       "norm_label": "loadcommands()"
     },
     {
@@ -1100,6 +1336,7 @@
       "_origin": "ast",
       "id": "src_handlers_componenthandler",
       "community": 0,
+      "community_name": "logger.js",
       "norm_label": "componenthandler.js"
     },
     {
@@ -1110,6 +1347,7 @@
       "_origin": "ast",
       "id": "src_handlers_componenthandler_dirname",
       "community": 0,
+      "community_name": "logger.js",
       "norm_label": "__dirname"
     },
     {
@@ -1120,6 +1358,7 @@
       "_origin": "ast",
       "id": "src_handlers_componenthandler_components_dir",
       "community": 0,
+      "community_name": "logger.js",
       "norm_label": "components_dir"
     },
     {
@@ -1130,6 +1369,7 @@
       "_origin": "ast",
       "id": "src_handlers_componenthandler_loadcomponents",
       "community": 0,
+      "community_name": "logger.js",
       "norm_label": "loadcomponents()"
     },
     {
@@ -1140,6 +1380,7 @@
       "_origin": "ast",
       "id": "src_handlers_componenthandler_resolvecomponent",
       "community": 0,
+      "community_name": "logger.js",
       "norm_label": "resolvecomponent()"
     },
     {
@@ -1150,6 +1391,7 @@
       "_origin": "ast",
       "id": "src_handlers_eventhandler",
       "community": 0,
+      "community_name": "logger.js",
       "norm_label": "eventhandler.js"
     },
     {
@@ -1160,6 +1402,7 @@
       "_origin": "ast",
       "id": "src_handlers_eventhandler_dirname",
       "community": 0,
+      "community_name": "logger.js",
       "norm_label": "__dirname"
     },
     {
@@ -1170,6 +1413,7 @@
       "_origin": "ast",
       "id": "src_handlers_eventhandler_events_dir",
       "community": 0,
+      "community_name": "logger.js",
       "norm_label": "events_dir"
     },
     {
@@ -1180,6 +1424,7 @@
       "_origin": "ast",
       "id": "src_handlers_eventhandler_loadevents",
       "community": 0,
+      "community_name": "logger.js",
       "norm_label": "loadevents()"
     },
     {
@@ -1190,6 +1435,7 @@
       "_origin": "ast",
       "id": "src_handlers_loadfiles",
       "community": 0,
+      "community_name": "logger.js",
       "norm_label": "loadfiles.js"
     },
     {
@@ -1200,6 +1446,7 @@
       "_origin": "ast",
       "id": "src_handlers_loadfiles_loadmodules",
       "community": 0,
+      "community_name": "logger.js",
       "norm_label": "loadmodules()"
     },
     {
@@ -1210,6 +1457,7 @@
       "_origin": "ast",
       "id": "src_index",
       "community": 0,
+      "community_name": "logger.js",
       "norm_label": "index.js"
     },
     {
@@ -1220,6 +1468,7 @@
       "_origin": "ast",
       "id": "src_index_main",
       "community": 0,
+      "community_name": "logger.js",
       "norm_label": "main()"
     },
     {
@@ -1229,7 +1478,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_services_cleanupservice",
-      "community": 0,
+      "community": 5,
+      "community_name": "scheduler.js",
       "norm_label": "cleanupservice.js"
     },
     {
@@ -1239,7 +1489,8 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "src_services_cleanupservice_deleteguilddata",
-      "community": 0,
+      "community": 5,
+      "community_name": "scheduler.js",
       "norm_label": "deleteguilddata()"
     },
     {
@@ -1249,7 +1500,8 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "src_services_cleanupservice_storedguildids",
-      "community": 0,
+      "community": 5,
+      "community_name": "scheduler.js",
       "norm_label": "storedguildids()"
     },
     {
@@ -1259,7 +1511,8 @@
       "source_location": "L39",
       "_origin": "ast",
       "id": "src_services_cleanupservice_purgeorphanedguilds",
-      "community": 0,
+      "community": 5,
+      "community_name": "scheduler.js",
       "norm_label": "purgeorphanedguilds()"
     },
     {
@@ -1269,7 +1522,8 @@
       "source_location": "L69",
       "_origin": "ast",
       "id": "src_services_cleanupservice_startmaintenance",
-      "community": 0,
+      "community": 5,
+      "community_name": "scheduler.js",
       "norm_label": "startmaintenance()"
     },
     {
@@ -1279,7 +1533,8 @@
       "source_location": "L76",
       "_origin": "ast",
       "id": "src_services_cleanupservice_stopmaintenance",
-      "community": 0,
+      "community": 5,
+      "community_name": "scheduler.js",
       "norm_label": "stopmaintenance()"
     },
     {
@@ -1290,6 +1545,7 @@
       "_origin": "ast",
       "id": "src_services_controlserver",
       "community": 6,
+      "community_name": "giveawayService.js",
       "norm_label": "controlserver.js"
     },
     {
@@ -1300,6 +1556,7 @@
       "_origin": "ast",
       "id": "src_services_controlserver_too_large",
       "community": 6,
+      "community_name": "giveawayService.js",
       "norm_label": "too_large"
     },
     {
@@ -1310,6 +1567,7 @@
       "_origin": "ast",
       "id": "src_services_controlserver_settings_keys",
       "community": 6,
+      "community_name": "giveawayService.js",
       "norm_label": "settings_keys"
     },
     {
@@ -1320,6 +1578,7 @@
       "_origin": "ast",
       "id": "src_services_controlserver_secretok",
       "community": 6,
+      "community_name": "giveawayService.js",
       "norm_label": "secretok()"
     },
     {
@@ -1330,6 +1589,7 @@
       "_origin": "ast",
       "id": "src_services_controlserver_send",
       "community": 6,
+      "community_name": "giveawayService.js",
       "norm_label": "send()"
     },
     {
@@ -1340,6 +1600,7 @@
       "_origin": "ast",
       "id": "src_services_controlserver_readjson",
       "community": 6,
+      "community_name": "giveawayService.js",
       "norm_label": "readjson()"
     },
     {
@@ -1350,6 +1611,7 @@
       "_origin": "ast",
       "id": "src_services_controlserver_serializegiveaway",
       "community": 6,
+      "community_name": "giveawayService.js",
       "norm_label": "serializegiveaway()"
     },
     {
@@ -1360,6 +1622,7 @@
       "_origin": "ast",
       "id": "src_services_controlserver_listgiveaways",
       "community": 6,
+      "community_name": "giveawayService.js",
       "norm_label": "listgiveaways()"
     },
     {
@@ -1370,6 +1633,7 @@
       "_origin": "ast",
       "id": "src_services_controlserver_getgiveawaydetail",
       "community": 6,
+      "community_name": "giveawayService.js",
       "norm_label": "getgiveawaydetail()"
     },
     {
@@ -1379,7 +1643,8 @@
       "source_location": "L126",
       "_origin": "ast",
       "id": "src_services_controlserver_creategiveawayendpoint",
-      "community": 6,
+      "community": 7,
+      "community_name": "gtemplate.js",
       "norm_label": "creategiveawayendpoint()"
     },
     {
@@ -1390,6 +1655,7 @@
       "_origin": "ast",
       "id": "src_services_controlserver_editgiveawayendpoint",
       "community": 6,
+      "community_name": "giveawayService.js",
       "norm_label": "editgiveawayendpoint()"
     },
     {
@@ -1400,6 +1666,7 @@
       "_origin": "ast",
       "id": "src_services_controlserver_extendgiveawayendpoint",
       "community": 6,
+      "community_name": "giveawayService.js",
       "norm_label": "extendgiveawayendpoint()"
     },
     {
@@ -1409,7 +1676,8 @@
       "source_location": "L211",
       "_origin": "ast",
       "id": "src_services_controlserver_lifecycleendpoint",
-      "community": 1,
+      "community": 6,
+      "community_name": "giveawayService.js",
       "norm_label": "lifecycleendpoint()"
     },
     {
@@ -1420,6 +1688,7 @@
       "_origin": "ast",
       "id": "src_services_controlserver_updatesettingsendpoint",
       "community": 6,
+      "community_name": "giveawayService.js",
       "norm_label": "updatesettingsendpoint()"
     },
     {
@@ -1430,6 +1699,7 @@
       "_origin": "ast",
       "id": "src_services_controlserver_listroles",
       "community": 6,
+      "community_name": "giveawayService.js",
       "norm_label": "listroles()"
     },
     {
@@ -1440,6 +1710,7 @@
       "_origin": "ast",
       "id": "src_services_controlserver_listchannels",
       "community": 6,
+      "community_name": "giveawayService.js",
       "norm_label": "listchannels()"
     },
     {
@@ -1450,6 +1721,7 @@
       "_origin": "ast",
       "id": "src_services_controlserver_handle",
       "community": 6,
+      "community_name": "giveawayService.js",
       "norm_label": "handle()"
     },
     {
@@ -1460,6 +1732,7 @@
       "_origin": "ast",
       "id": "src_services_controlserver_startcontrolserver",
       "community": 6,
+      "community_name": "giveawayService.js",
       "norm_label": "startcontrolserver()"
     },
     {
@@ -1470,6 +1743,7 @@
       "_origin": "ast",
       "id": "src_services_controlserver_stopcontrolserver",
       "community": 6,
+      "community_name": "giveawayService.js",
       "norm_label": "stopcontrolserver()"
     },
     {
@@ -1479,307 +1753,327 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_services_giveawayservice",
-      "community": 1,
+      "community": 6,
+      "community_name": "giveawayService.js",
       "norm_label": "giveawayservice.js"
-    },
-    {
-      "label": "endingLocks",
-      "file_type": "code",
-      "source_file": "src/services/giveawayService.js",
-      "source_location": "L13",
-      "_origin": "ast",
-      "id": "src_services_giveawayservice_endinglocks",
-      "community": 1,
-      "norm_label": "endinglocks"
     },
     {
       "label": "createGiveaway()",
       "file_type": "code",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L15",
+      "source_location": "L12",
       "_origin": "ast",
       "id": "src_services_giveawayservice_creategiveaway",
-      "community": 1,
+      "community": 7,
+      "community_name": "gtemplate.js",
       "norm_label": "creategiveaway()"
     },
     {
       "label": "getGiveaway()",
       "file_type": "code",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L19",
+      "source_location": "L16",
       "_origin": "ast",
       "id": "src_services_giveawayservice_getgiveaway",
       "community": 3,
+      "community_name": "t",
       "norm_label": "getgiveaway()"
     },
     {
       "label": "setGiveawayBlacklistRoles()",
       "file_type": "code",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L24",
+      "source_location": "L21",
       "_origin": "ast",
       "id": "src_services_giveawayservice_setgiveawayblacklistroles",
-      "community": 5,
+      "community": 22,
+      "community_name": "gsettings.js",
       "norm_label": "setgiveawayblacklistroles()"
     },
     {
       "label": "setGiveawayWhitelistRoles()",
       "file_type": "code",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L29",
+      "source_location": "L26",
       "_origin": "ast",
       "id": "src_services_giveawayservice_setgiveawaywhitelistroles",
-      "community": 5,
+      "community": 22,
+      "community_name": "gsettings.js",
       "norm_label": "setgiveawaywhitelistroles()"
     },
     {
       "label": "setGiveawayBonusRoles()",
       "file_type": "code",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L34",
+      "source_location": "L31",
       "_origin": "ast",
       "id": "src_services_giveawayservice_setgiveawaybonusroles",
-      "community": 5,
+      "community": 22,
+      "community_name": "gsettings.js",
       "norm_label": "setgiveawaybonusroles()"
     },
     {
       "label": "listActive()",
       "file_type": "code",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L38",
+      "source_location": "L35",
       "_origin": "ast",
       "id": "src_services_giveawayservice_listactive",
       "community": 4,
+      "community_name": "embeds.js",
       "norm_label": "listactive()"
     },
     {
       "label": "countEntries()",
       "file_type": "code",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L45",
+      "source_location": "L42",
       "_origin": "ast",
       "id": "src_services_giveawayservice_countentries",
-      "community": 1,
+      "community": 4,
+      "community_name": "embeds.js",
       "norm_label": "countentries()"
     },
     {
       "label": "getWinnerIds()",
       "file_type": "code",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L49",
+      "source_location": "L46",
       "_origin": "ast",
       "id": "src_services_giveawayservice_getwinnerids",
-      "community": 1,
+      "community": 6,
+      "community_name": "giveawayService.js",
       "norm_label": "getwinnerids()"
     },
     {
       "label": "addOrRemoveEntry()",
       "file_type": "code",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L58",
+      "source_location": "L55",
       "_origin": "ast",
       "id": "src_services_giveawayservice_addorremoveentry",
       "community": 1,
+      "community_name": "participate.js",
       "norm_label": "addorremoveentry()"
     },
     {
       "label": "cancelGiveaway()",
       "file_type": "code",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L70",
+      "source_location": "L67",
       "_origin": "ast",
       "id": "src_services_giveawayservice_cancelgiveaway",
-      "community": 1,
+      "community": 6,
+      "community_name": "giveawayService.js",
       "norm_label": "cancelgiveaway()"
     },
     {
       "label": "shuffle()",
       "file_type": "code",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L77",
+      "source_location": "L74",
       "_origin": "ast",
       "id": "src_services_giveawayservice_shuffle",
-      "community": 1,
+      "community": 6,
+      "community_name": "giveawayService.js",
       "norm_label": "shuffle()"
     },
     {
       "label": "drawWinners()",
       "file_type": "code",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L93",
+      "source_location": "L90",
       "_origin": "ast",
       "id": "src_services_giveawayservice_drawwinners",
-      "community": 1,
+      "community": 6,
+      "community_name": "giveawayService.js",
       "norm_label": "drawwinners()"
     },
     {
       "label": "embedThrottle",
       "file_type": "code",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L144",
+      "source_location": "L141",
       "_origin": "ast",
       "id": "src_services_giveawayservice_embedthrottle",
-      "community": 1,
+      "community": 6,
+      "community_name": "giveawayService.js",
       "norm_label": "embedthrottle"
     },
     {
       "label": "refreshActiveEmbed()",
       "file_type": "code",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L146",
+      "source_location": "L143",
       "_origin": "ast",
       "id": "src_services_giveawayservice_refreshactiveembed",
-      "community": 1,
+      "community": 4,
+      "community_name": "embeds.js",
       "norm_label": "refreshactiveembed()"
     },
     {
       "label": "scheduleEmbedRefresh()",
       "file_type": "code",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L164",
+      "source_location": "L161",
       "_origin": "ast",
       "id": "src_services_giveawayservice_scheduleembedrefresh",
       "community": 1,
+      "community_name": "participate.js",
       "norm_label": "scheduleembedrefresh()"
     },
     {
       "label": "messageLink()",
       "file_type": "code",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L186",
+      "source_location": "L183",
       "_origin": "ast",
       "id": "src_services_giveawayservice_messagelink",
-      "community": 1,
+      "community": 6,
+      "community_name": "giveawayService.js",
       "norm_label": "messagelink()"
     },
     {
       "label": "dmWinners()",
       "file_type": "code",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L192",
+      "source_location": "L189",
       "_origin": "ast",
       "id": "src_services_giveawayservice_dmwinners",
-      "community": 1,
+      "community": 6,
+      "community_name": "giveawayService.js",
       "norm_label": "dmwinners()"
     },
     {
       "label": "finalizeMessages()",
       "file_type": "code",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L214",
+      "source_location": "L211",
       "_origin": "ast",
       "id": "src_services_giveawayservice_finalizemessages",
-      "community": 1,
+      "community": 6,
+      "community_name": "giveawayService.js",
       "norm_label": "finalizemessages()"
     },
     {
       "label": "endGiveaway()",
       "file_type": "code",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L259",
+      "source_location": "L268",
       "_origin": "ast",
       "id": "src_services_giveawayservice_endgiveaway",
-      "community": 1,
+      "community": 6,
+      "community_name": "giveawayService.js",
       "norm_label": "endgiveaway()"
     },
     {
       "label": "sendGuildLog()",
       "file_type": "code",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L302",
+      "source_location": "L316",
       "_origin": "ast",
       "id": "src_services_giveawayservice_sendguildlog",
-      "community": 1,
+      "community": 6,
+      "community_name": "giveawayService.js",
       "norm_label": "sendguildlog()"
     },
     {
       "label": "postGiveaway()",
       "file_type": "code",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L318",
+      "source_location": "L332",
       "_origin": "ast",
       "id": "src_services_giveawayservice_postgiveaway",
-      "community": 1,
+      "community": 7,
+      "community_name": "gtemplate.js",
       "norm_label": "postgiveaway()"
     },
     {
       "label": "editActiveMessage()",
       "file_type": "code",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L350",
+      "source_location": "L364",
       "_origin": "ast",
       "id": "src_services_giveawayservice_editactivemessage",
-      "community": 1,
+      "community": 6,
+      "community_name": "giveawayService.js",
       "norm_label": "editactivemessage()"
     },
     {
       "label": "pauseGiveaway()",
       "file_type": "code",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L365",
+      "source_location": "L379",
       "_origin": "ast",
       "id": "src_services_giveawayservice_pausegiveaway",
-      "community": 1,
+      "community": 6,
+      "community_name": "giveawayService.js",
       "norm_label": "pausegiveaway()"
     },
     {
       "label": "resumeGiveaway()",
       "file_type": "code",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L376",
+      "source_location": "L390",
       "_origin": "ast",
       "id": "src_services_giveawayservice_resumegiveaway",
-      "community": 1,
+      "community": 6,
+      "community_name": "giveawayService.js",
       "norm_label": "resumegiveaway()"
     },
     {
       "label": "replaceWinner()",
       "file_type": "code",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L394",
+      "source_location": "L408",
       "_origin": "ast",
       "id": "src_services_giveawayservice_replacewinner",
-      "community": 1,
+      "community": 6,
+      "community_name": "giveawayService.js",
       "norm_label": "replacewinner()"
     },
     {
       "label": "cancelAndFinalize()",
       "file_type": "code",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L421",
+      "source_location": "L435",
       "_origin": "ast",
       "id": "src_services_giveawayservice_cancelandfinalize",
-      "community": 1,
+      "community": 6,
+      "community_name": "giveawayService.js",
       "norm_label": "cancelandfinalize()"
     },
     {
       "label": "rerollAll()",
       "file_type": "code",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L446",
+      "source_location": "L460",
       "_origin": "ast",
       "id": "src_services_giveawayservice_rerollall",
-      "community": 1,
+      "community": 6,
+      "community_name": "giveawayService.js",
       "norm_label": "rerollall()"
     },
     {
       "label": "rerollSingle()",
       "file_type": "code",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L477",
+      "source_location": "L491",
       "_origin": "ast",
       "id": "src_services_giveawayservice_rerollsingle",
-      "community": 1,
+      "community": 6,
+      "community_name": "giveawayService.js",
       "norm_label": "rerollsingle()"
     },
     {
       "label": "getGuildStats()",
       "file_type": "code",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L503",
+      "source_location": "L517",
       "_origin": "ast",
       "id": "src_services_giveawayservice_getguildstats",
       "community": 4,
+      "community_name": "embeds.js",
       "norm_label": "getguildstats()"
     },
     {
@@ -1789,7 +2083,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_services_resultpublisher",
-      "community": 0,
+      "community": 5,
+      "community_name": "scheduler.js",
       "norm_label": "resultpublisher.js"
     },
     {
@@ -1799,7 +2094,8 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "src_services_resultpublisher_publishresult",
-      "community": 1,
+      "community": 6,
+      "community_name": "giveawayService.js",
       "norm_label": "publishresult()"
     },
     {
@@ -1809,7 +2105,8 @@
       "source_location": "L75",
       "_origin": "ast",
       "id": "src_services_resultpublisher_deleteguildresults",
-      "community": 0,
+      "community": 5,
+      "community_name": "scheduler.js",
       "norm_label": "deleteguildresults()"
     },
     {
@@ -1819,7 +2116,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_services_scheduler",
-      "community": 1,
+      "community": 5,
+      "community_name": "scheduler.js",
       "norm_label": "scheduler.js"
     },
     {
@@ -1829,7 +2127,8 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "src_services_scheduler_sendreminders",
-      "community": 1,
+      "community": 5,
+      "community_name": "scheduler.js",
       "norm_label": "sendreminders()"
     },
     {
@@ -1839,27 +2138,30 @@
       "source_location": "L58",
       "_origin": "ast",
       "id": "src_services_scheduler_tick",
-      "community": 1,
+      "community": 5,
+      "community_name": "scheduler.js",
       "norm_label": "tick()"
     },
     {
       "label": "startScheduler()",
       "file_type": "code",
       "source_file": "src/services/scheduler.js",
-      "source_location": "L78",
+      "source_location": "L80",
       "_origin": "ast",
       "id": "src_services_scheduler_startscheduler",
-      "community": 0,
+      "community": 5,
+      "community_name": "scheduler.js",
       "norm_label": "startscheduler()"
     },
     {
       "label": "stopScheduler()",
       "file_type": "code",
       "source_file": "src/services/scheduler.js",
-      "source_location": "L88",
+      "source_location": "L90",
       "_origin": "ast",
       "id": "src_services_scheduler_stopscheduler",
-      "community": 1,
+      "community": 5,
+      "community_name": "scheduler.js",
       "norm_label": "stopscheduler()"
     },
     {
@@ -1869,7 +2171,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_services_settingsservice",
-      "community": 5,
+      "community": 3,
+      "community_name": "t",
       "norm_label": "settingsservice.js"
     },
     {
@@ -1879,7 +2182,8 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "src_services_settingsservice_cache",
-      "community": 5,
+      "community": 3,
+      "community_name": "t",
       "norm_label": "cache"
     },
     {
@@ -1889,7 +2193,8 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "src_services_settingsservice_defaults",
-      "community": 5,
+      "community": 3,
+      "community_name": "t",
       "norm_label": "defaults"
     },
     {
@@ -1899,7 +2204,8 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "src_services_settingsservice_parsearray",
-      "community": 5,
+      "community": 3,
+      "community_name": "t",
       "norm_label": "parsearray()"
     },
     {
@@ -1909,7 +2215,8 @@
       "source_location": "L33",
       "_origin": "ast",
       "id": "src_services_settingsservice_parseobject",
-      "community": 5,
+      "community": 3,
+      "community_name": "t",
       "norm_label": "parseobject()"
     },
     {
@@ -1919,7 +2226,8 @@
       "source_location": "L43",
       "_origin": "ast",
       "id": "src_services_settingsservice_deserialize",
-      "community": 5,
+      "community": 3,
+      "community_name": "t",
       "norm_label": "deserialize()"
     },
     {
@@ -1930,6 +2238,7 @@
       "_origin": "ast",
       "id": "src_services_settingsservice_getlang",
       "community": 3,
+      "community_name": "t",
       "norm_label": "getlang()"
     },
     {
@@ -1939,7 +2248,8 @@
       "source_location": "L58",
       "_origin": "ast",
       "id": "src_services_settingsservice_getcached",
-      "community": 5,
+      "community": 3,
+      "community_name": "t",
       "norm_label": "getcached()"
     },
     {
@@ -1949,37 +2259,52 @@
       "source_location": "L63",
       "_origin": "ast",
       "id": "src_services_settingsservice_evict",
-      "community": 0,
+      "community": 5,
+      "community_name": "scheduler.js",
       "norm_label": "evict()"
+    },
+    {
+      "label": "ensureRow()",
+      "file_type": "code",
+      "source_file": "src/services/settingsService.js",
+      "source_location": "L82",
+      "_origin": "ast",
+      "id": "src_services_settingsservice_ensurerow",
+      "community": 3,
+      "community_name": "t",
+      "norm_label": "ensurerow()"
     },
     {
       "label": "getSettings()",
       "file_type": "code",
       "source_file": "src/services/settingsService.js",
-      "source_location": "L68",
+      "source_location": "L96",
       "_origin": "ast",
       "id": "src_services_settingsservice_getsettings",
       "community": 3,
+      "community_name": "t",
       "norm_label": "getsettings()"
     },
     {
       "label": "createDefaults()",
       "file_type": "code",
       "source_file": "src/services/settingsService.js",
-      "source_location": "L82",
+      "source_location": "L106",
       "_origin": "ast",
       "id": "src_services_settingsservice_createdefaults",
-      "community": 5,
+      "community": 3,
+      "community_name": "t",
       "norm_label": "createdefaults()"
     },
     {
       "label": "updateSettings()",
       "file_type": "code",
       "source_file": "src/services/settingsService.js",
-      "source_location": "L103",
+      "source_location": "L123",
       "_origin": "ast",
       "id": "src_services_settingsservice_updatesettings",
-      "community": 5,
+      "community": 22,
+      "community_name": "gsettings.js",
       "norm_label": "updatesettings()"
     },
     {
@@ -1990,6 +2315,7 @@
       "_origin": "ast",
       "id": "src_services_templateservice",
       "community": 7,
+      "community_name": "gtemplate.js",
       "norm_label": "templateservice.js"
     },
     {
@@ -2000,6 +2326,7 @@
       "_origin": "ast",
       "id": "src_services_templateservice_savetemplate",
       "community": 7,
+      "community_name": "gtemplate.js",
       "norm_label": "savetemplate()"
     },
     {
@@ -2010,6 +2337,7 @@
       "_origin": "ast",
       "id": "src_services_templateservice_listtemplates",
       "community": 7,
+      "community_name": "gtemplate.js",
       "norm_label": "listtemplates()"
     },
     {
@@ -2020,6 +2348,7 @@
       "_origin": "ast",
       "id": "src_services_templateservice_gettemplate",
       "community": 7,
+      "community_name": "gtemplate.js",
       "norm_label": "gettemplate()"
     },
     {
@@ -2030,6 +2359,7 @@
       "_origin": "ast",
       "id": "src_services_templateservice_deletetemplate",
       "community": 7,
+      "community_name": "gtemplate.js",
       "norm_label": "deletetemplate()"
     },
     {
@@ -2040,6 +2370,7 @@
       "_origin": "ast",
       "id": "src_utils_duration",
       "community": 7,
+      "community_name": "gtemplate.js",
       "norm_label": "duration.js"
     },
     {
@@ -2050,6 +2381,7 @@
       "_origin": "ast",
       "id": "src_utils_duration_unit_ms",
       "community": 7,
+      "community_name": "gtemplate.js",
       "norm_label": "unit_ms"
     },
     {
@@ -2060,6 +2392,7 @@
       "_origin": "ast",
       "id": "src_utils_duration_parseduration",
       "community": 7,
+      "community_name": "gtemplate.js",
       "norm_label": "parseduration()"
     },
     {
@@ -2070,6 +2403,7 @@
       "_origin": "ast",
       "id": "src_utils_eligibility",
       "community": 1,
+      "community_name": "participate.js",
       "norm_label": "eligibility.js"
     },
     {
@@ -2080,6 +2414,7 @@
       "_origin": "ast",
       "id": "src_utils_eligibility_checkeligibility",
       "community": 1,
+      "community_name": "participate.js",
       "norm_label": "checkeligibility()"
     },
     {
@@ -2089,7 +2424,8 @@
       "source_location": "L47",
       "_origin": "ast",
       "id": "src_utils_eligibility_ticketweight",
-      "community": 1,
+      "community": 6,
+      "community_name": "giveawayService.js",
       "norm_label": "ticketweight()"
     },
     {
@@ -2100,6 +2436,7 @@
       "_origin": "ast",
       "id": "src_utils_eligibility_parserolearray",
       "community": 1,
+      "community_name": "participate.js",
       "norm_label": "parserolearray()"
     },
     {
@@ -2110,6 +2447,7 @@
       "_origin": "ast",
       "id": "src_utils_eligibility_parseroleobject",
       "community": 1,
+      "community_name": "participate.js",
       "norm_label": "parseroleobject()"
     },
     {
@@ -2120,6 +2458,7 @@
       "_origin": "ast",
       "id": "src_utils_eligibility_mergegiveawayeligibility",
       "community": 1,
+      "community_name": "participate.js",
       "norm_label": "mergegiveawayeligibility()"
     },
     {
@@ -2130,6 +2469,7 @@
       "_origin": "ast",
       "id": "src_utils_embeds",
       "community": 4,
+      "community_name": "embeds.js",
       "norm_label": "embeds.js"
     },
     {
@@ -2140,6 +2480,7 @@
       "_origin": "ast",
       "id": "src_utils_embeds_style_map",
       "community": 4,
+      "community_name": "embeds.js",
       "norm_label": "style_map"
     },
     {
@@ -2150,6 +2491,7 @@
       "_origin": "ast",
       "id": "src_utils_embeds_resolvecolor",
       "community": 4,
+      "community_name": "embeds.js",
       "norm_label": "resolvecolor()"
     },
     {
@@ -2160,6 +2502,7 @@
       "_origin": "ast",
       "id": "src_utils_embeds_rel",
       "community": 4,
+      "community_name": "embeds.js",
       "norm_label": "rel()"
     },
     {
@@ -2169,7 +2512,8 @@
       "source_location": "L36",
       "_origin": "ast",
       "id": "src_utils_embeds_requirementsvalue",
-      "community": 1,
+      "community": 4,
+      "community_name": "embeds.js",
       "norm_label": "requirementsvalue()"
     },
     {
@@ -2179,7 +2523,8 @@
       "source_location": "L47",
       "_origin": "ast",
       "id": "src_utils_embeds_buildgiveawayembed",
-      "community": 1,
+      "community": 4,
+      "community_name": "embeds.js",
       "norm_label": "buildgiveawayembed()"
     },
     {
@@ -2189,7 +2534,8 @@
       "source_location": "L71",
       "_origin": "ast",
       "id": "src_utils_embeds_buildendedembed",
-      "community": 1,
+      "community": 6,
+      "community_name": "giveawayService.js",
       "norm_label": "buildendedembed()"
     },
     {
@@ -2199,7 +2545,8 @@
       "source_location": "L91",
       "_origin": "ast",
       "id": "src_utils_embeds_buildcancelledembed",
-      "community": 1,
+      "community": 4,
+      "community_name": "embeds.js",
       "norm_label": "buildcancelledembed()"
     },
     {
@@ -2209,7 +2556,8 @@
       "source_location": "L101",
       "_origin": "ast",
       "id": "src_utils_embeds_buildbuttonrow",
-      "community": 1,
+      "community": 4,
+      "community_name": "embeds.js",
       "norm_label": "buildbuttonrow()"
     },
     {
@@ -2219,7 +2567,8 @@
       "source_location": "L122",
       "_origin": "ast",
       "id": "src_utils_embeds_buildresultcontent",
-      "community": 1,
+      "community": 6,
+      "community_name": "giveawayService.js",
       "norm_label": "buildresultcontent()"
     },
     {
@@ -2229,7 +2578,8 @@
       "source_location": "L134",
       "_origin": "ast",
       "id": "src_utils_embeds_buildsettingsembed",
-      "community": 5,
+      "community": 22,
+      "community_name": "gsettings.js",
       "norm_label": "buildsettingsembed()"
     },
     {
@@ -2240,6 +2590,7 @@
       "_origin": "ast",
       "id": "src_utils_embeds_buildstatsembed",
       "community": 4,
+      "community_name": "embeds.js",
       "norm_label": "buildstatsembed()"
     },
     {
@@ -2250,6 +2601,7 @@
       "_origin": "ast",
       "id": "src_utils_embeds_buildlistembed",
       "community": 4,
+      "community_name": "embeds.js",
       "norm_label": "buildlistembed()"
     },
     {
@@ -2260,6 +2612,7 @@
       "_origin": "ast",
       "id": "src_utils_embeds_buildinfoembed",
       "community": 4,
+      "community_name": "embeds.js",
       "norm_label": "buildinfoembed()"
     },
     {
@@ -2270,6 +2623,7 @@
       "_origin": "ast",
       "id": "src_utils_embeds_buildhelpembed",
       "community": 4,
+      "community_name": "embeds.js",
       "norm_label": "buildhelpembed()"
     },
     {
@@ -2279,7 +2633,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_utils_emoji",
-      "community": 5,
+      "community": 22,
+      "community_name": "gsettings.js",
       "norm_label": "emoji.js"
     },
     {
@@ -2289,7 +2644,8 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "src_utils_emoji_isvalidemoji",
-      "community": 5,
+      "community": 22,
+      "community_name": "gsettings.js",
       "norm_label": "isvalidemoji()"
     },
     {
@@ -2300,6 +2656,7 @@
       "_origin": "ast",
       "id": "src_utils_emoji_parseemoji",
       "community": 4,
+      "community_name": "embeds.js",
       "norm_label": "parseemoji()"
     },
     {
@@ -2310,6 +2667,7 @@
       "_origin": "ast",
       "id": "src_utils_i18n",
       "community": 3,
+      "community_name": "t",
       "norm_label": "i18n.js"
     },
     {
@@ -2320,6 +2678,7 @@
       "_origin": "ast",
       "id": "src_utils_i18n_dirname",
       "community": 3,
+      "community_name": "t",
       "norm_label": "__dirname"
     },
     {
@@ -2330,6 +2689,7 @@
       "_origin": "ast",
       "id": "src_utils_i18n_locales_dir",
       "community": 3,
+      "community_name": "t",
       "norm_label": "locales_dir"
     },
     {
@@ -2340,7 +2700,19 @@
       "_origin": "ast",
       "id": "src_utils_i18n_supported_langs",
       "community": 3,
+      "community_name": "t",
       "norm_label": "supported_langs"
+    },
+    {
+      "label": "DEFAULT_LANG",
+      "file_type": "code",
+      "source_file": "src/utils/i18n.js",
+      "source_location": "L13",
+      "_origin": "ast",
+      "id": "src_utils_i18n_default_lang",
+      "community": 3,
+      "community_name": "t",
+      "norm_label": "default_lang"
     },
     {
       "label": "locales",
@@ -2350,6 +2722,7 @@
       "_origin": "ast",
       "id": "src_utils_i18n_locales",
       "community": 3,
+      "community_name": "t",
       "norm_label": "locales"
     },
     {
@@ -2360,6 +2733,7 @@
       "_origin": "ast",
       "id": "src_utils_i18n_loadlocales",
       "community": 0,
+      "community_name": "logger.js",
       "norm_label": "loadlocales()"
     },
     {
@@ -2370,6 +2744,7 @@
       "_origin": "ast",
       "id": "src_utils_i18n_interpolate",
       "community": 3,
+      "community_name": "t",
       "norm_label": "interpolate()"
     },
     {
@@ -2379,7 +2754,8 @@
       "source_location": "L41",
       "_origin": "ast",
       "id": "src_utils_i18n_t",
-      "community": 1,
+      "community": 3,
+      "community_name": "t",
       "norm_label": "t()"
     },
     {
@@ -2390,6 +2766,7 @@
       "_origin": "ast",
       "id": "src_utils_i18n_resolvelang",
       "community": 3,
+      "community_name": "t",
       "norm_label": "resolvelang()"
     },
     {
@@ -2399,7 +2776,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_utils_id",
-      "community": 1,
+      "community": 5,
+      "community_name": "scheduler.js",
       "norm_label": "id.js"
     },
     {
@@ -2409,7 +2787,8 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "src_utils_id_nano",
-      "community": 1,
+      "community": 5,
+      "community_name": "scheduler.js",
       "norm_label": "nano"
     },
     {
@@ -2419,7 +2798,8 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "src_utils_id_generategiveawayid",
-      "community": 1,
+      "community": 5,
+      "community_name": "scheduler.js",
       "norm_label": "generategiveawayid()"
     },
     {
@@ -2430,6 +2810,7 @@
       "_origin": "ast",
       "id": "src_utils_logger",
       "community": 0,
+      "community_name": "logger.js",
       "norm_label": "logger.js"
     },
     {
@@ -2440,6 +2821,7 @@
       "_origin": "ast",
       "id": "src_utils_logger_colors",
       "community": 0,
+      "community_name": "logger.js",
       "norm_label": "colors"
     },
     {
@@ -2450,6 +2832,7 @@
       "_origin": "ast",
       "id": "src_utils_logger_ts",
       "community": 0,
+      "community_name": "logger.js",
       "norm_label": "ts()"
     },
     {
@@ -2460,6 +2843,7 @@
       "_origin": "ast",
       "id": "src_utils_logger_format",
       "community": 0,
+      "community_name": "logger.js",
       "norm_label": "format()"
     },
     {
@@ -2470,6 +2854,7 @@
       "_origin": "ast",
       "id": "src_utils_logger_logger",
       "community": 0,
+      "community_name": "logger.js",
       "norm_label": "logger"
     },
     {
@@ -2480,6 +2865,7 @@
       "_origin": "ast",
       "id": "src_utils_permissions",
       "community": 3,
+      "community_name": "t",
       "norm_label": "permissions.js"
     },
     {
@@ -2490,6 +2876,7 @@
       "_origin": "ast",
       "id": "src_utils_permissions_ismanager",
       "community": 3,
+      "community_name": "t",
       "norm_label": "ismanager()"
     },
     {
@@ -2501,9 +2888,11 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "_github_funding_github_sponsors_funding",
       "community": 10,
-      "norm_label": "github sponsors funding (msk-scripts)"
+      "norm_label": "github sponsors funding (msk-scripts)",
+      "_origin": "semantic",
+      "community_name": "Discord Giveaway Bot",
+      "id": "_github_funding_github_sponsors_funding"
     },
     {
       "label": "Bug Report Issue Form",
@@ -2514,9 +2903,11 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "_github_issue_template_bug_report_bug_report_form",
       "community": 16,
-      "norm_label": "bug report issue form"
+      "norm_label": "bug report issue form",
+      "_origin": "semantic",
+      "community_name": "Secrets Confined to .env and Actions Secrets",
+      "id": "_github_issue_template_bug_report_bug_report_form"
     },
     {
       "label": "Secret Redaction Requirement in Reports",
@@ -2527,9 +2918,11 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "_github_issue_template_bug_report_secret_redaction_requirement",
       "community": 16,
-      "norm_label": "secret redaction requirement in reports"
+      "norm_label": "secret redaction requirement in reports",
+      "_origin": "semantic",
+      "community_name": "Secrets Confined to .env and Actions Secrets",
+      "id": "_github_issue_template_bug_report_secret_redaction_requirement"
     },
     {
       "label": "Issue Routing Config (blank issues disabled)",
@@ -2540,9 +2933,11 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "_github_issue_template_config_issue_routing",
       "community": 12,
-      "norm_label": "issue routing config (blank issues disabled)"
+      "norm_label": "issue routing config (blank issues disabled)",
+      "_origin": "semantic",
+      "community_name": "Security Policy",
+      "id": "_github_issue_template_config_issue_routing"
     },
     {
       "label": "Private Security Advisory Channel",
@@ -2553,9 +2948,11 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "_github_issue_template_config_private_vulnerability_channel",
       "community": 12,
-      "norm_label": "private security advisory channel"
+      "norm_label": "private security advisory channel",
+      "_origin": "semantic",
+      "community_name": "Security Policy",
+      "id": "_github_issue_template_config_private_vulnerability_channel"
     },
     {
       "label": "Feature Request Issue Form",
@@ -2566,9 +2963,11 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "_github_issue_template_feature_request_feature_request_form",
       "community": 8,
-      "norm_label": "feature request issue form"
+      "norm_label": "feature request issue form",
+      "_origin": "semantic",
+      "community_name": "Contributing Guide",
+      "id": "_github_issue_template_feature_request_feature_request_form"
     },
     {
       "label": "Pull Request Template",
@@ -2579,9 +2978,11 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "_github_pull_request_template_pull_request_template",
       "community": 11,
-      "norm_label": "pull request template"
+      "norm_label": "pull request template",
+      "_origin": "semantic",
+      "community_name": "CI verify Job",
+      "id": "_github_pull_request_template_pull_request_template"
     },
     {
       "label": "PR Verification Checklist (i18n, smoke, prisma validate)",
@@ -2592,9 +2993,11 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "_github_pull_request_template_pr_verification_checklist",
       "community": 11,
-      "norm_label": "pr verification checklist (i18n, smoke, prisma validate)"
+      "norm_label": "pr verification checklist (i18n, smoke, prisma validate)",
+      "_origin": "semantic",
+      "community_name": "CI verify Job",
+      "id": "_github_pull_request_template_pr_verification_checklist"
     },
     {
       "label": "Dependabot Update Config",
@@ -2605,9 +3008,11 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "_github_dependabot_dependabot_config",
       "community": 14,
-      "norm_label": "dependabot update config"
+      "norm_label": "dependabot update config",
+      "_origin": "semantic",
+      "community_name": "Supply-Chain Controls (Dependabot, CodeQL, CI gate)",
+      "id": "_github_dependabot_dependabot_config"
     },
     {
       "label": "Grouped Minor/Patch Update Strategy",
@@ -2618,9 +3023,11 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "_github_dependabot_grouped_minor_patch_updates",
       "community": 14,
-      "norm_label": "grouped minor/patch update strategy"
+      "norm_label": "grouped minor/patch update strategy",
+      "_origin": "semantic",
+      "community_name": "Supply-Chain Controls (Dependabot, CodeQL, CI gate)",
+      "id": "_github_dependabot_grouped_minor_patch_updates"
     },
     {
       "label": "Manual Major-Version Migration Policy (discord.js, prisma)",
@@ -2631,9 +3038,11 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "_github_dependabot_manual_major_migration_policy",
       "community": 14,
-      "norm_label": "manual major-version migration policy (discord.js, prisma)"
+      "norm_label": "manual major-version migration policy (discord.js, prisma)",
+      "_origin": "semantic",
+      "community_name": "Supply-Chain Controls (Dependabot, CodeQL, CI gate)",
+      "id": "_github_dependabot_manual_major_migration_policy"
     },
     {
       "label": "CI verify Job",
@@ -2644,9 +3053,11 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "_github_workflows_ci_verify_job",
       "community": 11,
-      "norm_label": "ci verify job"
+      "norm_label": "ci verify job",
+      "_origin": "semantic",
+      "community_name": "CI verify Job",
+      "id": "_github_workflows_ci_verify_job"
     },
     {
       "label": "Reusable Static Verification Gate (workflow_call)",
@@ -2657,9 +3068,11 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "_github_workflows_ci_reusable_verify_gate",
       "community": 11,
-      "norm_label": "reusable static verification gate (workflow_call)"
+      "norm_label": "reusable static verification gate (workflow_call)",
+      "_origin": "semantic",
+      "community_name": "CI verify Job",
+      "id": "_github_workflows_ci_reusable_verify_gate"
     },
     {
       "label": "Dummy DATABASE_URL for Prisma Validate",
@@ -2670,9 +3083,11 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "_github_workflows_ci_dummy_database_url",
       "community": 8,
-      "norm_label": "dummy database_url for prisma validate"
+      "norm_label": "dummy database_url for prisma validate",
+      "_origin": "semantic",
+      "community_name": "Contributing Guide",
+      "id": "_github_workflows_ci_dummy_database_url"
     },
     {
       "label": "i18n Completeness Check Step",
@@ -2683,9 +3098,11 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "_github_workflows_ci_i18n_completeness_check",
       "community": 8,
-      "norm_label": "i18n completeness check step"
+      "norm_label": "i18n completeness check step",
+      "_origin": "semantic",
+      "community_name": "Contributing Guide",
+      "id": "_github_workflows_ci_i18n_completeness_check"
     },
     {
       "label": "Smoke Test Step (exports + SlashCommand builder)",
@@ -2696,9 +3113,11 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "_github_workflows_ci_smoke_test",
       "community": 11,
-      "norm_label": "smoke test step (exports + slashcommand builder)"
+      "norm_label": "smoke test step (exports + slashcommand builder)",
+      "_origin": "semantic",
+      "community_name": "CI verify Job",
+      "id": "_github_workflows_ci_smoke_test"
     },
     {
       "label": "CodeQL Analyze Job (javascript-typescript)",
@@ -2709,9 +3128,11 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "_github_workflows_codeql_analyze_job",
       "community": 14,
-      "norm_label": "codeql analyze job (javascript-typescript)"
+      "norm_label": "codeql analyze job (javascript-typescript)",
+      "_origin": "semantic",
+      "community_name": "Supply-Chain Controls (Dependabot, CodeQL, CI gate)",
+      "id": "_github_workflows_codeql_analyze_job"
     },
     {
       "label": "Deploy Job (SSH to Debian server)",
@@ -2722,9 +3143,11 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "_github_workflows_deploy_deploy_job",
       "community": 9,
-      "norm_label": "deploy job (ssh to debian server)"
+      "norm_label": "deploy job (ssh to debian server)",
+      "_origin": "semantic",
+      "community_name": "Deploy Job (SSH to Debian server)",
+      "id": "_github_workflows_deploy_deploy_job"
     },
     {
       "label": "Self-Healing Git Reset Deploy Strategy",
@@ -2735,9 +3158,11 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "_github_workflows_deploy_self_healing_git_checkout",
       "community": 9,
-      "norm_label": "self-healing git reset deploy strategy"
+      "norm_label": "self-healing git reset deploy strategy",
+      "_origin": "semantic",
+      "community_name": "Deploy Job (SSH to Debian server)",
+      "id": "_github_workflows_deploy_self_healing_git_checkout"
     },
     {
       "label": "Production .env Never Stored in Git",
@@ -2748,9 +3173,11 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "_github_workflows_deploy_env_file_never_in_git",
       "community": 16,
-      "norm_label": "production .env never stored in git"
+      "norm_label": "production .env never stored in git",
+      "_origin": "semantic",
+      "community_name": "Secrets Confined to .env and Actions Secrets",
+      "id": "_github_workflows_deploy_env_file_never_in_git"
     },
     {
       "label": "systemd Service discord-giveaway Restart",
@@ -2761,9 +3188,11 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "_github_workflows_deploy_systemd_service_restart",
       "community": 9,
-      "norm_label": "systemd service discord-giveaway restart"
+      "norm_label": "systemd service discord-giveaway restart",
+      "_origin": "semantic",
+      "community_name": "Deploy Job (SSH to Debian server)",
+      "id": "_github_workflows_deploy_systemd_service_restart"
     },
     {
       "label": "Automatic Global Slash Command Registration",
@@ -2774,9 +3203,11 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "_github_workflows_deploy_global_slash_command_registration",
       "community": 9,
-      "norm_label": "automatic global slash command registration"
+      "norm_label": "automatic global slash command registration",
+      "_origin": "semantic",
+      "community_name": "Deploy Job (SSH to Debian server)",
+      "id": "_github_workflows_deploy_global_slash_command_registration"
     },
     {
       "label": "Docs-Only Changes Skip Production Redeploy",
@@ -2787,9 +3218,11 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "_github_workflows_deploy_docs_only_paths_ignore",
       "community": 9,
-      "norm_label": "docs-only changes skip production redeploy"
+      "norm_label": "docs-only changes skip production redeploy",
+      "_origin": "semantic",
+      "community_name": "Deploy Job (SSH to Debian server)",
+      "id": "_github_workflows_deploy_docs_only_paths_ignore"
     },
     {
       "label": "Mirror to Codeberg Job",
@@ -2800,9 +3233,11 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "_github_workflows_mirror_mirror_job",
       "community": 9,
-      "norm_label": "mirror to codeberg job"
+      "norm_label": "mirror to codeberg job",
+      "_origin": "semantic",
+      "community_name": "Deploy Job (SSH to Debian server)",
+      "id": "_github_workflows_mirror_mirror_job"
     },
     {
       "label": "GitHub as Single Source of Truth for Mirror",
@@ -2813,9 +3248,11 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "_github_workflows_mirror_github_as_source_of_truth",
       "community": 9,
-      "norm_label": "github as single source of truth for mirror"
+      "norm_label": "github as single source of truth for mirror",
+      "_origin": "semantic",
+      "community_name": "Deploy Job (SSH to Debian server)",
+      "id": "_github_workflows_mirror_github_as_source_of_truth"
     },
     {
       "label": "Serial Mirror Concurrency Group",
@@ -2826,9 +3263,11 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "_github_workflows_mirror_serial_mirror_concurrency",
       "community": 9,
-      "norm_label": "serial mirror concurrency group"
+      "norm_label": "serial mirror concurrency group",
+      "_origin": "semantic",
+      "community_name": "Deploy Job (SSH to Debian server)",
+      "id": "_github_workflows_mirror_serial_mirror_concurrency"
     },
     {
       "label": "origin/HEAD Symbolic Ref Deletion Before Push",
@@ -2839,9 +3278,11 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "_github_workflows_mirror_origin_head_deletion",
       "community": 9,
-      "norm_label": "origin/head symbolic ref deletion before push"
+      "norm_label": "origin/head symbolic ref deletion before push",
+      "_origin": "semantic",
+      "community_name": "Deploy Job (SSH to Debian server)",
+      "id": "_github_workflows_mirror_origin_head_deletion"
     },
     {
       "label": "GitHub Release Job",
@@ -2852,9 +3293,11 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "_github_workflows_release_release_job",
       "community": 11,
-      "norm_label": "github release job"
+      "norm_label": "github release job",
+      "_origin": "semantic",
+      "community_name": "CI verify Job",
+      "id": "_github_workflows_release_release_job"
     },
     {
       "label": "Pre-Release Detection via Tag Suffix",
@@ -2865,9 +3308,11 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "_github_workflows_release_prerelease_suffix_detection",
       "community": 11,
-      "norm_label": "pre-release detection via tag suffix"
+      "norm_label": "pre-release detection via tag suffix",
+      "_origin": "semantic",
+      "community_name": "CI verify Job",
+      "id": "_github_workflows_release_prerelease_suffix_detection"
     },
     {
       "label": "Discord Giveaway Bot",
@@ -2878,9 +3323,11 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "readme_discord_giveaway_bot",
       "community": 10,
-      "norm_label": "discord giveaway bot"
+      "norm_label": "discord giveaway bot",
+      "_origin": "semantic",
+      "community_name": "Discord Giveaway Bot",
+      "id": "readme_discord_giveaway_bot"
     },
     {
       "label": "Slash Command Reference",
@@ -2891,9 +3338,11 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "readme_command_reference",
       "community": 10,
-      "norm_label": "slash command reference"
+      "norm_label": "slash command reference",
+      "_origin": "semantic",
+      "community_name": "Discord Giveaway Bot",
+      "id": "readme_command_reference"
     },
     {
       "label": "Manager Gating (Manage Server or manager role)",
@@ -2904,9 +3353,11 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "readme_manager_gating",
       "community": 10,
-      "norm_label": "manager gating (manage server or manager role)"
+      "norm_label": "manager gating (manage server or manager role)",
+      "_origin": "semantic",
+      "community_name": "Discord Giveaway Bot",
+      "id": "readme_manager_gating"
     },
     {
       "label": "Invite Permissions from PermissionFlagsBits (478208)",
@@ -2917,9 +3368,11 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "readme_invite_permission_composition",
       "community": 12,
-      "norm_label": "invite permissions from permissionflagsbits (478208)"
+      "norm_label": "invite permissions from permissionflagsbits (478208)",
+      "_origin": "semantic",
+      "community_name": "Security Policy",
+      "id": "readme_invite_permission_composition"
     },
     {
       "label": "Web Dashboard (msk-scripts.de/giveaway/dashboard)",
@@ -2930,9 +3383,11 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "readme_web_dashboard",
       "community": 13,
-      "norm_label": "web dashboard (msk-scripts.de/giveaway/dashboard)"
+      "norm_label": "web dashboard (msk-scripts.de/giveaway/dashboard)",
+      "_origin": "semantic",
+      "community_name": "Release 1.4.0 (dashboard, control endpoint, results pages)",
+      "id": "readme_web_dashboard"
     },
     {
       "label": "Localhost-Only Control Endpoint (controlServer.js)",
@@ -2943,9 +3398,11 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "readme_localhost_control_endpoint",
       "community": 13,
-      "norm_label": "localhost-only control endpoint (controlserver.js)"
+      "norm_label": "localhost-only control endpoint (controlserver.js)",
+      "_origin": "semantic",
+      "community_name": "Release 1.4.0 (dashboard, control endpoint, results pages)",
+      "id": "readme_localhost_control_endpoint"
     },
     {
       "label": "Public Results Page (data-minimised)",
@@ -2956,9 +3413,11 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "readme_public_results_page",
       "community": 13,
-      "norm_label": "public results page (data-minimised)"
+      "norm_label": "public results page (data-minimised)",
+      "_origin": "semantic",
+      "community_name": "Release 1.4.0 (dashboard, control endpoint, results pages)",
+      "id": "readme_public_results_page"
     },
     {
       "label": "Self-Hosting Not Supported",
@@ -2969,9 +3428,11 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "readme_self_hosting_discouraged",
       "community": 10,
-      "norm_label": "self-hosting not supported"
+      "norm_label": "self-hosting not supported",
+      "_origin": "semantic",
+      "community_name": "Discord Giveaway Bot",
+      "id": "readme_self_hosting_discouraged"
     },
     {
       "label": "Static Verification Commands (no DB/token)",
@@ -2982,9 +3443,11 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "readme_static_verification_commands",
       "community": 10,
-      "norm_label": "static verification commands (no db/token)"
+      "norm_label": "static verification commands (no db/token)",
+      "_origin": "semantic",
+      "community_name": "Discord Giveaway Bot",
+      "id": "readme_static_verification_commands"
     },
     {
       "label": "MSK Giveaway Bot Changelog",
@@ -2995,9 +3458,11 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "changelog_changelog",
       "community": 11,
-      "norm_label": "msk giveaway bot changelog"
+      "norm_label": "msk giveaway bot changelog",
+      "_origin": "semantic",
+      "community_name": "CI verify Job",
+      "id": "changelog_changelog"
     },
     {
       "label": "Pinned undici Override (npm overrides)",
@@ -3008,9 +3473,11 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "changelog_undici_override_hardening",
       "community": 14,
-      "norm_label": "pinned undici override (npm overrides)"
+      "norm_label": "pinned undici override (npm overrides)",
+      "_origin": "semantic",
+      "community_name": "Supply-Chain Controls (Dependabot, CodeQL, CI gate)",
+      "id": "changelog_undici_override_hardening"
     },
     {
       "label": "Release 1.4.0 (dashboard, control endpoint, results pages)",
@@ -3021,9 +3488,11 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "changelog_release_1_4_0",
       "community": 13,
-      "norm_label": "release 1.4.0 (dashboard, control endpoint, results pages)"
+      "norm_label": "release 1.4.0 (dashboard, control endpoint, results pages)",
+      "_origin": "semantic",
+      "community_name": "Release 1.4.0 (dashboard, control endpoint, results pages)",
+      "id": "changelog_release_1_4_0"
     },
     {
       "label": "Shared Service Layer for Cancel/Reroll",
@@ -3034,9 +3503,11 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "changelog_shared_service_layer_extraction",
       "community": 13,
-      "norm_label": "shared service layer for cancel/reroll"
+      "norm_label": "shared service layer for cancel/reroll",
+      "_origin": "semantic",
+      "community_name": "Release 1.4.0 (dashboard, control endpoint, results pages)",
+      "id": "changelog_shared_service_layer_extraction"
     },
     {
       "label": "Scope-Bound Dashboard OAuth Session",
@@ -3047,9 +3518,11 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "changelog_scope_bound_oauth_session",
       "community": 13,
-      "norm_label": "scope-bound dashboard oauth session"
+      "norm_label": "scope-bound dashboard oauth session",
+      "_origin": "semantic",
+      "community_name": "Release 1.4.0 (dashboard, control endpoint, results pages)",
+      "id": "changelog_scope_bound_oauth_session"
     },
     {
       "label": "Complete Event Logging to Log Channel",
@@ -3060,9 +3533,11 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "changelog_complete_event_logging",
       "community": 13,
-      "norm_label": "complete event logging to log channel"
+      "norm_label": "complete event logging to log channel",
+      "_origin": "semantic",
+      "community_name": "Release 1.4.0 (dashboard, control endpoint, results pages)",
+      "id": "changelog_complete_event_logging"
     },
     {
       "label": "Release 1.0.0 (initial release)",
@@ -3073,9 +3548,11 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "changelog_release_1_0_0",
       "community": 11,
-      "norm_label": "release 1.0.0 (initial release)"
+      "norm_label": "release 1.0.0 (initial release)",
+      "_origin": "semantic",
+      "community_name": "CI verify Job",
+      "id": "changelog_release_1_0_0"
     },
     {
       "label": "Contributing Guide",
@@ -3086,9 +3563,11 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "contributing_contributing_guide",
       "community": 8,
-      "norm_label": "contributing guide"
+      "norm_label": "contributing guide",
+      "_origin": "semantic",
+      "community_name": "Contributing Guide",
+      "id": "contributing_contributing_guide"
     },
     {
       "label": "Project Code Conventions (ESM, commands/events/components)",
@@ -3099,9 +3578,11 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "contributing_project_conventions",
       "community": 8,
-      "norm_label": "project code conventions (esm, commands/events/components)"
+      "norm_label": "project code conventions (esm, commands/events/components)",
+      "_origin": "semantic",
+      "community_name": "Contributing Guide",
+      "id": "contributing_project_conventions"
     },
     {
       "label": "i18n Key Parity Rule (en.json is source of truth)",
@@ -3112,9 +3593,11 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "contributing_i18n_key_parity_rule",
       "community": 8,
-      "norm_label": "i18n key parity rule (en.json is source of truth)"
+      "norm_label": "i18n key parity rule (en.json is source of truth)",
+      "_origin": "semantic",
+      "community_name": "Contributing Guide",
+      "id": "contributing_i18n_key_parity_rule"
     },
     {
       "label": "No AI Attribution in Commit Messages",
@@ -3125,9 +3608,11 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "contributing_no_ai_attribution_commit_policy",
       "community": 8,
-      "norm_label": "no ai attribution in commit messages"
+      "norm_label": "no ai attribution in commit messages",
+      "_origin": "semantic",
+      "community_name": "Contributing Guide",
+      "id": "contributing_no_ai_attribution_commit_policy"
     },
     {
       "label": "Local MariaDB Docker Test Setup (port 3308)",
@@ -3138,9 +3623,11 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "contributing_local_mariadb_docker_setup",
       "community": 8,
-      "norm_label": "local mariadb docker test setup (port 3308)"
+      "norm_label": "local mariadb docker test setup (port 3308)",
+      "_origin": "semantic",
+      "community_name": "Contributing Guide",
+      "id": "contributing_local_mariadb_docker_setup"
     },
     {
       "label": "Security Policy",
@@ -3151,9 +3638,11 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "security_security_policy",
       "community": 12,
-      "norm_label": "security policy"
+      "norm_label": "security policy",
+      "_origin": "semantic",
+      "community_name": "Security Policy",
+      "id": "security_security_policy"
     },
     {
       "label": "Coordinated Vulnerability Disclosure Process",
@@ -3164,9 +3653,11 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "security_vulnerability_disclosure_process",
       "community": 12,
-      "norm_label": "coordinated vulnerability disclosure process"
+      "norm_label": "coordinated vulnerability disclosure process",
+      "_origin": "semantic",
+      "community_name": "Security Policy",
+      "id": "security_vulnerability_disclosure_process"
     },
     {
       "label": "Least-Privilege Discord Intents (Guilds only)",
@@ -3177,9 +3668,11 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "security_least_privilege_intents",
       "community": 12,
-      "norm_label": "least-privilege discord intents (guilds only)"
+      "norm_label": "least-privilege discord intents (guilds only)",
+      "_origin": "semantic",
+      "community_name": "Security Policy",
+      "id": "security_least_privilege_intents"
     },
     {
       "label": "Server-Side Authorization and Input Validation",
@@ -3190,9 +3683,11 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "security_server_side_authorization",
       "community": 10,
-      "norm_label": "server-side authorization and input validation"
+      "norm_label": "server-side authorization and input validation",
+      "_origin": "semantic",
+      "community_name": "Discord Giveaway Bot",
+      "id": "security_server_side_authorization"
     },
     {
       "label": "Prisma Parameterized Queries (no SQL injection)",
@@ -3203,9 +3698,11 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "security_prisma_parameterized_queries",
       "community": 12,
-      "norm_label": "prisma parameterized queries (no sql injection)"
+      "norm_label": "prisma parameterized queries (no sql injection)",
+      "_origin": "semantic",
+      "community_name": "Security Policy",
+      "id": "security_prisma_parameterized_queries"
     },
     {
       "label": "systemd Unit Sandbox Hardening",
@@ -3216,9 +3713,11 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "security_systemd_sandbox_hardening",
       "community": 9,
-      "norm_label": "systemd unit sandbox hardening"
+      "norm_label": "systemd unit sandbox hardening",
+      "_origin": "semantic",
+      "community_name": "Deploy Job (SSH to Debian server)",
+      "id": "security_systemd_sandbox_hardening"
     },
     {
       "label": "Supply-Chain Controls (Dependabot, CodeQL, CI gate)",
@@ -3229,9 +3728,11 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "security_supply_chain_controls",
       "community": 14,
-      "norm_label": "supply-chain controls (dependabot, codeql, ci gate)"
+      "norm_label": "supply-chain controls (dependabot, codeql, ci gate)",
+      "_origin": "semantic",
+      "community_name": "Supply-Chain Controls (Dependabot, CodeQL, CI gate)",
+      "id": "security_supply_chain_controls"
     },
     {
       "label": "Secrets Confined to .env and Actions Secrets",
@@ -3242,9 +3743,11 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "security_secrets_in_env_only",
       "community": 16,
-      "norm_label": "secrets confined to .env and actions secrets"
+      "norm_label": "secrets confined to .env and actions secrets",
+      "_origin": "semantic",
+      "community_name": "Secrets Confined to .env and Actions Secrets",
+      "id": "security_secrets_in_env_only"
     },
     {
       "label": "Self-Hoster Hardening Checklist",
@@ -3255,9 +3758,11 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "security_self_hoster_hardening_checklist",
       "community": 12,
-      "norm_label": "self-hoster hardening checklist"
+      "norm_label": "self-hoster hardening checklist",
+      "_origin": "semantic",
+      "community_name": "Security Policy",
+      "id": "security_self_hoster_hardening_checklist"
     },
     {
       "label": "Contributor Covenant Code of Conduct v2.1",
@@ -3268,9 +3773,11 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "code_of_conduct_contributor_covenant",
       "community": 8,
-      "norm_label": "contributor covenant code of conduct v2.1"
+      "norm_label": "contributor covenant code of conduct v2.1",
+      "_origin": "semantic",
+      "community_name": "Contributing Guide",
+      "id": "code_of_conduct_contributor_covenant"
     },
     {
       "label": "Community Impact Enforcement Ladder",
@@ -3281,9 +3788,11 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "code_of_conduct_enforcement_ladder",
       "community": 8,
-      "norm_label": "community impact enforcement ladder"
+      "norm_label": "community impact enforcement ladder",
+      "_origin": "semantic",
+      "community_name": "Contributing Guide",
+      "id": "code_of_conduct_enforcement_ladder"
     },
     {
       "label": "GNU Affero General Public License v3",
@@ -3294,9 +3803,11 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "license_agpl_v3",
       "community": 10,
-      "norm_label": "gnu affero general public license v3"
+      "norm_label": "gnu affero general public license v3",
+      "_origin": "semantic",
+      "community_name": "Discord Giveaway Bot",
+      "id": "license_agpl_v3"
     },
     {
       "label": "Network Use Source Disclosure (AGPL Section 13)",
@@ -3307,9 +3818,11 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "license_network_use_source_disclosure",
       "community": 10,
-      "norm_label": "network use source disclosure (agpl section 13)"
+      "norm_label": "network use source disclosure (agpl section 13)",
+      "_origin": "semantic",
+      "community_name": "Discord Giveaway Bot",
+      "id": "license_network_use_source_disclosure"
     }
   ],
   "links": [
@@ -3755,8 +4268,85 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
+      "source_file": "prisma/migrations/20260605100105_init/migration.sql",
+      "source_location": "L38",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "prisma_migrations_20260605100105_init_migration",
+      "target": "prisma_migrations_20260605100105_init_migration_entry",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "prisma/migrations/20260605100105_init/migration.sql",
+      "source_location": "L18",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "prisma_migrations_20260605100105_init_migration",
+      "target": "prisma_migrations_20260605100105_init_migration_giveaway",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "prisma/migrations/20260605100105_init/migration.sql",
+      "source_location": "L2",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "prisma_migrations_20260605100105_init_migration",
+      "target": "prisma_migrations_20260605100105_init_migration_guildsettings",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "prisma/migrations/20260605100105_init/migration.sql",
+      "source_location": "L47",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "prisma_migrations_20260605100105_init_migration",
+      "target": "prisma_migrations_20260605100105_init_migration_winner",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "prisma/migrations/20260605100105_init/migration.sql",
+      "source_location": "L57",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "prisma_migrations_20260605100105_init_migration_entry",
+      "target": "prisma_migrations_20260605100105_init_migration_giveaway",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "prisma/migrations/20260605100105_init/migration.sql",
+      "source_location": "L60",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "prisma_migrations_20260605100105_init_migration_winner",
+      "target": "prisma_migrations_20260605100105_init_migration_giveaway",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "prisma/migrations/20260605103450_backlog_features/migration.sql",
+      "source_location": "L13",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "prisma_migrations_20260605103450_backlog_features_migration",
+      "target": "prisma_migrations_20260605103450_backlog_features_migration_giveawaytemplate",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
       "source_file": "scripts/i18n-check.js",
-      "source_location": "L7",
+      "source_location": "L8",
       "weight": 1.0,
       "_origin": "ast",
       "source": "scripts_i18n_check",
@@ -3767,7 +4357,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "scripts/i18n-check.js",
-      "source_location": "L6",
+      "source_location": "L7",
       "weight": 1.0,
       "_origin": "ast",
       "source": "scripts_i18n_check",
@@ -3778,7 +4368,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "scripts/i18n-check.js",
-      "source_location": "L11",
+      "source_location": "L16",
       "weight": 1.0,
       "_origin": "ast",
       "source": "scripts_i18n_check",
@@ -3789,7 +4379,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "scripts/i18n-check.js",
-      "source_location": "L12",
+      "source_location": "L17",
       "weight": 1.0,
       "_origin": "ast",
       "source": "scripts_i18n_check",
@@ -3800,11 +4390,22 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "scripts/i18n-check.js",
-      "source_location": "L9",
+      "source_location": "L10",
       "weight": 1.0,
       "_origin": "ast",
       "source": "scripts_i18n_check",
       "target": "scripts_i18n_check_load",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/i18n-check.js",
+      "source_location": "L13",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_i18n_check",
+      "target": "scripts_i18n_check_placeholders",
       "confidence_score": 1.0
     },
     {
@@ -4315,6 +4916,18 @@
       "confidence_score": 1.0
     },
     {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/commands/gedit.js",
+      "source_location": "L5",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_commands_gedit",
+      "target": "src_database_prisma_prisma",
+      "confidence_score": 1.0
+    },
+    {
       "relation": "imports_from",
       "context": "import",
       "confidence": "EXTRACTED",
@@ -4706,6 +5319,18 @@
       "_origin": "ast",
       "source": "src_commands_gextend",
       "target": "src_database_prisma",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/commands/gextend.js",
+      "source_location": "L6",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_commands_gextend",
+      "target": "src_database_prisma_prisma",
       "confidence_score": 1.0
     },
     {
@@ -7319,6 +7944,17 @@
       "target": "src_utils_i18n_t"
     },
     {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/database/prisma.js",
+      "source_location": "L7",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_database_prisma",
+      "target": "src_database_prisma_prisma",
+      "confidence_score": 1.0
+    },
+    {
       "relation": "imports_from",
       "context": "import",
       "confidence": "EXTRACTED",
@@ -7412,6 +8048,102 @@
       "_origin": "ast",
       "source": "src_utils_id",
       "target": "src_database_prisma",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/services/cleanupService.js",
+      "source_location": "L3",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_services_cleanupservice",
+      "target": "src_database_prisma_prisma",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/services/controlServer.js",
+      "source_location": "L11",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_services_controlserver",
+      "target": "src_database_prisma_prisma",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/services/giveawayService.js",
+      "source_location": "L3",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_services_giveawayservice",
+      "target": "src_database_prisma_prisma",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/services/resultPublisher.js",
+      "source_location": "L7",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_services_resultpublisher",
+      "target": "src_database_prisma_prisma",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/services/scheduler.js",
+      "source_location": "L3",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_services_scheduler",
+      "target": "src_database_prisma_prisma",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/services/settingsService.js",
+      "source_location": "L4",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_services_settingsservice",
+      "target": "src_database_prisma_prisma",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/services/templateService.js",
+      "source_location": "L2",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_services_templateservice",
+      "target": "src_database_prisma_prisma",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/id.js",
+      "source_location": "L4",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_utils_id",
+      "target": "src_database_prisma_prisma",
       "confidence_score": 1.0
     },
     {
@@ -9478,7 +10210,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L58",
+      "source_location": "L55",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice",
@@ -9489,7 +10221,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L421",
+      "source_location": "L435",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice",
@@ -9500,7 +10232,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L70",
+      "source_location": "L67",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice",
@@ -9511,7 +10243,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L45",
+      "source_location": "L42",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice",
@@ -9522,7 +10254,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L15",
+      "source_location": "L12",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice",
@@ -9533,7 +10265,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L192",
+      "source_location": "L189",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice",
@@ -9544,7 +10276,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L93",
+      "source_location": "L90",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice",
@@ -9555,7 +10287,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L350",
+      "source_location": "L364",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice",
@@ -9566,7 +10298,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L144",
+      "source_location": "L141",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice",
@@ -9577,7 +10309,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L259",
+      "source_location": "L268",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice",
@@ -9588,18 +10320,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L13",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "src_services_giveawayservice",
-      "target": "src_services_giveawayservice_endinglocks",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "src/services/giveawayService.js",
-      "source_location": "L214",
+      "source_location": "L211",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice",
@@ -9610,7 +10331,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L19",
+      "source_location": "L16",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice",
@@ -9621,7 +10342,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L503",
+      "source_location": "L517",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice",
@@ -9632,7 +10353,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L49",
+      "source_location": "L46",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice",
@@ -9643,7 +10364,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L38",
+      "source_location": "L35",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice",
@@ -9654,7 +10375,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L186",
+      "source_location": "L183",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice",
@@ -9665,7 +10386,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L365",
+      "source_location": "L379",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice",
@@ -9676,7 +10397,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L318",
+      "source_location": "L332",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice",
@@ -9687,7 +10408,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L146",
+      "source_location": "L143",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice",
@@ -9698,7 +10419,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L394",
+      "source_location": "L408",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice",
@@ -9709,7 +10430,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L446",
+      "source_location": "L460",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice",
@@ -9720,7 +10441,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L477",
+      "source_location": "L491",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice",
@@ -9731,7 +10452,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L376",
+      "source_location": "L390",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice",
@@ -9742,7 +10463,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L164",
+      "source_location": "L161",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice",
@@ -9753,7 +10474,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L302",
+      "source_location": "L316",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice",
@@ -9764,7 +10485,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L24",
+      "source_location": "L21",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice",
@@ -9775,7 +10496,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L34",
+      "source_location": "L31",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice",
@@ -9786,7 +10507,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L29",
+      "source_location": "L26",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice",
@@ -9797,7 +10518,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L77",
+      "source_location": "L74",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice",
@@ -10061,7 +10782,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L327",
+      "source_location": "L341",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice_postgiveaway",
@@ -10073,7 +10794,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L355",
+      "source_location": "L369",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice_editactivemessage",
@@ -10085,7 +10806,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L215",
+      "source_location": "L212",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice_finalizemessages",
@@ -10097,7 +10818,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L153",
+      "source_location": "L150",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice_refreshactiveembed",
@@ -10109,7 +10830,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L395",
+      "source_location": "L409",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice_replacewinner",
@@ -10121,7 +10842,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L448",
+      "source_location": "L462",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice_rerollall",
@@ -10133,7 +10854,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L478",
+      "source_location": "L492",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice_rerollsingle",
@@ -10145,7 +10866,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L422",
+      "source_location": "L436",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice_cancelandfinalize",
@@ -10157,7 +10878,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L128",
+      "source_location": "L125",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice_drawwinners",
@@ -10170,7 +10891,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L120",
+      "source_location": "L117",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice_drawwinners",
@@ -10182,7 +10903,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L107",
+      "source_location": "L104",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice_drawwinners",
@@ -10194,7 +10915,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L121",
+      "source_location": "L118",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice_drawwinners",
@@ -10205,7 +10926,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L271",
+      "source_location": "L291",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice_endgiveaway",
@@ -10217,7 +10938,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L396",
+      "source_location": "L410",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice_replacewinner",
@@ -10229,7 +10950,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L449",
+      "source_location": "L463",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice_rerollall",
@@ -10241,7 +10962,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L156",
+      "source_location": "L153",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice_refreshactiveembed",
@@ -10253,7 +10974,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L155",
+      "source_location": "L152",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice_refreshactiveembed",
@@ -10265,7 +10986,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L175",
+      "source_location": "L172",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice_scheduleembedrefresh",
@@ -10277,7 +10998,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L197",
+      "source_location": "L194",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice_dmwinners",
@@ -10290,7 +11011,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L198",
+      "source_location": "L195",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice_dmwinners",
@@ -10301,7 +11022,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L251",
+      "source_location": "L248",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice_finalizemessages",
@@ -10313,7 +11034,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L467",
+      "source_location": "L481",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice_rerollall",
@@ -10325,7 +11046,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L497",
+      "source_location": "L511",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice_rerollsingle",
@@ -10337,7 +11058,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L287",
+      "source_location": "L303",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice_endgiveaway",
@@ -10349,7 +11070,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L230",
+      "source_location": "L227",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice_finalizemessages",
@@ -10361,7 +11082,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L229",
+      "source_location": "L226",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice_finalizemessages",
@@ -10373,7 +11094,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L239",
+      "source_location": "L236",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice_finalizemessages",
@@ -10385,7 +11106,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L240",
+      "source_location": "L237",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice_finalizemessages",
@@ -10397,7 +11118,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L288",
+      "source_location": "L304",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice_endgiveaway",
@@ -10410,7 +11131,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L285",
+      "source_location": "L301",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice_endgiveaway",
@@ -10422,7 +11143,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L267",
+      "source_location": "L287",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice_endgiveaway",
@@ -10434,7 +11155,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L288",
+      "source_location": "L304",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice_endgiveaway",
@@ -10457,7 +11178,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/services/scheduler.js",
-      "source_location": "L73",
+      "source_location": "L75",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_scheduler_tick",
@@ -10469,7 +11190,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L435",
+      "source_location": "L449",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice_cancelandfinalize",
@@ -10481,7 +11202,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L371",
+      "source_location": "L385",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice_pausegiveaway",
@@ -10493,7 +11214,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L340",
+      "source_location": "L354",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice_postgiveaway",
@@ -10505,7 +11226,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L468",
+      "source_location": "L482",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice_rerollall",
@@ -10517,7 +11238,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L498",
+      "source_location": "L512",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice_rerollsingle",
@@ -10529,7 +11250,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L384",
+      "source_location": "L398",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice_resumegiveaway",
@@ -10566,7 +11287,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L336",
+      "source_location": "L350",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice_postgiveaway",
@@ -10578,7 +11299,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L335",
+      "source_location": "L349",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice_postgiveaway",
@@ -10590,7 +11311,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L340",
+      "source_location": "L354",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice_postgiveaway",
@@ -10602,7 +11323,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L319",
+      "source_location": "L333",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice_postgiveaway",
@@ -10614,7 +11335,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L358",
+      "source_location": "L372",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice_editactivemessage",
@@ -10626,7 +11347,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L356",
+      "source_location": "L370",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice_editactivemessage",
@@ -10637,46 +11358,46 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L370",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "src_services_giveawayservice_pausegiveaway",
-      "target": "src_services_giveawayservice_editactivemessage",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "src/services/giveawayService.js",
-      "source_location": "L383",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "src_services_giveawayservice_resumegiveaway",
-      "target": "src_services_giveawayservice_editactivemessage",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/services/giveawayService.js",
-      "source_location": "L371",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "src_services_giveawayservice_pausegiveaway",
-      "target": "src_utils_i18n_t"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/services/giveawayService.js",
       "source_location": "L384",
       "weight": 1.0,
       "_origin": "ast",
+      "source": "src_services_giveawayservice_pausegiveaway",
+      "target": "src_services_giveawayservice_editactivemessage",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/services/giveawayService.js",
+      "source_location": "L397",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_services_giveawayservice_resumegiveaway",
+      "target": "src_services_giveawayservice_editactivemessage",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/services/giveawayService.js",
+      "source_location": "L385",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_services_giveawayservice_pausegiveaway",
+      "target": "src_utils_i18n_t"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/services/giveawayService.js",
+      "source_location": "L398",
+      "weight": 1.0,
+      "_origin": "ast",
       "source": "src_services_giveawayservice_resumegiveaway",
       "target": "src_utils_i18n_t"
     },
@@ -10685,7 +11406,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L482",
+      "source_location": "L496",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice_rerollsingle",
@@ -10698,7 +11419,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L429",
+      "source_location": "L443",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice_cancelandfinalize",
@@ -10710,7 +11431,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L428",
+      "source_location": "L442",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice_cancelandfinalize",
@@ -10722,7 +11443,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L435",
+      "source_location": "L449",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice_cancelandfinalize",
@@ -10734,7 +11455,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L455",
+      "source_location": "L469",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice_rerollall",
@@ -10746,7 +11467,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L460",
+      "source_location": "L474",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice_rerollall",
@@ -10758,7 +11479,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L485",
+      "source_location": "L499",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice_rerollsingle",
@@ -10770,7 +11491,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/services/giveawayService.js",
-      "source_location": "L490",
+      "source_location": "L504",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_giveawayservice_rerollsingle",
@@ -10837,7 +11558,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/services/scheduler.js",
-      "source_location": "L78",
+      "source_location": "L80",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_scheduler",
@@ -10848,7 +11569,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/services/scheduler.js",
-      "source_location": "L88",
+      "source_location": "L90",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_scheduler",
@@ -10979,7 +11700,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/services/scheduler.js",
-      "source_location": "L81",
+      "source_location": "L83",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_scheduler_startscheduler",
@@ -11001,7 +11722,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/services/settingsService.js",
-      "source_location": "L82",
+      "source_location": "L106",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_settingsservice",
@@ -11028,6 +11749,17 @@
       "_origin": "ast",
       "source": "src_services_settingsservice",
       "target": "src_services_settingsservice_deserialize",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/services/settingsService.js",
+      "source_location": "L82",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_services_settingsservice",
+      "target": "src_services_settingsservice_ensurerow",
       "confidence_score": 1.0
     },
     {
@@ -11067,7 +11799,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/services/settingsService.js",
-      "source_location": "L68",
+      "source_location": "L96",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_settingsservice",
@@ -11100,7 +11832,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/services/settingsService.js",
-      "source_location": "L103",
+      "source_location": "L123",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_settingsservice",
@@ -11172,7 +11904,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/services/settingsService.js",
-      "source_location": "L89",
+      "source_location": "L109",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_settingsservice_createdefaults",
@@ -11184,7 +11916,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/services/settingsService.js",
-      "source_location": "L76",
+      "source_location": "L100",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_settingsservice_getsettings",
@@ -11196,7 +11928,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/services/settingsService.js",
-      "source_location": "L114",
+      "source_location": "L134",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_settingsservice_updatesettings",
@@ -11232,7 +11964,31 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/services/settingsService.js",
-      "source_location": "L104",
+      "source_location": "L109",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_services_settingsservice_createdefaults",
+      "target": "src_services_settingsservice_ensurerow",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/services/settingsService.js",
+      "source_location": "L100",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_services_settingsservice_getsettings",
+      "target": "src_services_settingsservice_ensurerow",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/services/settingsService.js",
+      "source_location": "L124",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_settingsservice_updatesettings",
@@ -11914,6 +12670,17 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/utils/i18n.js",
+      "source_location": "L13",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_utils_i18n",
+      "target": "src_utils_i18n_default_lang",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/i18n.js",
       "source_location": "L9",
       "weight": 1.0,
       "_origin": "ast",
@@ -12142,6 +12909,7 @@
       "source_file": ".github/FUNDING.yml",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "_github_funding_github_sponsors_funding",
       "target": "readme_discord_giveaway_bot"
     },
@@ -12152,6 +12920,7 @@
       "source_file": ".github/ISSUE_TEMPLATE/bug_report.yml",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "_github_issue_template_bug_report_bug_report_form",
       "target": "_github_issue_template_bug_report_secret_redaction_requirement"
     },
@@ -12162,6 +12931,7 @@
       "source_file": "CONTRIBUTING.md",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "contributing_contributing_guide",
       "target": "_github_issue_template_bug_report_bug_report_form"
     },
@@ -12172,6 +12942,7 @@
       "source_file": "SECURITY.md",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "security_secrets_in_env_only",
       "target": "_github_issue_template_bug_report_secret_redaction_requirement"
     },
@@ -12182,6 +12953,7 @@
       "source_file": ".github/ISSUE_TEMPLATE/config.yml",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "_github_issue_template_config_issue_routing",
       "target": "_github_issue_template_config_private_vulnerability_channel"
     },
@@ -12192,6 +12964,7 @@
       "source_file": ".github/ISSUE_TEMPLATE/config.yml",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "_github_issue_template_config_issue_routing",
       "target": "security_security_policy"
     },
@@ -12202,6 +12975,7 @@
       "source_file": ".github/ISSUE_TEMPLATE/config.yml",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "_github_issue_template_config_private_vulnerability_channel",
       "target": "security_vulnerability_disclosure_process"
     },
@@ -12212,6 +12986,7 @@
       "source_file": "CONTRIBUTING.md",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "contributing_contributing_guide",
       "target": "_github_issue_template_feature_request_feature_request_form"
     },
@@ -12222,6 +12997,7 @@
       "source_file": ".github/PULL_REQUEST_TEMPLATE.md",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "_github_pull_request_template_pull_request_template",
       "target": "_github_pull_request_template_pr_verification_checklist"
     },
@@ -12232,6 +13008,7 @@
       "source_file": ".github/PULL_REQUEST_TEMPLATE.md",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "_github_pull_request_template_pull_request_template",
       "target": "changelog_changelog"
     },
@@ -12242,6 +13019,7 @@
       "source_file": ".github/PULL_REQUEST_TEMPLATE.md",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "_github_pull_request_template_pull_request_template",
       "target": "contributing_contributing_guide"
     },
@@ -12252,6 +13030,7 @@
       "source_file": ".github/PULL_REQUEST_TEMPLATE.md",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "_github_pull_request_template_pr_verification_checklist",
       "target": "_github_workflows_ci_verify_job"
     },
@@ -12262,6 +13041,7 @@
       "source_file": ".github/dependabot.yml",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "_github_dependabot_dependabot_config",
       "target": "_github_dependabot_grouped_minor_patch_updates"
     },
@@ -12272,6 +13052,7 @@
       "source_file": ".github/dependabot.yml",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "_github_dependabot_dependabot_config",
       "target": "_github_dependabot_manual_major_migration_policy"
     },
@@ -12282,6 +13063,7 @@
       "source_file": "SECURITY.md",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "security_supply_chain_controls",
       "target": "_github_dependabot_dependabot_config"
     },
@@ -12292,6 +13074,7 @@
       "source_file": "CHANGELOG.md",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "changelog_undici_override_hardening",
       "target": "_github_dependabot_manual_major_migration_policy"
     },
@@ -12302,6 +13085,7 @@
       "source_file": ".github/workflows/ci.yml",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "_github_workflows_ci_verify_job",
       "target": "_github_workflows_ci_dummy_database_url"
     },
@@ -12312,6 +13096,7 @@
       "source_file": ".github/workflows/ci.yml",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "_github_workflows_ci_verify_job",
       "target": "_github_workflows_ci_i18n_completeness_check"
     },
@@ -12322,6 +13107,7 @@
       "source_file": ".github/workflows/ci.yml",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "_github_workflows_ci_verify_job",
       "target": "_github_workflows_ci_reusable_verify_gate"
     },
@@ -12332,6 +13118,7 @@
       "source_file": ".github/workflows/ci.yml",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "_github_workflows_ci_verify_job",
       "target": "_github_workflows_ci_smoke_test"
     },
@@ -12342,6 +13129,7 @@
       "source_file": ".github/workflows/deploy.yml",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "_github_workflows_deploy_deploy_job",
       "target": "_github_workflows_ci_verify_job"
     },
@@ -12352,6 +13140,7 @@
       "source_file": ".github/workflows/release.yml",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "_github_workflows_release_release_job",
       "target": "_github_workflows_ci_verify_job"
     },
@@ -12362,6 +13151,7 @@
       "source_file": "README.md",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "readme_static_verification_commands",
       "target": "_github_workflows_ci_verify_job"
     },
@@ -12372,6 +13162,7 @@
       "source_file": "SECURITY.md",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "security_supply_chain_controls",
       "target": "_github_workflows_ci_verify_job"
     },
@@ -12382,6 +13173,7 @@
       "source_file": "CONTRIBUTING.md",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "contributing_local_mariadb_docker_setup",
       "target": "_github_workflows_ci_dummy_database_url"
     },
@@ -12392,6 +13184,7 @@
       "source_file": "CONTRIBUTING.md",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "contributing_i18n_key_parity_rule",
       "target": "_github_workflows_ci_i18n_completeness_check"
     },
@@ -12402,6 +13195,7 @@
       "source_file": "SECURITY.md",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "security_supply_chain_controls",
       "target": "_github_workflows_codeql_analyze_job"
     },
@@ -12412,6 +13206,7 @@
       "source_file": ".github/workflows/deploy.yml",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "_github_workflows_deploy_deploy_job",
       "target": "_github_workflows_deploy_docs_only_paths_ignore"
     },
@@ -12422,6 +13217,7 @@
       "source_file": ".github/workflows/deploy.yml",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "_github_workflows_deploy_deploy_job",
       "target": "_github_workflows_deploy_env_file_never_in_git"
     },
@@ -12432,6 +13228,7 @@
       "source_file": ".github/workflows/deploy.yml",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "_github_workflows_deploy_deploy_job",
       "target": "_github_workflows_deploy_global_slash_command_registration"
     },
@@ -12442,6 +13239,7 @@
       "source_file": ".github/workflows/deploy.yml",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "_github_workflows_deploy_deploy_job",
       "target": "_github_workflows_deploy_self_healing_git_checkout"
     },
@@ -12452,6 +13250,7 @@
       "source_file": ".github/workflows/deploy.yml",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "_github_workflows_deploy_deploy_job",
       "target": "_github_workflows_deploy_systemd_service_restart"
     },
@@ -12462,6 +13261,7 @@
       "source_file": ".github/workflows/mirror.yml",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "_github_workflows_mirror_serial_mirror_concurrency",
       "target": "_github_workflows_deploy_deploy_job"
     },
@@ -12472,6 +13272,7 @@
       "source_file": ".github/workflows/deploy.yml",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "_github_workflows_deploy_env_file_never_in_git",
       "target": "security_secrets_in_env_only"
     },
@@ -12482,6 +13283,7 @@
       "source_file": "SECURITY.md",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "_github_workflows_deploy_systemd_service_restart",
       "target": "security_systemd_sandbox_hardening"
     },
@@ -12492,6 +13294,7 @@
       "source_file": ".github/workflows/mirror.yml",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "_github_workflows_mirror_mirror_job",
       "target": "_github_workflows_mirror_github_as_source_of_truth"
     },
@@ -12502,6 +13305,7 @@
       "source_file": ".github/workflows/mirror.yml",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "_github_workflows_mirror_mirror_job",
       "target": "_github_workflows_mirror_origin_head_deletion"
     },
@@ -12512,6 +13316,7 @@
       "source_file": ".github/workflows/mirror.yml",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "_github_workflows_mirror_mirror_job",
       "target": "_github_workflows_mirror_serial_mirror_concurrency"
     },
@@ -12522,6 +13327,7 @@
       "source_file": ".github/workflows/release.yml",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "_github_workflows_release_release_job",
       "target": "_github_workflows_release_prerelease_suffix_detection"
     },
@@ -12532,6 +13338,7 @@
       "source_file": ".github/workflows/release.yml",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "_github_workflows_release_release_job",
       "target": "changelog_changelog"
     },
@@ -12542,6 +13349,7 @@
       "source_file": "README.md",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "readme_discord_giveaway_bot",
       "target": "readme_command_reference"
     },
@@ -12552,6 +13360,7 @@
       "source_file": "README.md",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "readme_discord_giveaway_bot",
       "target": "readme_invite_permission_composition"
     },
@@ -12562,6 +13371,7 @@
       "source_file": "README.md",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "readme_discord_giveaway_bot",
       "target": "readme_public_results_page"
     },
@@ -12572,6 +13382,7 @@
       "source_file": "README.md",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "readme_discord_giveaway_bot",
       "target": "readme_self_hosting_discouraged"
     },
@@ -12582,6 +13393,7 @@
       "source_file": "README.md",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "readme_discord_giveaway_bot",
       "target": "readme_static_verification_commands"
     },
@@ -12592,6 +13404,7 @@
       "source_file": "README.md",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "readme_discord_giveaway_bot",
       "target": "readme_web_dashboard"
     },
@@ -12602,6 +13415,7 @@
       "source_file": "README.md",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "readme_command_reference",
       "target": "readme_manager_gating"
     },
@@ -12612,6 +13426,7 @@
       "source_file": "SECURITY.md",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "readme_manager_gating",
       "target": "security_server_side_authorization"
     },
@@ -12622,6 +13437,7 @@
       "source_file": "SECURITY.md",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "readme_invite_permission_composition",
       "target": "security_least_privilege_intents"
     },
@@ -12632,6 +13448,7 @@
       "source_file": "CHANGELOG.md",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "changelog_release_1_4_0",
       "target": "readme_web_dashboard"
     },
@@ -12642,6 +13459,7 @@
       "source_file": "CHANGELOG.md",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "changelog_scope_bound_oauth_session",
       "target": "readme_web_dashboard"
     },
@@ -12652,6 +13470,7 @@
       "source_file": "README.md",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "readme_web_dashboard",
       "target": "readme_localhost_control_endpoint"
     },
@@ -12662,6 +13481,7 @@
       "source_file": "CHANGELOG.md",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "changelog_release_1_4_0",
       "target": "readme_localhost_control_endpoint"
     },
@@ -12672,6 +13492,7 @@
       "source_file": "CHANGELOG.md",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "changelog_shared_service_layer_extraction",
       "target": "readme_localhost_control_endpoint"
     },
@@ -12682,6 +13503,7 @@
       "source_file": "README.md",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "readme_localhost_control_endpoint",
       "target": "security_least_privilege_intents"
     },
@@ -12692,6 +13514,7 @@
       "source_file": "CHANGELOG.md",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "changelog_release_1_4_0",
       "target": "readme_public_results_page"
     },
@@ -12702,6 +13525,7 @@
       "source_file": "README.md",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "readme_public_results_page",
       "target": "changelog_complete_event_logging"
     },
@@ -12712,6 +13536,7 @@
       "source_file": "README.md",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "license_network_use_source_disclosure",
       "target": "readme_self_hosting_discouraged"
     },
@@ -12722,6 +13547,7 @@
       "source_file": "README.md",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "readme_self_hosting_discouraged",
       "target": "license_agpl_v3"
     },
@@ -12732,6 +13558,7 @@
       "source_file": "CHANGELOG.md",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "changelog_changelog",
       "target": "changelog_release_1_0_0"
     },
@@ -12742,6 +13569,7 @@
       "source_file": "CHANGELOG.md",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "changelog_changelog",
       "target": "changelog_release_1_4_0"
     },
@@ -12752,6 +13580,7 @@
       "source_file": "CHANGELOG.md",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "changelog_changelog",
       "target": "changelog_undici_override_hardening"
     },
@@ -12762,6 +13591,7 @@
       "source_file": "CHANGELOG.md",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "changelog_undici_override_hardening",
       "target": "security_supply_chain_controls"
     },
@@ -12772,6 +13602,7 @@
       "source_file": "CHANGELOG.md",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "changelog_release_1_4_0",
       "target": "changelog_complete_event_logging"
     },
@@ -12782,6 +13613,7 @@
       "source_file": "CHANGELOG.md",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "changelog_release_1_4_0",
       "target": "changelog_scope_bound_oauth_session"
     },
@@ -12792,6 +13624,7 @@
       "source_file": "CHANGELOG.md",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "changelog_release_1_4_0",
       "target": "changelog_shared_service_layer_extraction"
     },
@@ -12802,6 +13635,7 @@
       "source_file": "CONTRIBUTING.md",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "contributing_contributing_guide",
       "target": "code_of_conduct_contributor_covenant"
     },
@@ -12812,6 +13646,7 @@
       "source_file": "CONTRIBUTING.md",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "contributing_contributing_guide",
       "target": "contributing_local_mariadb_docker_setup"
     },
@@ -12822,6 +13657,7 @@
       "source_file": "CONTRIBUTING.md",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "contributing_contributing_guide",
       "target": "contributing_no_ai_attribution_commit_policy"
     },
@@ -12832,6 +13668,7 @@
       "source_file": "CONTRIBUTING.md",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "contributing_contributing_guide",
       "target": "contributing_project_conventions"
     },
@@ -12842,6 +13679,7 @@
       "source_file": "CONTRIBUTING.md",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "contributing_contributing_guide",
       "target": "license_agpl_v3"
     },
@@ -12852,6 +13690,7 @@
       "source_file": "CONTRIBUTING.md",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "contributing_contributing_guide",
       "target": "security_security_policy"
     },
@@ -12862,6 +13701,7 @@
       "source_file": "CONTRIBUTING.md",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "contributing_project_conventions",
       "target": "contributing_i18n_key_parity_rule"
     },
@@ -12872,6 +13712,7 @@
       "source_file": "SECURITY.md",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "security_security_policy",
       "target": "security_least_privilege_intents"
     },
@@ -12882,6 +13723,7 @@
       "source_file": "SECURITY.md",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "security_security_policy",
       "target": "security_prisma_parameterized_queries"
     },
@@ -12892,6 +13734,7 @@
       "source_file": "SECURITY.md",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "security_security_policy",
       "target": "security_secrets_in_env_only"
     },
@@ -12902,6 +13745,7 @@
       "source_file": "SECURITY.md",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "security_security_policy",
       "target": "security_self_hoster_hardening_checklist"
     },
@@ -12912,6 +13756,7 @@
       "source_file": "SECURITY.md",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "security_security_policy",
       "target": "security_server_side_authorization"
     },
@@ -12922,6 +13767,7 @@
       "source_file": "SECURITY.md",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "security_security_policy",
       "target": "security_supply_chain_controls"
     },
@@ -12932,6 +13778,7 @@
       "source_file": "SECURITY.md",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "security_security_policy",
       "target": "security_systemd_sandbox_hardening"
     },
@@ -12942,6 +13789,7 @@
       "source_file": "SECURITY.md",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "security_security_policy",
       "target": "security_vulnerability_disclosure_process"
     },
@@ -12952,6 +13800,7 @@
       "source_file": "CODE_OF_CONDUCT.md",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "code_of_conduct_contributor_covenant",
       "target": "code_of_conduct_enforcement_ladder"
     },
@@ -12962,6 +13811,7 @@
       "source_file": "LICENSE.md",
       "source_location": null,
       "weight": 1.0,
+      "_origin": "semantic",
       "source": "license_agpl_v3",
       "target": "license_network_use_source_disclosure"
     }
@@ -13014,5 +13864,5 @@
       "source_file": "README.md"
     }
   ],
-  "built_at_commit": "c1e42981e108d2ab6c3c1e861fc69655b539f3e2"
+  "built_at_commit": "991c4ed46cd8bc3589e21db31a9b269acab287a0"
 }

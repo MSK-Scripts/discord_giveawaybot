@@ -1,35 +1,44 @@
-# Graph Report - .  (2026-07-27)
+# Graph Report - discord_giveaway  (2026-08-14)
 
 ## Corpus Check
-- Corpus is ~30,334 words - fits in a single context window. You may not need a graph.
+- 63 files · ~65,088 words
+- Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 307 nodes · 834 edges · 17 communities
+- 320 nodes · 856 edges · 23 communities (22 shown, 1 thin omitted)
 - Extraction: 98% EXTRACTED · 2% INFERRED · 0% AMBIGUOUS · INFERRED: 18 edges (avg confidence: 0.81)
-- Token cost: 136,710 input · 0 output
+- Token cost: 0 input · 0 output
+
+## Graph Freshness
+- Built from commit: `991c4ed4`
+- Run `git rev-parse HEAD` and compare to check if the graph is stale.
+- Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
-- Bootstrap and Handler Loading
-- Giveaway Lifecycle Engine
-- Dependencies and NPM Scripts
-- Manager Slash Commands and i18n
-- Info Commands and Embed Builders
-- Guild Settings and Configuration
-- Localhost Control Server API
-- Templates and Duration Parsing
-- Contribution and Code Conventions
-- Deployment and Mirroring
-- Licensing and Project Overview
-- CI Verification and Releases
-- Security Policy and Hardening
-- Web Dashboard Integration
-- Dependency Supply-Chain Controls
-- i18n Key Parity Checker
-- Secret Handling in Reports
+- logger.js
+- participate.js
+- package.json
+- t
+- embeds.js
+- scheduler.js
+- giveawayService.js
+- gtemplate.js
+- Contributing Guide
+- Deploy Job (SSH to Debian server)
+- Discord Giveaway Bot
+- CI verify Job
+- Security Policy
+- Release 1.4.0 (dashboard, control endpoint, results pages)
+- Supply-Chain Controls (Dependabot, CodeQL, CI gate)
+- i18n-check.js
+- Secrets Confined to .env and Actions Secrets
+- 20260605100105_init/migration.sql
+- 20260605103450_backlog_features/migration.sql
+- gsettings.js
 
 ## God Nodes (most connected - your core abstractions)
 1. `t()` - 60 edges
-2. `getSettings()` - 49 edges
+2. `getSettings()` - 50 edges
 3. `getGiveaway()` - 26 edges
 4. `sendGuildLog()` - 19 edges
 5. `isManager()` - 19 edges
@@ -59,98 +68,107 @@
 - **Defense-in-Depth Security Model** — security_least_privilege_intents, security_server_side_authorization, security_prisma_parameterized_queries, security_systemd_sandbox_hardening, security_secrets_in_env_only, security_supply_chain_controls [EXTRACTED 1.00]
 - **msk-shop Web Dashboard Integration Flow** — readme_web_dashboard, readme_localhost_control_endpoint, readme_public_results_page, changelog_shared_service_layer_extraction, changelog_scope_bound_oauth_session [EXTRACTED 1.00]
 
-## Communities (17 total, 0 thin omitted)
+## Communities (23 total, 1 thin omitted)
 
-### Community 0 - "Bootstrap and Handler Loading"
-Cohesion: 0.08
-Nodes (36): __dirname, main(), __dirname, fail(), main(), ok(), SRC, client (+28 more)
+### Community 0 - "logger.js"
+Cohesion: 0.11
+Nodes (27): __dirname, main(), __dirname, fail(), main(), ok(), SRC, client (+19 more)
 
-### Community 1 - "Giveaway Lifecycle Engine"
-Cohesion: 0.12
-Nodes (44): execute(), execute(), lifecycleEndpoint(), addOrRemoveEntry(), cancelAndFinalize(), cancelGiveaway(), countEntries(), createGiveaway() (+36 more)
+### Community 1 - "participate.js"
+Cohesion: 0.44
+Nodes (7): execute(), addOrRemoveEntry(), scheduleEmbedRefresh(), checkEligibility(), mergeGiveawayEligibility(), parseRoleArray(), parseRoleObject()
 
-### Community 2 - "Dependencies and NPM Scripts"
+### Community 2 - "package.json"
 Cohesion: 0.06
 Nodes (32): discord.js, dotenv, nanoid, author, dependencies, discord.js, dotenv, nanoid (+24 more)
 
-### Community 3 - "Manager Slash Commands and i18n"
-Cohesion: 0.22
-Nodes (17): execute(), execute(), execute(), execute(), execute(), execute(), execute(), getGiveaway() (+9 more)
-
-### Community 4 - "Info Commands and Embed Builders"
-Cohesion: 0.17
-Nodes (16): execute(), execute(), execute(), PERMISSIONS, execute(), execute(), getGuildStats(), listActive() (+8 more)
-
-### Community 5 - "Guild Settings and Configuration"
+### Community 3 - "t"
 Cohesion: 0.16
-Nodes (17): BUTTON_CHOICES, execute(), parseArr(), parseObj(), execute(), setGiveawayBlacklistRoles(), setGiveawayBonusRoles(), setGiveawayWhitelistRoles() (+9 more)
+Nodes (28): execute(), execute(), execute(), execute(), execute(), execute(), execute(), execute() (+20 more)
 
-### Community 6 - "Localhost Control Server API"
-Cohesion: 0.22
-Nodes (16): createGiveawayEndpoint(), editGiveawayEndpoint(), extendGiveawayEndpoint(), getGiveawayDetail(), handle(), listChannels(), listGiveaways(), listRoles() (+8 more)
+### Community 4 - "embeds.js"
+Cohesion: 0.14
+Nodes (22): execute(), execute(), execute(), PERMISSIONS, execute(), execute(), countEntries(), getGuildStats() (+14 more)
 
-### Community 7 - "Templates and Duration Parsing"
-Cohesion: 0.27
-Nodes (10): execute(), REQUIRED_PERMS, execute(), REQUIRED_PERMS, deleteTemplate(), getTemplate(), listTemplates(), saveTemplate() (+2 more)
+### Community 5 - "scheduler.js"
+Cohesion: 0.17
+Nodes (14): prisma, execute(), execute(), deleteGuildData(), purgeOrphanedGuilds(), startMaintenance(), storedGuildIds(), deleteGuildResults() (+6 more)
 
-### Community 8 - "Contribution and Code Conventions"
+### Community 6 - "giveawayService.js"
+Cohesion: 0.13
+Nodes (37): editGiveawayEndpoint(), extendGiveawayEndpoint(), getGiveawayDetail(), handle(), lifecycleEndpoint(), listChannels(), listGiveaways(), listRoles() (+29 more)
+
+### Community 7 - "gtemplate.js"
+Cohesion: 0.24
+Nodes (13): execute(), REQUIRED_PERMS, execute(), REQUIRED_PERMS, createGiveawayEndpoint(), createGiveaway(), postGiveaway(), deleteTemplate() (+5 more)
+
+### Community 8 - "Contributing Guide"
 Cohesion: 0.20
 Nodes (10): Feature Request Issue Form, Dummy DATABASE_URL for Prisma Validate, i18n Completeness Check Step, Contributor Covenant Code of Conduct v2.1, Community Impact Enforcement Ladder, Contributing Guide, i18n Key Parity Rule (en.json is source of truth), Local MariaDB Docker Test Setup (port 3308) (+2 more)
 
-### Community 9 - "Deployment and Mirroring"
+### Community 9 - "Deploy Job (SSH to Debian server)"
 Cohesion: 0.20
 Nodes (10): Deploy Job (SSH to Debian server), Docs-Only Changes Skip Production Redeploy, Automatic Global Slash Command Registration, Self-Healing Git Reset Deploy Strategy, systemd Service discord-giveaway Restart, GitHub as Single Source of Truth for Mirror, Mirror to Codeberg Job, origin/HEAD Symbolic Ref Deletion Before Push (+2 more)
 
-### Community 10 - "Licensing and Project Overview"
+### Community 10 - "Discord Giveaway Bot"
 Cohesion: 0.25
 Nodes (9): GitHub Sponsors Funding (MSK-Scripts), GNU Affero General Public License v3, Network Use Source Disclosure (AGPL Section 13), Slash Command Reference, Discord Giveaway Bot, Manager Gating (Manage Server or manager role), Self-Hosting Not Supported, Static Verification Commands (no DB/token) (+1 more)
 
-### Community 11 - "CI Verification and Releases"
+### Community 11 - "CI verify Job"
 Cohesion: 0.25
 Nodes (9): PR Verification Checklist (i18n, smoke, prisma validate), Pull Request Template, Reusable Static Verification Gate (workflow_call), Smoke Test Step (exports + SlashCommand builder), CI verify Job, Pre-Release Detection via Tag Suffix, GitHub Release Job, MSK Giveaway Bot Changelog (+1 more)
 
-### Community 12 - "Security Policy and Hardening"
+### Community 12 - "Security Policy"
 Cohesion: 0.29
 Nodes (8): Issue Routing Config (blank issues disabled), Private Security Advisory Channel, Invite Permissions from PermissionFlagsBits (478208), Least-Privilege Discord Intents (Guilds only), Prisma Parameterized Queries (no SQL injection), Security Policy, Self-Hoster Hardening Checklist, Coordinated Vulnerability Disclosure Process
 
-### Community 13 - "Web Dashboard Integration"
+### Community 13 - "Release 1.4.0 (dashboard, control endpoint, results pages)"
 Cohesion: 0.48
 Nodes (7): Complete Event Logging to Log Channel, Release 1.4.0 (dashboard, control endpoint, results pages), Scope-Bound Dashboard OAuth Session, Shared Service Layer for Cancel/Reroll, Localhost-Only Control Endpoint (controlServer.js), Public Results Page (data-minimised), Web Dashboard (msk-scripts.de/giveaway/dashboard)
 
-### Community 14 - "Dependency Supply-Chain Controls"
+### Community 14 - "Supply-Chain Controls (Dependabot, CodeQL, CI gate)"
 Cohesion: 0.40
 Nodes (6): Dependabot Update Config, Grouped Minor/Patch Update Strategy, Manual Major-Version Migration Policy (discord.js, prisma), CodeQL Analyze Job (javascript-typescript), Pinned undici Override (npm overrides), Supply-Chain Controls (Dependabot, CodeQL, CI gate)
 
-### Community 15 - "i18n Key Parity Checker"
-Cohesion: 0.33
+### Community 15 - "i18n-check.js"
+Cohesion: 0.29
 Nodes (4): DIR, __dirname, en, enKeys
 
-### Community 16 - "Secret Handling in Reports"
+### Community 16 - "Secrets Confined to .env and Actions Secrets"
 Cohesion: 0.50
 Nodes (4): Bug Report Issue Form, Secret Redaction Requirement in Reports, Production .env Never Stored in Git, Secrets Confined to .env and Actions Secrets
+
+### Community 17 - "20260605100105_init/migration.sql"
+Cohesion: 0.60
+Nodes (4): `Entry`, `Giveaway`, `GuildSettings`, `Winner`
+
+### Community 22 - "gsettings.js"
+Cohesion: 0.30
+Nodes (10): BUTTON_CHOICES, execute(), parseArr(), parseObj(), setGiveawayBlacklistRoles(), setGiveawayBonusRoles(), setGiveawayWhitelistRoles(), updateSettings() (+2 more)
 
 ## Ambiguous Edges - Review These
 - `GitHub Sponsors Funding (MSK-Scripts)` → `Discord Giveaway Bot`  [AMBIGUOUS]
   .github/FUNDING.yml · relation: conceptually_related_to
 
 ## Knowledge Gaps
-- **59 isolated node(s):** `__dirname`, `name`, `version`, `description`, `type` (+54 more)
+- **61 isolated node(s):** `__dirname`, `name`, `version`, `description`, `type` (+56 more)
   These have ≤1 connection - possible missing edges or undocumented components.
+- **1 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
 - **What is the exact relationship between `GitHub Sponsors Funding (MSK-Scripts)` and `Discord Giveaway Bot`?**
   _Edge tagged AMBIGUOUS (relation: conceptually_related_to) - confidence is low._
-- **Why does `t()` connect `Giveaway Lifecycle Engine` to `Bootstrap and Handler Loading`, `Manager Slash Commands and i18n`, `Info Commands and Embed Builders`, `Guild Settings and Configuration`, `Localhost Control Server API`, `Templates and Duration Parsing`?**
-  _High betweenness centrality (0.059) - this node is a cross-community bridge._
-- **Why does `getSettings()` connect `Manager Slash Commands and i18n` to `Bootstrap and Handler Loading`, `Giveaway Lifecycle Engine`, `Info Commands and Embed Builders`, `Guild Settings and Configuration`, `Localhost Control Server API`, `Templates and Duration Parsing`?**
-  _High betweenness centrality (0.044) - this node is a cross-community bridge._
-- **Why does `logger` connect `Bootstrap and Handler Loading` to `Giveaway Lifecycle Engine`, `Guild Settings and Configuration`, `Localhost Control Server API`, `Templates and Duration Parsing`?**
-  _High betweenness centrality (0.034) - this node is a cross-community bridge._
+- **Why does `t()` connect `t` to `logger.js`, `participate.js`, `embeds.js`, `scheduler.js`, `giveawayService.js`, `gtemplate.js`, `gsettings.js`?**
+  _High betweenness centrality (0.054) - this node is a cross-community bridge._
+- **Why does `getSettings()` connect `t` to `logger.js`, `participate.js`, `embeds.js`, `scheduler.js`, `giveawayService.js`, `gtemplate.js`, `gsettings.js`?**
+  _High betweenness centrality (0.042) - this node is a cross-community bridge._
+- **Why does `logger` connect `logger.js` to `t`, `scheduler.js`, `giveawayService.js`, `gtemplate.js`?**
+  _High betweenness centrality (0.031) - this node is a cross-community bridge._
 - **What connects `__dirname`, `name`, `version` to the rest of the system?**
-  _59 weakly-connected nodes found - possible documentation gaps or missing edges._
-- **Should `Bootstrap and Handler Loading` be split into smaller, more focused modules?**
-  _Cohesion score 0.08220211161387632 - nodes in this community are weakly interconnected._
-- **Should `Giveaway Lifecycle Engine` be split into smaller, more focused modules?**
-  _Cohesion score 0.11607843137254902 - nodes in this community are weakly interconnected._
+  _61 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **Should `logger.js` be split into smaller, more focused modules?**
+  _Cohesion score 0.11261261261261261 - nodes in this community are weakly interconnected._
+- **Should `package.json` be split into smaller, more focused modules?**
+  _Cohesion score 0.06060606060606061 - nodes in this community are weakly interconnected._

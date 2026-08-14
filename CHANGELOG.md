@@ -4,8 +4,15 @@ All notable changes to the **MSK Giveaway Bot**. Format based on [Keep a Changel
 
 ## [Unreleased]
 
+### Changed
+- **Ending a giveaway is now claimed in the database.** `endGiveaway` performs the `ACTIVE -> ENDED` transition as a single atomic `UPDATE` and only continues when that update actually hits a row. The previous in-memory lock only protected a single process, and it left a window of several seconds (the winner draw with its REST calls) in which a second instance could have ended the same giveaway and handed out the prize twice. The claim happens before the draw: if anything fails afterwards the giveaway is ended without a result message, which `/greroll <id>` can fix, whereas a prize handed out twice could not be undone.
+
+### Fixed
+- **`getSettings` no longer throws when two callers reach a guild without a settings row at the same time.** The default insert was a read-then-create, so the loser of that race failed with a unique-constraint error that surfaced far from its cause — in one reproduction it aborted a giveaway that was in the middle of ending. Insert and retry now share one helper (`ensureRow`), used by `getSettings` and `createDefaults`, which re-reads the row when the write fails and only rethrows if the row still does not exist. The retry deliberately ignores the error code, because Prisma reports the collision as `P2002` for a plain create but as a code-less error carrying MySQL 1020 for an upsert against MariaDB.
+- `npm run i18n:check` now also compares the **placeholders** of every value against English, not just the key sets. A translation that drops `{count}` silently loses information, and a misspelled `{titel}` instead of `{title}` used to render the literal braces to users without any check noticing.
+
 ### Security / hardening
-- Pinned a patched **`undici` (`^6.27.0`)** via an npm `overrides` entry, resolving 4 transitive advisories (1 high / 3 moderate) pulled in through `discord.js` → `@discordjs/rest`/`@discordjs/ws` (HTTP header injection via `Set-Cookie`, WebSocket DoS, response-queue poisoning, `SameSite` downgrade). discord.js itself is already on the latest 14.x but still pins the vulnerable `undici@6.24.1`; the override stays inside the same 6.x major, so it is API-compatible. `npm audit` now reports **0 vulnerabilities** — no discord.js downgrade required.
+- Pinned a patched **`undici` (`^6.28.0`)** via an npm `overrides` entry, resolving 4 transitive advisories (1 high / 3 moderate) pulled in through `discord.js` → `@discordjs/rest`/`@discordjs/ws` (HTTP header injection via `Set-Cookie`, WebSocket DoS, response-queue poisoning, `SameSite` downgrade). discord.js itself is already on the latest 14.x but still pins the vulnerable `undici@6.24.1`; the override stays inside the same 6.x major, so it is API-compatible. `npm audit` now reports **0 vulnerabilities** — no discord.js downgrade required.
 
 ## [1.4.0]
 
