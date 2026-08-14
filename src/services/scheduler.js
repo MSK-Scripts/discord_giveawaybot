@@ -55,6 +55,11 @@ async function sendReminders(client) {
   }
 }
 
+/**
+ * Ein Durchlauf: Reminder posten, fällige Giveaways beenden.
+ * Exportiert als `runSchedulerTick`, damit Tests einen Tick deterministisch
+ * auslösen können, statt 10 Sekunden auf das Intervall zu warten.
+ */
 async function tick(client) {
   await sendReminders(client);
 
@@ -91,5 +96,7 @@ export function stopScheduler() {
   if (timer) clearInterval(timer);
   timer = null;
 }
+
+export { tick as runSchedulerTick };
 
 export default startScheduler;

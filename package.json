@@ -15,7 +15,9 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "smoke": "node scripts/smoke.js",
-    "i18n:check": "node scripts/i18n-check.js"
+    "i18n:check": "node scripts/i18n-check.js",
+    "test": "node --test --test-concurrency=1 \"tests/**/*.test.js\"",
+    "test:db": "node scripts/test-db-setup.js"
   },
   "author": "Moritz Kohm (MSK Scripts)",
   "license": "UNLICENSED",
