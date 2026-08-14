@@ -79,12 +79,30 @@ export function testGiveawayId() {
   return `${TEST_PREFIX}gw-${process.pid}-${counter++}`;
 }
 
+// Some code paths insist on a real Discord snowflake (the control server
+// validates /^\d{17,20}$/), so the `test-` prefix is not usable there. These IDs
+// start with 99, which decodes to a timestamp far in the future and therefore
+// cannot be a snowflake Discord has handed out. They are tracked so cleanup
+// finds them without a prefix to match on.
+const snowflakes = new Set();
+
+export function testSnowflake() {
+  const id = `99${String(process.pid).padStart(9, '0')}${String(counter++).padStart(8, '0')}`;
+  snowflakes.add(id);
+  return id;
+}
+
 /** Removes everything the suite created. Entries and winners cascade from Giveaway. */
 export async function cleanup(prisma) {
   if (!prisma) return;
-  await prisma.giveaway.deleteMany({ where: { guildId: { startsWith: TEST_PREFIX } } });
-  await prisma.giveawayTemplate.deleteMany({ where: { guildId: { startsWith: TEST_PREFIX } } });
-  await prisma.guildSettings.deleteMany({ where: { guildId: { startsWith: TEST_PREFIX } } });
+  const ids = [...snowflakes];
+  const where = { guildId: { startsWith: TEST_PREFIX } };
+  const alsoSnowflakes = ids.length ? { guildId: { in: ids } } : null;
+
+  for (const model of ['giveaway', 'giveawayTemplate', 'guildSettings']) {
+    await prisma[model].deleteMany({ where });
+    if (alsoSnowflakes) await prisma[model].deleteMany({ where: alsoSnowflakes });
+  }
 }
 
 /** Inserts an ACTIVE giveaway. `endAt` defaults to the past, i.e. due to end. */

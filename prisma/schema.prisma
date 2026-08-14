@@ -26,6 +26,18 @@ model GuildSettings {
   logChannel    String? // optional: Channel für Giveaway-Logs
   reminderMinutes Int    @default(0) // "Ending soon"-Reminder X Min. vor Ende (0 = aus)
   claimMessage  String?  @db.Text // optional: Hinweistext in der Gewinner-DM ("So holst du deinen Preis ab")
+
+  // ── Tebex-Store der Guild (für automatische Gewinner-Coupons) ──────────────
+  // Jede Guild hat ihren EIGENEN Store, der Bot ist nicht an msk-scripts.de
+  // gebunden. Das Plugin-Secret liegt AES-256-GCM-verschlüsselt hier (Schlüssel
+  // in TEBEX_SECRET_KEY, also außerhalb der DB), siehe utils/secretBox.js.
+  // Nur der Guild-Besitzer darf es setzen, ansehen oder löschen.
+  tebexSecret      String?   @db.Text // verschlüsselter Blob "v1:iv:ct:tag", NIE Klartext
+  tebexSecretHint  String? // letzte 4 Zeichen, für die maskierte Anzeige
+  tebexSecretSetAt DateTime? // wann zuletzt hinterlegt
+  tebexPublicToken String? // öffentlicher Headless-Token, nur zum Auflisten der Pakete
+  tebexStoreUrl    String? // Store-Adresse für den Einlöse-Link in der Gewinner-DM
+
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
@@ -61,14 +73,41 @@ model Giveaway {
   blacklistRoles String  @default("[]") @db.Text // JSON-Array: zusätzliche Blacklist-Rollen NUR für dieses Giveaway
   whitelistRoles String  @default("[]") @db.Text // JSON-Array: zusätzliche Whitelist-Rollen NUR für dieses Giveaway
   bonusRoles     String  @default("{}") @db.Text // JSON-Objekt RoleId->Bonus-Lose NUR für dieses Giveaway (additiv zu Guild)
+  // ── Automatischer Tebex-Coupon für die Gewinner ────────────────────────────
+  // Pro Giveaway konfiguriert (nur im Web-Dashboard). Jeder Gewinner bekommt
+  // einen EIGENEN Code. couponPercent = null schaltet das Feature für dieses
+  // Giveaway ab.
+  couponPercent   Int? // Rabatt in Prozent (1-100)
+  couponPackages  String @default("[]") @db.Text // JSON-Array von Tebex-Paket-IDs; leer = ganzer Warenkorb
+  couponValidDays Int? // Gültigkeit in Tagen ab Ziehung; null = läuft nie ab
+
   createdAt    DateTime  @default(now())
   endedAt      DateTime?
 
   entries Entry[]
   winners Winner[]
+  coupons GiveawayCoupon[]
 
   @@index([guildId, status])
   @@index([status, endAt])
+}
+
+/// Ein ausgestellter Tebex-Coupon, ein Datensatz pro Gewinner.
+/// `tebexId` wird gebraucht, um den Code beim Reroll wieder zu widerrufen —
+/// sonst behielte ein ersetzter Gewinner seinen Rabatt.
+model GiveawayCoupon {
+  giveawayId String
+  userId     String
+  code       String
+  tebexId    Int? // ID im Tebex-Store, für den Widerruf
+  percent    Int // was tatsächlich ausgestellt wurde
+  expiresAt  DateTime? // null = läuft nie ab
+  revokedAt  DateTime? // beim Reroll gesetzt
+  createdAt  DateTime  @default(now())
+  giveaway   Giveaway  @relation(fields: [giveawayId], references: [id], onDelete: Cascade)
+
+  @@id([giveawayId, userId])
+  @@index([code])
 }
 
 model Entry {

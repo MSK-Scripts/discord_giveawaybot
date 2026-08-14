@@ -7,6 +7,7 @@ import { buildGiveawayEmbed, buildEndedEmbed, buildCancelledEmbed, buildButtonRo
 import { checkEligibility, ticketWeight, mergeGiveawayEligibility } from '../utils/eligibility.js';
 import { generateGiveawayId } from '../utils/id.js';
 import { publishResult } from './resultPublisher.js';
+import { issueCoupons, revokeCoupons } from './tebexService.js';
 import { t } from '../utils/i18n.js';
 
 export async function createGiveaway(data) {
@@ -206,19 +207,35 @@ function messageLink(giveaway) {
   return `https://discord.com/channels/${giveaway.guildId}/${giveaway.channelId}/${giveaway.messageId}`;
 }
 
-/** Schickt jedem Gewinner eine DM (Preis + optionaler Claim-Hinweis + Link). Fehler werden ignoriert. */
-export async function dmWinners(client, giveaway, settings, winnerIds, { resultUrl = null } = {}) {
+/**
+ * Schickt jedem Gewinner eine DM (Preis + optionaler Claim-Hinweis + Link).
+ * Fehler werden ignoriert.
+ *
+ * `coupons` ist eine Map userId -> { code, expiresAt }. Der Code ist pro
+ * Gewinner verschieden und darf deshalb NICHT in den gemeinsamen Textteil.
+ */
+export async function dmWinners(client, giveaway, settings, winnerIds, { resultUrl = null, coupons = null } = {}) {
   if (!winnerIds?.length) return;
   const g = giveaway.guildId;
   const prize = giveaway.prize || giveaway.title;
   const guildName = client.guilds.cache.get(g)?.name ?? '';
   const link = messageLink(giveaway);
-  let content = t(g, 'dm.winner', { prize, guild: guildName });
-  if (settings.claimMessage) content += `\n${settings.claimMessage}`;
-  if (link) content += `\n${t(g, 'dm.winner_link', { link })}`;
-  if (resultUrl) content += `\n${t(g, 'result.link', { url: resultUrl })}`;
+  let base = t(g, 'dm.winner', { prize, guild: guildName });
+  if (settings.claimMessage) base += `\n${settings.claimMessage}`;
+  if (link) base += `\n${t(g, 'dm.winner_link', { link })}`;
+  if (resultUrl) base += `\n${t(g, 'result.link', { url: resultUrl })}`;
 
   for (const userId of winnerIds) {
+    let content = base;
+    const coupon = coupons?.get(userId);
+    if (coupon) {
+      content += `\n\n${t(g, 'dm.coupon', { code: coupon.code, percent: giveaway.couponPercent })}`;
+      content += coupon.expiresAt
+        ? `\n${t(g, 'dm.coupon_expires', { date: new Date(coupon.expiresAt).toLocaleDateString('en-CA') })}`
+        : `\n${t(g, 'dm.coupon_forever')}`;
+      if (settings.tebexStoreUrl) content += `\n${t(g, 'dm.coupon_store', { url: settings.tebexStoreUrl })}`;
+    }
+
     try {
       const user = await client.users.fetch(userId);
       await user.send({ content, flags: MessageFlags.SuppressEmbeds });
@@ -229,7 +246,7 @@ export async function dmWinners(client, giveaway, settings, winnerIds, { resultU
 }
 
 /** Original-Nachricht editieren (Button disabled, Ended-Embed) + Ergebnis posten. */
-async function finalizeMessages(client, giveaway, settings, winnerIds, { resultUrl = null } = {}) {
+async function finalizeMessages(client, giveaway, settings, winnerIds, { resultUrl = null, coupons = null } = {}) {
   const entryCount = await countEntries(giveaway.id);
   let channel = null;
   try {
@@ -266,7 +283,9 @@ async function finalizeMessages(client, giveaway, settings, winnerIds, { resultU
   }
 
   // Gewinner per DM benachrichtigen (fire-and-forget, Fehler werden geschluckt).
-  await dmWinners(client, giveaway, settings, winnerIds, { resultUrl });
+  // Der Coupon-Code steht bewusst NUR hier und nicht in der öffentlichen
+  // Ergebnis-Nachricht.
+  await dmWinners(client, giveaway, settings, winnerIds, { resultUrl, coupons });
 }
 
 /**
@@ -321,10 +340,20 @@ export async function endGiveaway(giveaway, client) {
     // Publish the public result page (returns the URL, or null).
     const resultUrl = await publishResult(client, fresh, settings, winnerIds);
 
-    await finalizeMessages(client, fresh, settings, winnerIds, { resultUrl });
+    // Tebex-Coupons: ein eigener Code pro Gewinner, im Store der Guild.
+    // No-op, wenn die Guild kein Secret hinterlegt oder das Giveaway keinen
+    // Rabatt konfiguriert hat. Fehler brechen das Beenden nicht ab.
+    const coupons = await issueCoupons(settings, fresh, winnerIds);
+
+    await finalizeMessages(client, fresh, settings, winnerIds, { resultUrl, coupons });
     await sendGuildLog(client, settings, t(fresh.guildId, 'log.ended', {
       id, title: fresh.title, count: winnerIds.length,
     }));
+    if (coupons.size) {
+      await sendGuildLog(client, settings, t(fresh.guildId, 'log.coupons', {
+        id, count: coupons.size, percent: fresh.couponPercent,
+      }));
+    }
     return winnerIds;
   } catch (err) {
     logger.error(`endGiveaway(${id}): failed after the claim, giveaway stays ENDED. Draw again with /greroll ${id}:`, err);
@@ -487,6 +516,10 @@ export async function rerollAll(client, giveaway, settings, { actor } = {}) {
   await prisma.winner.updateMany({ where: { giveawayId: giveaway.id }, data: { rerolled: true } });
   await prisma.winner.createMany({ data: newWinners.map((userId) => ({ giveawayId: giveaway.id, userId })), skipDuplicates: true });
 
+  // Die alten Gewinner verlieren ihren Coupon, die neuen bekommen einen eigenen.
+  await revokeCoupons(settings, giveaway, previousWinners);
+  const coupons = await issueCoupons(settings, giveaway, newWinners);
+
   const resultUrl = await publishResult(client, giveaway, settings, newWinners);
 
   try {
@@ -499,7 +532,7 @@ export async function rerollAll(client, giveaway, settings, { actor } = {}) {
     logger.warn(`rerollAll(${giveaway.id}): Nachricht konnte nicht gepostet werden:`, err?.message ?? err);
   }
 
-  await dmWinners(client, giveaway, settings, newWinners, { resultUrl });
+  await dmWinners(client, giveaway, settings, newWinners, { resultUrl, coupons });
   await sendGuildLog(client, settings, t(giveaway.guildId, 'log.rerolled', { id: giveaway.id, title: giveaway.title, user: actor }));
   return newWinners;
 }
@@ -517,6 +550,10 @@ export async function rerollSingle(client, giveaway, settings, oldUserId, { acto
   const newWinner = guild ? await replaceWinner(giveaway, guild, settings, oldUserId) : null;
   if (!newWinner) return { error: 'no_valid' };
 
+  // Nur der ersetzte Gewinner verliert seinen Coupon, die übrigen behalten ihren.
+  await revokeCoupons(settings, giveaway, [oldUserId]);
+  const coupons = await issueCoupons(settings, giveaway, [newWinner]);
+
   const resultUrl = await publishResult(client, giveaway, settings, await getWinnerIds(giveaway.id, { onlyActive: true }));
 
   try {
@@ -529,7 +566,7 @@ export async function rerollSingle(client, giveaway, settings, oldUserId, { acto
     logger.warn(`rerollSingle(${giveaway.id}): Nachricht konnte nicht gepostet werden:`, err?.message ?? err);
   }
 
-  await dmWinners(client, giveaway, settings, [newWinner], { resultUrl });
+  await dmWinners(client, giveaway, settings, [newWinner], { resultUrl, coupons });
   await sendGuildLog(client, settings, t(giveaway.guildId, 'log.rerolled', { id: giveaway.id, title: giveaway.title, user: actor }));
   return { newWinner };
 }

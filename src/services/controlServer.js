@@ -10,7 +10,7 @@ import { createServer } from 'node:http';
 import { timingSafeEqual } from 'node:crypto';
 import { prisma } from '../database/prisma.js';
 import { logger } from '../utils/logger.js';
-import { getSettings, updateSettings } from './settingsService.js';
+import { getSettings, updateSettings, evict } from './settingsService.js';
 import {
   getGiveaway,
   postGiveaway,
@@ -23,11 +23,14 @@ import {
   rerollSingle,
   sendGuildLog,
 } from './giveawayService.js';
+import { verifySecret, listPackages } from './tebexService.js';
+import { encryptSecret, decryptSecret, secretHint, checkEncryptionKey } from '../utils/secretBox.js';
 import { parseDuration } from '../utils/duration.js';
 import { t } from '../utils/i18n.js';
 
 let server = null;
 const GUILD_RE = /^\d{17,20}$/;
+const USER_RE = /^\d{17,20}$/;
 const ID_RE = /^[A-Z0-9]{4,12}$/;
 const ACTOR = '🌐 Dashboard';
 const TOO_LARGE = Symbol('too_large'); // Sentinel: Body-Limit überschritten (kann von JSON.parse nie erzeugt werden)
@@ -37,6 +40,40 @@ const SETTINGS_KEYS = [
   'bonusRoles', 'minAccountDays', 'minMemberDays', 'managerRole', 'notifyRole',
   'logChannel', 'reminderMinutes', 'claimMessage',
 ];
+
+/**
+ * Settings für das Dashboard aufbereiten.
+ *
+ * Das verschlüsselte Tebex-Secret verlässt den Bot NIE über diesen Weg. Nach
+ * außen geht nur, ob eines hinterlegt ist, die letzten vier Zeichen und wann es
+ * gesetzt wurde. Den Klartext gibt es ausschließlich über /tebex/reveal, und
+ * das nur für den Guild-Besitzer.
+ */
+function publicSettings(settings) {
+  const { tebexSecret, tebexSecretHint, tebexSecretSetAt, ...rest } = settings;
+  return {
+    ...rest,
+    tebex: {
+      configured: Boolean(tebexSecret),
+      hint: tebexSecretHint ?? null,
+      setAt: tebexSecretSetAt ? new Date(tebexSecretSetAt).toISOString() : null,
+    },
+  };
+}
+
+/**
+ * Ist dieser User der Besitzer der Guild?
+ *
+ * Bewusst gegen Discord geprüft (`guild.ownerId`) und nicht gegen ein Flag, das
+ * der Shop mitschickt. Der Shop ist zwar authentifiziert, aber die Besitzer-
+ * Eigenschaft ist hier die einzige Schranke vor einem Vollzugriffs-Schlüssel,
+ * und die soll nicht davon abhängen, dass eine zweite Anwendung richtig filtert.
+ */
+async function isGuildOwner(client, guildId, userId) {
+  if (!USER_RE.test(String(userId ?? ''))) return false;
+  const guild = client.guilds.cache.get(guildId) ?? (await client.guilds.fetch(guildId).catch(() => null));
+  return Boolean(guild) && guild.ownerId === String(userId);
+}
 
 function secretOk(req) {
   const secret = process.env.CONTROL_SECRET || '';
@@ -92,8 +129,50 @@ function serializeGiveaway(g, extra = {}) {
     blacklistRoles: arr(g.blacklistRoles),
     whitelistRoles: arr(g.whitelistRoles),
     bonusRoles: obj(g.bonusRoles),
+    couponPercent: g.couponPercent ?? null,
+    couponPackages: arr(g.couponPackages),
+    couponValidDays: g.couponValidDays ?? null,
     ...extra,
   };
+}
+
+/**
+ * Prüft und normalisiert die Coupon-Felder aus dem Dashboard.
+ * @returns {{ ok: true, data: object } | { ok: false, error: string }}
+ */
+function parseCouponInput(body) {
+  const data = {};
+
+  if (Object.prototype.hasOwnProperty.call(body, 'couponPercent')) {
+    const raw = body.couponPercent;
+    if (raw === null || raw === '') {
+      data.couponPercent = null; // Coupon für dieses Giveaway abschalten
+    } else {
+      const percent = Number(raw);
+      if (!Number.isInteger(percent) || percent < 1 || percent > 100) return { ok: false, error: 'invalid_percent' };
+      data.couponPercent = percent;
+    }
+  }
+
+  if (Object.prototype.hasOwnProperty.call(body, 'couponPackages')) {
+    const list = Array.isArray(body.couponPackages) ? body.couponPackages : [];
+    const ids = list.map((id) => Number(id)).filter((id) => Number.isInteger(id) && id > 0);
+    if (ids.length > 50) return { ok: false, error: 'too_many_packages' };
+    data.couponPackages = JSON.stringify([...new Set(ids)]);
+  }
+
+  if (Object.prototype.hasOwnProperty.call(body, 'couponValidDays')) {
+    const raw = body.couponValidDays;
+    if (raw === null || raw === '') {
+      data.couponValidDays = null; // läuft nie ab
+    } else {
+      const days = Number(raw);
+      if (!Number.isInteger(days) || days < 1 || days > 3650) return { ok: false, error: 'invalid_validity' };
+      data.couponValidDays = days;
+    }
+  }
+
+  return { ok: true, data };
 }
 
 // ── Endpoint-Handler ──────────────────────────────────────────────────────────
@@ -139,6 +218,9 @@ async function createGiveawayEndpoint(client, guildId, body) {
     return { status: 400, body: { error: 'invalid_channel' } };
   }
 
+  const coupon = parseCouponInput(body || {});
+  if (!coupon.ok) return { status: 400, body: { error: coupon.error } };
+
   const settings = await getSettings(guildId);
   const endAt = new Date(Date.now() + dur.ms);
   const id = await postGiveaway(client, channel, settings, {
@@ -150,6 +232,12 @@ async function createGiveawayEndpoint(client, guildId, body) {
     winnersCount: winners,
     endAt,
   });
+
+  // Coupon-Konfiguration nachtragen: sie steht in keinem Embed, die Nachricht
+  // muss dafür also nicht neu gebaut werden.
+  if (Object.keys(coupon.data).length) {
+    await prisma.giveaway.update({ where: { id }, data: coupon.data });
+  }
   return { status: 200, body: { id } };
 }
 
@@ -170,6 +258,11 @@ async function editGiveawayEndpoint(client, guildId, body) {
     if (!Number.isInteger(w) || w < 1 || w > 100) return { status: 400, body: { error: 'invalid_winners' } };
     data.winnersCount = w;
   }
+
+  const coupon = parseCouponInput(body);
+  if (!coupon.ok) return { status: 400, body: { error: coupon.error } };
+  Object.assign(data, coupon.data);
+
   if (Object.keys(data).length === 0) return { status: 400, body: { error: 'nothing' } };
 
   const updated = await prisma.giveaway.update({ where: { id }, data });
@@ -257,7 +350,80 @@ async function updateSettingsEndpoint(guildId, body) {
   }
   if (Object.keys(partial).length === 0) return { status: 400, body: { error: 'nothing' } };
   const updated = await updateSettings(guildId, partial);
-  return { status: 200, body: { ok: true, settings: updated } };
+  return { status: 200, body: { ok: true, settings: publicSettings(updated) } };
+}
+
+// ── Tebex-Store der Guild (nur der Guild-Besitzer) ───────────────────────────
+
+/**
+ * Hinterlegt das Plugin-Secret.
+ *
+ * Wird vor dem Speichern gegen Tebex geprüft, damit ein Tippfehler sofort
+ * auffällt und nicht erst Wochen später, wenn ein Giveaway endet und der
+ * Gewinner leer ausgeht.
+ */
+async function setTebexSecret(guildId, body) {
+  const key = checkEncryptionKey();
+  if (!key.ok) return { status: 503, body: { error: 'encryption_unavailable', detail: key.error } };
+
+  const secret = String(body?.secret ?? '').trim();
+  if (secret.length < 20 || secret.length > 200) return { status: 400, body: { error: 'invalid_secret' } };
+
+  const check = await verifySecret(secret);
+  if (!check.ok) return { status: 400, body: { error: check.error === 'invalid_secret' ? 'invalid_secret' : 'tebex_unreachable' } };
+
+  await prisma.guildSettings.update({
+    where: { guildId },
+    data: {
+      tebexSecret: encryptSecret(secret),
+      tebexSecretHint: secretHint(secret),
+      tebexSecretSetAt: new Date(),
+    },
+  });
+  evict(guildId); // der Cache hält sonst den alten Blob
+  return { status: 200, body: { ok: true, store: check.store, hint: secretHint(secret) } };
+}
+
+/** Gibt den Klartext zurück. Nur für den Besitzer, und nur auf ausdrückliche Anfrage. */
+async function revealTebexSecret(client, guildId, settings) {
+  if (!settings.tebexSecret) return { status: 404, body: { error: 'not_configured' } };
+  try {
+    const plaintext = decryptSecret(settings.tebexSecret);
+    logger.warn(`tebex(${guildId}): Plugin-Secret im Klartext ausgegeben (Dashboard, Guild-Besitzer).`);
+    return { status: 200, body: { secret: plaintext } };
+  } catch (err) {
+    return { status: 500, body: { error: 'decrypt_failed', detail: err.message } };
+  }
+}
+
+/** Entfernt Secret und Store-Angaben wieder. */
+async function clearTebex(guildId) {
+  await prisma.guildSettings.update({
+    where: { guildId },
+    data: { tebexSecret: null, tebexSecretHint: null, tebexSecretSetAt: null },
+  });
+  evict(guildId);
+  return { status: 200, body: { ok: true } };
+}
+
+/** Öffentlicher Headless-Token und Store-Adresse (kein Geheimnis). */
+async function setTebexStore(guildId, body) {
+  const data = {};
+  if (body?.publicToken != null) {
+    const token = String(body.publicToken).trim();
+    if (token.length > 100) return { status: 400, body: { error: 'invalid_token' } };
+    data.tebexPublicToken = token || null;
+  }
+  if (body?.storeUrl != null) {
+    const url = String(body.storeUrl).trim();
+    if (url && !/^https:\/\/[\w.-]+/i.test(url)) return { status: 400, body: { error: 'invalid_url' } };
+    data.tebexStoreUrl = url.slice(0, 300) || null;
+  }
+  if (Object.keys(data).length === 0) return { status: 400, body: { error: 'nothing' } };
+
+  await prisma.guildSettings.update({ where: { guildId }, data });
+  evict(guildId);
+  return { status: 200, body: { ok: true } };
 }
 
 function listRoles(client, guildId) {
@@ -305,9 +471,46 @@ async function handle(client, req, res) {
       const detail = await getGiveawayDetail(guildId, id);
       return detail ? send(res, 200, { giveaway: detail }) : send(res, 404, { error: 'not_found' });
     }
-    if (method === 'GET' && path === '/settings') return send(res, 200, { settings: await getSettings(guildId) });
+    if (method === 'GET' && path === '/settings') return send(res, 200, { settings: publicSettings(await getSettings(guildId)) });
     if (method === 'GET' && path === '/roles') return send(res, 200, { roles: listRoles(client, guildId) });
     if (method === 'GET' && path === '/channels') return send(res, 200, { channels: listChannels(client, guildId) });
+
+    // ── Tebex: alles hinter dem Guild-Besitzer ───────────────────────────────
+    // Ein Plugin-Secret ist Vollzugriff auf den Store. Deshalb strenger als der
+    // Rest des Dashboards, der auf ADMINISTRATOR gated ist.
+    if (path === '/tebex' || path.startsWith('/tebex/')) {
+      const userId = method === 'POST' ? body?.userId : url.searchParams.get('userId');
+      if (!(await isGuildOwner(client, guildId, userId))) return send(res, 403, { error: 'owner_only' });
+
+      const settings = await getSettings(guildId);
+
+      if (method === 'GET' && path === '/tebex') {
+        return send(res, 200, {
+          tebex: {
+            ...publicSettings(settings).tebex,
+            publicToken: settings.tebexPublicToken ?? null,
+            storeUrl: settings.tebexStoreUrl ?? null,
+            encryptionReady: checkEncryptionKey().ok,
+          },
+        });
+      }
+      if (method === 'GET' && path === '/tebex/packages') {
+        return send(res, 200, { packages: await listPackages(settings.tebexPublicToken) });
+      }
+      if (method === 'POST' && path === '/tebex/secret') {
+        const r = await setTebexSecret(guildId, body); return send(res, r.status, r.body);
+      }
+      if (method === 'POST' && path === '/tebex/reveal') {
+        const r = await revealTebexSecret(client, guildId, settings); return send(res, r.status, r.body);
+      }
+      if (method === 'POST' && path === '/tebex/clear') {
+        const r = await clearTebex(guildId); return send(res, r.status, r.body);
+      }
+      if (method === 'POST' && path === '/tebex/store') {
+        const r = await setTebexStore(guildId, body); return send(res, r.status, r.body);
+      }
+      return send(res, 404, { error: 'not_found' });
+    }
 
     if (method === 'POST' && path === '/giveaway/create') {
       const r = await createGiveawayEndpoint(client, guildId, body); return send(res, r.status, r.body);

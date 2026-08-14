@@ -167,6 +167,11 @@
   "dm.winner": "🎉 Félicitations ! Tu as gagné **{prize}** sur **{guild}**.",
   "dm.winner_link": "🔗 Voir le giveaway : {link}",
   "result.link": "🔗 Résultats et gagnants : {url}",
+  "dm.coupon": "🎟️ Ton code promo personnel : **{code}** ({percent}% de réduction)",
+  "dm.coupon_expires": "⏳ Valable jusqu’au {date}, utilisable une seule fois.",
+  "dm.coupon_forever": "♾️ Sans date d’expiration, utilisable une seule fois.",
+  "dm.coupon_store": "🛒 À utiliser ici : {url}",
+  "log.coupons": "🎟️ Giveaway `{id}` : {count} code(s) promo créé(s) ({percent}% de réduction).",
 
   "reminder.ending_soon": "⏰ Le giveaway **{title}** se termine {ends} — dernière chance de participer !",
 
