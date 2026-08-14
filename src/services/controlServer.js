@@ -219,7 +219,7 @@ async function lifecycleEndpoint(client, guildId, action, body) {
     case 'end': {
       if (giveaway.status !== 'ACTIVE') return { status: 409, body: { error: 'not_active' } };
       const result = await endGiveaway(giveaway, client);
-      if (result === null) return { status: 409, body: { error: 'not_active' } }; // schon beendet/gelockt
+      if (result === null) return { status: 409, body: { error: 'not_active' } }; // the DB claim went to someone else
       return { status: 200, body: { ok: true, winners: result } };
     }
     case 'cancel':

@@ -1,4 +1,4 @@
-// Giveaway-CRUD, Gewinnerziehung, Beenden (mit zentralem In-Memory-Lock).
+// Giveaway CRUD, winner draw, ending (double-ending guarded by a DB claim).
 import { MessageFlags } from 'discord.js';
 import { prisma } from '../database/prisma.js';
 import { logger } from '../utils/logger.js';
@@ -8,9 +8,6 @@ import { checkEligibility, ticketWeight, mergeGiveawayEligibility } from '../uti
 import { generateGiveawayId } from '../utils/id.js';
 import { publishResult } from './resultPublisher.js';
 import { t } from '../utils/i18n.js';
-
-// Zentraler Lock gegen Doppel-Beendigung (Scheduler-Tick vs. /gend).
-const endingLocks = new Set();
 
 export async function createGiveaway(data) {
   return prisma.giveaway.create({ data });
@@ -252,17 +249,40 @@ async function finalizeMessages(client, giveaway, settings, winnerIds, { resultU
 }
 
 /**
- * Beendet ein aktives Giveaway: zieht Gewinner, setzt Status, postet Ergebnis.
- * Idempotent durch Lock + Status-Re-Read.
- * @returns {Promise<string[]|null>} winnerIds, oder null wenn nichts zu tun
+ * Ends an active giveaway: draws winners, sets the status, posts the result.
+ *
+ * Idempotent through an atomic database claim: the ACTIVE -> ENDED transition is a
+ * single UPDATE statement, and only the caller whose UPDATE hits a row continues.
+ * That holds across processes. An in-memory lock would not: the draw sits between
+ * the status check and the status change and spends seconds on REST calls, and in
+ * that window a second instance would end the same giveaway twice.
+ *
+ * The claim deliberately happens BEFORE the draw. If anything fails afterwards the
+ * giveaway is ended but has no winner message, which `/greroll <id>` (or
+ * `rerollAll`) can fix, since both work on ENDED giveaways and exclude winners
+ * that were already recorded. The opposite case, a prize handed out twice, could
+ * not be repaired.
+ *
+ * @returns {Promise<string[]|null>} winnerIds, or null when there was nothing to do
  */
 export async function endGiveaway(giveaway, client) {
   const id = giveaway.id;
-  if (endingLocks.has(id)) return null;
-  endingLocks.add(id);
+
+  let claimed;
+  try {
+    claimed = await prisma.giveaway.updateMany({
+      where: { id, status: 'ACTIVE' },
+      data: { status: 'ENDED', endedAt: new Date() },
+    });
+  } catch (err) {
+    logger.error(`endGiveaway(${id}): claim failed:`, err);
+    return null;
+  }
+  if (claimed.count === 0) return null; // already ended/cancelled, or another claim won
+
   try {
     const fresh = await prisma.giveaway.findUnique({ where: { id } });
-    if (!fresh || fresh.status !== 'ACTIVE') return null;
+    if (!fresh) return null; // deleted between claim and re-read
 
     const settings = await getSettings(fresh.guildId);
     const guild = await client.guilds.fetch(fresh.guildId).catch(() => null);
@@ -270,10 +290,6 @@ export async function endGiveaway(giveaway, client) {
     let winnerIds = [];
     if (guild) winnerIds = await drawWinners(fresh, guild, settings, {});
 
-    await prisma.giveaway.update({
-      where: { id },
-      data: { status: 'ENDED', endedAt: new Date() },
-    });
     if (winnerIds.length) {
       await prisma.winner.createMany({
         data: winnerIds.map((userId) => ({ giveawayId: id, userId })),
@@ -281,7 +297,7 @@ export async function endGiveaway(giveaway, client) {
       });
     }
 
-    // Öffentliche Ergebnis-Seite veröffentlichen (gibt URL zurück oder null).
+    // Publish the public result page (returns the URL, or null).
     const resultUrl = await publishResult(client, fresh, settings, winnerIds);
 
     await finalizeMessages(client, fresh, settings, winnerIds, { resultUrl });
@@ -290,10 +306,8 @@ export async function endGiveaway(giveaway, client) {
     }));
     return winnerIds;
   } catch (err) {
-    logger.error(`endGiveaway(${id}):`, err);
-    return null;
-  } finally {
-    endingLocks.delete(id);
+    logger.error(`endGiveaway(${id}): failed after the claim, giveaway stays ENDED. Draw again with /greroll ${id}:`, err);
+    return [];
   }
 }
 
@@ -511,5 +525,3 @@ export async function getGuildStats(guildId) {
   ]);
   return { total: active + paused + ended + cancelled, active, paused, ended, cancelled, entries, winners };
 }
-
-export { endingLocks };

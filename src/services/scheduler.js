@@ -69,7 +69,9 @@ async function tick(client) {
   }
 
   for (const giveaway of due) {
-    // endGiveaway ist durch einen In-Memory-Lock gegen Doppel-Beendigung geschützt.
+    // endGiveaway claims ACTIVE -> ENDED atomically in the database and only
+    // continues when that claim wins, so overlapping ticks, /gend and the
+    // dashboard cannot end the same giveaway twice.
     await endGiveaway(giveaway, client);
   }
 }
