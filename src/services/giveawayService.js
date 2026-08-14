@@ -51,16 +51,37 @@ export async function getWinnerIds(giveawayId, { onlyActive = false } = {}) {
   return winners.map((w) => w.userId);
 }
 
-/** Teilnahme toggeln. @returns {'added'|'removed'} */
+/**
+ * Toggles a participation.
+ *
+ * Read-then-write with an await in between, so two clicks from the same user
+ * (double click, or two devices) run into each other. The unique constraint
+ * keeps the data correct either way — what is at stake is whether the losing
+ * click answers the user with an error.
+ *
+ * Same rule as `ensureRow` in settingsService: after a failed write the state
+ * decides, not the error code. The collision arrives as P2002 for the insert
+ * and as a code-less error carrying MySQL 1020 for the delete.
+ *
+ * @returns {'added'|'removed'}
+ */
 export async function addOrRemoveEntry(giveawayId, userId) {
-  const existing = await prisma.entry.findUnique({
-    where: { giveawayId_userId: { giveawayId, userId } },
-  });
+  const where = { giveawayId_userId: { giveawayId, userId } };
+  const existing = await prisma.entry.findUnique({ where });
+
   if (existing) {
-    await prisma.entry.delete({ where: { giveawayId_userId: { giveawayId, userId } } });
+    // deleteMany, not delete: a concurrent delete makes delete fail, while
+    // deleteMany simply reports count 0 — and the row is gone either way.
+    await prisma.entry.deleteMany({ where: { giveawayId, userId } });
     return 'removed';
   }
-  await prisma.entry.create({ data: { giveawayId, userId } });
+
+  try {
+    await prisma.entry.create({ data: { giveawayId, userId } });
+  } catch (err) {
+    const row = await prisma.entry.findUnique({ where });
+    if (!row) throw err; // the write failed for some other reason
+  }
   return 'added';
 }
 
