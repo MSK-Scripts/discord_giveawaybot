@@ -29,6 +29,7 @@ const settingsService = skip ? {} : await import('../src/services/settingsServic
 if (!skip) (await import('../src/utils/i18n.js')).loadLocales();
 
 const PLUGIN_SECRET = 'tebex-plugin-secret-abcdef123456';
+const STORE_URL = 'https://store.example.com';
 
 // ── fetch-Stub ───────────────────────────────────────────────────────────────
 const realFetch = globalThis.fetch;
@@ -78,7 +79,7 @@ async function guildWithStore(overrides = {}) {
       tebexSecret: box.encryptSecret(PLUGIN_SECRET),
       tebexSecretHint: box.secretHint(PLUGIN_SECRET),
       tebexSecretSetAt: new Date(),
-      tebexStoreUrl: 'https://store.example.com',
+      tebexStoreUrl: STORE_URL,
       ...overrides,
     },
   });
@@ -239,7 +240,10 @@ test('beim Beenden bekommt der Gewinner den Code per DM, nicht im Channel', { sk
   const dm = client.dms.find((d) => d.userId === winners[0]);
   assert.ok(dm, 'der Gewinner bekommt eine DM');
   assert.ok(dm.payload.content.includes(row.code), 'mit seinem Code');
-  assert.ok(dm.payload.content.includes('https://store.example.com'), 'und dem Einlöse-Link');
+  // Zeilenweise und auf das Ende geprüft: der Link steht am Zeilenende, ein
+  // Teilstring-Vergleich würde auch auf store.example.com.fremd.tld passen.
+  const lines = dm.payload.content.split('\n');
+  assert.ok(lines.some((line) => line.endsWith(STORE_URL)), 'und dem Einlöse-Link');
 
   // Der öffentliche Teil darf den Code nicht enthalten.
   for (const message of client.sent) {

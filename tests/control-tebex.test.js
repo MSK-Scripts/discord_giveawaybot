@@ -31,11 +31,21 @@ const PLUGIN_SECRET = 'tebex-plugin-secret-abcdef123456';
 const BASE = 'http://127.0.0.1:18787';
 
 // Nur Tebex abfangen, alles andere (also die Testanfragen an den eigenen
-// Server) durchreichen.
+// Server) durchreichen. Verglichen wird der geparste Host, nicht ein Präfix des
+// Strings: sonst gilt auch plugin.tebex.io.beliebig.example als Tebex.
 const realFetch = globalThis.fetch;
+
+function hostOf(href) {
+  try {
+    return new URL(href).host;
+  } catch {
+    return '';
+  }
+}
+
 globalThis.fetch = async (url, init = {}) => {
   const href = String(url);
-  if (!href.startsWith('https://plugin.tebex.io')) return realFetch(url, init);
+  if (hostOf(href) !== 'plugin.tebex.io') return realFetch(url, init);
   if (href.endsWith('/information')) {
     const secret = init.headers?.['X-Tebex-Secret'];
     if (secret !== PLUGIN_SECRET) return new Response('forbidden', { status: 403 });
