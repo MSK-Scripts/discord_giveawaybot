@@ -1,6 +1,6 @@
 ![Discord Giveawaybot](.assets/msk-giveaway-bot-banner.png)
 
-Multilingual, per-guild configurable giveaway bot built on **discord.js v14**, persisted via **MariaDB** (Prisma). Restart-safe poll scheduler, button entry, eligibility rules, weighted bonus entries, templates, pause/resume, edit & extend, "ending soon" reminders, winner DMs and reroll.
+Multilingual, per-guild configurable giveaway bot built on **discord.js v14**, persisted via **MariaDB** (Prisma). Restart-safe poll scheduler, button entry, eligibility rules, weighted bonus entries, templates, pause/resume, edit & extend, "ending soon" reminders, winner DMs, reroll and automatic Tebex coupons for winners.
 
 ## ➕ Add to your server
 
@@ -34,6 +34,10 @@ CLIENT_ID=
 GUILD_ID=
 
 DATABASE_URL="mysql://user:pass@localhost:3306/giveaway_bot"
+
+# optional, encrypts the per-guild Tebex store secrets (openssl rand -hex 32).
+# Without it the winner-coupon feature stays off; nothing else is affected.
+TEBEX_SECRET_KEY=
 ```
 
 ### MariaDB via Docker (local/test)
@@ -125,7 +129,23 @@ The official instance integrates with **msk-scripts.de**:
 - **Web dashboard** — `…/giveaway/dashboard` lets server admins (Discord login, Manage Server) create and fully manage giveaways and per-server settings from the browser. The shop proxies every action to a **localhost-only** HTTP control endpoint in the bot (`services/controlServer.js`, header `X-Control-Secret` = `CONTROL_SECRET`), so all Discord side-effects and the settings cache stay consistent. No public port is opened.
 - **Public results page** — when a giveaway ends, the bot pushes the winners (username) and the anonymous participant count to the shop (`RESULT_PUBLISH_URL`, `Authorization: Bearer ${RESULT_PUBLISH_SECRET}`), which hosts a results page at `…/giveaway/g/<token>` and links it in the results message + winner DMs. The full participant list is never published.
 
+- **Tebex winner coupons** — see below.
+
 Both features are **optional** and disabled until their env vars are set (`CONTROL_SECRET`, `RESULT_PUBLISH_URL` + `RESULT_PUBLISH_SECRET`). See `.env.example`.
+
+## Tebex winner coupons
+
+A giveaway can hand every winner a personal discount code for the **guild's own Tebex store** — the bot is not tied to a single shop. Configured in the web dashboard only: a percentage, optionally limited to selected packages, optionally with an expiry. Each winner receives their **own** single-use code by DM, and a reroll revokes the replaced winner's code in the store before issuing a new one. The code appears only in the DM, never in the public results message or on the results page.
+
+**Where the store credentials live.** Each guild's Tebex plugin secret is stored in `GuildSettings.tebexSecret`, encrypted with **AES-256-GCM** (`utils/secretBox.js`). The key comes from `TEBEX_SECRET_KEY` and therefore lives outside the database, so a stolen dump or backup yields nothing on its own. Anyone with access to the bot host can still decrypt — that cannot be designed away for a service that has to use the key. Hashing is not an alternative here: the value is sent to Tebex on every coupon (`X-Tebex-Secret`), and a hash cannot be reversed.
+
+**Who may touch it.** A Tebex plugin secret is unscoped full access to a store, so storing, revealing and deleting it is restricted to the **guild owner** — stricter than the rest of the dashboard, which allows any administrator. The bot verifies ownership against Discord's own `guild.ownerId` and does not trust a flag sent by the shop. Configuring the discount itself (percentage, packages, validity) stays open to any manager. `GET /settings` never returns the encrypted value, only whether one is set, its last four characters and when it was set.
+
+**Rotating `TEBEX_SECRET_KEY`** makes every stored store secret unreadable; owners have to enter theirs again. The bot logs this clearly instead of blaming Tebex.
+
+Package lists for the dashboard picker come from the **Headless** API using the guild's public token (`tebexPublicToken`), because the Plugin API's `GET /packages` is deprecated.
+
+Disabled until `TEBEX_SECRET_KEY` is set; nothing breaks without it.
 
 ## Deployment (server)
 Short version:
