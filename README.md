@@ -68,6 +68,29 @@ npm run smoke               # load smoke test (exports + builder constraints)
 npm run i18n:check          # locale completeness + placeholder parity en/de/fr/es
 ```
 
+## Tests
+```bash
+npm test                    # unit tests + concurrency tests
+```
+
+The concurrency tests run against a real database, because what they check is
+that MariaDB serialises a conditional `UPDATE` and rejects a duplicate `INSERT`:
+that several callers ending the same giveaway hand out the prize only once, that
+overlapping scheduler ticks post one result and one reminder, and that a guild
+without a settings row or a user double-clicking the join button never produces
+an error.
+
+They need their own database in `TEST_DATABASE_URL` and refuse to share one with
+`DATABASE_URL` — a scheduler tick ends every giveaway that is due in the database
+it is pointed at. Without the variable those tests skip and only the unit tests
+run.
+
+```bash
+# once: a second database next to the bot's own
+TEST_DATABASE_URL="mysql://root:root@localhost:3306/giveaway_bot_test"
+npm run test:db             # applies the migrations to it
+```
+
 ## Commands
 
 | Command | Permissions | Description |
