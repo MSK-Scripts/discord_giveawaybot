@@ -64,16 +64,40 @@ export function evict(guildId) {
   cache.delete(guildId);
 }
 
+/**
+ * Reads the settings row for a guild and inserts the defaults if it has none yet.
+ *
+ * Read-then-create is a race: two callers — two concurrent awaits in this process,
+ * or two bot processes — can both find nothing and both insert. The loser used to
+ * throw P2002 out of here, and the error surfaced far away in whatever called
+ * getSettings (that is how a giveaway once died mid-ending).
+ *
+ * The retry deliberately ignores the error code. Prisma reports this collision in
+ * more than one shape depending on how it compiles the write: a plain create fails
+ * with P2002, while an upsert against MariaDB fails as a code-less
+ * PrismaClientUnknownRequestError carrying MySQL error 1020 ("Record has changed
+ * since last read"). What matters is not which error came back but whether the row
+ * exists now. If it does, the other writer won and we take their row.
+ */
+async function ensureRow(guildId) {
+  const existing = await prisma.guildSettings.findUnique({ where: { guildId } });
+  if (existing) return existing;
+
+  try {
+    return await prisma.guildSettings.create({ data: { guildId } });
+  } catch (err) {
+    const row = await prisma.guildSettings.findUnique({ where: { guildId } });
+    if (!row) throw err; // the write failed for some other reason
+    return row;
+  }
+}
+
 /** Cache -> DB -> on-the-fly Default-Insert. Füllt den Cache. */
 export async function getSettings(guildId) {
   const cached = cache.get(guildId);
   if (cached) return cached;
 
-  let row = await prisma.guildSettings.findUnique({ where: { guildId } });
-  if (!row) {
-    row = await prisma.guildSettings.create({ data: { guildId } });
-  }
-  const settings = deserialize(row);
+  const settings = deserialize(await ensureRow(guildId));
   cache.set(guildId, settings);
   return settings;
 }
@@ -81,12 +105,8 @@ export async function getSettings(guildId) {
 /** Default-Settings anlegen (guildCreate). Idempotent. */
 export async function createDefaults(guildId) {
   try {
-    const row = await prisma.guildSettings.upsert({
-      where: { guildId },
-      update: {},
-      create: { guildId },
-    });
-    const settings = deserialize(row);
+    // Same path as getSettings, so this survives a concurrent insert as well.
+    const settings = deserialize(await ensureRow(guildId));
     cache.set(guildId, settings);
     return settings;
   } catch (err) {
