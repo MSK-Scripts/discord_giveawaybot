@@ -26,7 +26,8 @@ const tebex = skip ? {} : await import('../src/services/tebexService.js');
 const box = skip ? {} : await import('../src/utils/secretBox.js');
 const service = skip ? {} : await import('../src/services/giveawayService.js');
 const settingsService = skip ? {} : await import('../src/services/settingsService.js');
-if (!skip) (await import('../src/utils/i18n.js')).loadLocales();
+const i18n = skip ? {} : await import('../src/utils/i18n.js');
+if (!skip) i18n.loadLocales();
 
 const PLUGIN_SECRET = 'tebex-plugin-secret-abcdef123456';
 const STORE_URL = 'https://store.example.com';
@@ -240,10 +241,15 @@ test('beim Beenden bekommt der Gewinner den Code per DM, nicht im Channel', { sk
   const dm = client.dms.find((d) => d.userId === winners[0]);
   assert.ok(dm, 'der Gewinner bekommt eine DM');
   assert.ok(dm.payload.content.includes(row.code), 'mit seinem Code');
-  // Zeilenweise und auf das Ende geprüft: der Link steht am Zeilenende, ein
-  // Teilstring-Vergleich würde auch auf store.example.com.fremd.tld passen.
+  // Die erwartete Zeile wird mit derselben Übersetzung gebaut und exakt
+  // verglichen. Ein Teilstring-Vergleich auf die URL wäre hier wertlos: davor
+  // oder dahinter dürfte ein beliebiger Host stehen und der Test wäre trotzdem
+  // grün.
   const lines = dm.payload.content.split('\n');
-  assert.ok(lines.some((line) => line.endsWith(STORE_URL)), 'und dem Einlöse-Link');
+  assert.ok(
+    lines.includes(i18n.t(guildId, 'dm.coupon_store', { url: STORE_URL })),
+    'und dem Einlöse-Link',
+  );
 
   // Der öffentliche Teil darf den Code nicht enthalten.
   for (const message of client.sent) {
