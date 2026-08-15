@@ -2,9 +2,20 @@
 
 All notable changes to the **MSK Giveaway Bot**. Format based on [Keep a Changelog](https://keepachangelog.com).
 
-## [Unreleased]
+## [1.5.0]
 
 ### Added
+- **Several prizes per giveaway, with two ways of handing them out.** The prize field of `/gcreate` takes **one prize per line** (up to 20), and the new `mode` option decides who gets what:
+  - *Everyone gets all prizes* (default, and what a single prize has always done) — every winner receives the full list.
+  - *One prize per winner* — winner 1 gets prize 1, winner 2 gets prize 2, and so on.
+
+  In the second mode the number of winners is no longer a separate setting, it **is** the length of the prize list: the modal drops the winners field, the dashboard locks it, and `/gedit` rejects a `winners` value that disagrees with the list. Anything else would leave a winner without a prize or a prize without a winner, and there is no sensible answer to which one it should be.
+
+  Every winner row now carries the prize slot it was drawn for. That matters on a reroll: replacing a single winner with `/greroll <id> <winner>` gives the replacement **that winner's** prize instead of shifting everyone else's by one. Rerolling all winners assigns the slots again from scratch.
+
+  The winner DM names only the prize that winner actually gets, the result message and the ended embed pair each winner with their prize, and the public results page lists them the same way. `/gedit` takes `prizes` (separated by `|`, because slash options cannot contain line breaks) and `mode`; the web dashboard has a multi-line prize field and a mode selector.
+
+  Migration `20260815214352_multiple_prizes` replaces the single `Giveaway.prize` column with `prizes` (JSON array) and `prizeMode`, and adds `Winner.prizeIndex`. Existing prizes are copied into the new column **before** the old one is dropped, so running giveaways keep theirs. The result payload sent to the shop still contains a `prize` summary alongside the new `prizes`/`prizeMode`, so a shop that has not been updated yet keeps showing something.
 - **Automatic Tebex coupons for winners.** A giveaway can be configured (in the web dashboard) to hand every winner a personal discount code in their DM: a percentage, optionally limited to selected packages, optionally with an expiry. Each winner gets their **own** single-use code, and a reroll revokes the replaced winner's code in the store before issuing a new one. The code only ever appears in the DM, never in the public result message or on the results page.
   Every guild uses **its own Tebex store** — the bot is not tied to msk-scripts.de. The guild owner stores their Tebex plugin secret in the dashboard and the bot calls `plugin.tebex.io` directly with it.
   **The secret is encrypted at rest** (AES-256-GCM, key in `TEBEX_SECRET_KEY`, i.e. outside the database) and never leaves the bot through the regular settings endpoint — those only report whether one is configured, its last four characters and when it was set. Hashing was not an option here: the bot has to send the value to Tebex, and a hash cannot be reversed. A stolen database dump or backup is therefore worthless on its own; someone with access to the bot host can still decrypt, which no design can prevent for a service that must use the key.

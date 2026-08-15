@@ -8,6 +8,14 @@ import {
 import { t } from './i18n.js';
 import { parseEmoji } from './emoji.js';
 import { mergeGiveawayEligibility } from './eligibility.js';
+import {
+  giveawayPrizes,
+  normalizePrizeMode,
+  prizesForWinner,
+  inlinePrizes,
+  bulletList,
+  numberedList,
+} from './prizes.js';
 
 const STYLE_MAP = {
   PRIMARY: ButtonStyle.Primary,
@@ -43,6 +51,46 @@ function requirementsValue(g, settings, giveaway) {
   return parts.length ? parts.join('\n') : null;
 }
 
+/**
+ * Preis-Feld(er) für ein Embed.
+ *
+ * Ein einzelner Preis bleibt ein schmales Inline-Feld wie bisher. Mehrere Preise
+ * brauchen die volle Breite, und im INDIVIDUAL-Modus ist die Nummerierung
+ * bedeutungstragend: Nummer N gehört zu Gewinner N.
+ */
+function prizeFields(g, giveaway) {
+  const prizes = giveawayPrizes(giveaway);
+  if (!prizes.length) return [];
+  if (prizes.length === 1) {
+    return [{ name: t(g, 'giveaway.field.prize'), value: prizes[0].slice(0, 1024), inline: true }];
+  }
+  const individual = normalizePrizeMode(giveaway.prizeMode) === 'INDIVIDUAL';
+  return [{
+    name: t(g, individual ? 'giveaway.field.prizes_individual' : 'giveaway.field.prizes'),
+    value: (individual ? numberedList(prizes) : bulletList(prizes)).slice(0, 1024),
+    inline: false,
+  }];
+}
+
+/**
+ * Gewinner-Zeilen mit ihrem Preis (nur INDIVIDUAL).
+ * @param {{userId: string, prizeIndex: number|null}[]} winners
+ */
+function winnerPrizeLines(g, giveaway, winners) {
+  const prizes = giveawayPrizes(giveaway);
+  return winners
+    .map((w, i) => {
+      const own = prizesForWinner(prizes, giveaway.prizeMode, w.prizeIndex);
+      const place = (Number.isInteger(w.prizeIndex) ? w.prizeIndex : i) + 1;
+      return t(g, 'prize.winner_line', {
+        place,
+        user: `<@${w.userId}>`,
+        prize: own.length ? inlinePrizes(own) : t(g, 'info.none'),
+      });
+    })
+    .join('\n');
+}
+
 /** Aktives Giveaway-Embed. */
 export function buildGiveawayEmbed(giveaway, settings, { entryCount = 0 } = {}) {
   const g = giveaway.guildId;
@@ -59,7 +107,7 @@ export function buildGiveawayEmbed(giveaway, settings, { entryCount = 0 } = {}) 
     .setFooter({ text: t(g, 'giveaway.footer', { id: giveaway.id }) })
     .setTimestamp(giveaway.endAt instanceof Date ? giveaway.endAt : new Date(giveaway.endAt));
 
-  if (giveaway.prize) embed.addFields({ name: t(g, 'giveaway.field.prize'), value: giveaway.prize, inline: true });
+  for (const field of prizeFields(g, giveaway)) embed.addFields(field);
 
   const req = requirementsValue(g, settings, giveaway);
   if (req) embed.addFields({ name: t(g, 'giveaway.field.requirements'), value: req.slice(0, 1024), inline: false });
@@ -67,23 +115,36 @@ export function buildGiveawayEmbed(giveaway, settings, { entryCount = 0 } = {}) 
   return embed;
 }
 
-/** Beendetes Giveaway-Embed (umgefärbt, Gewinner ergänzt). */
-export function buildEndedEmbed(giveaway, settings, { winnerIds = [], entryCount = 0 } = {}) {
+/**
+ * Beendetes Giveaway-Embed (umgefärbt, Gewinner ergänzt).
+ * @param {{winners?: {userId: string, prizeIndex: number|null}[], entryCount?: number}} opts
+ */
+export function buildEndedEmbed(giveaway, settings, { winners = [], entryCount = 0 } = {}) {
   const g = giveaway.guildId;
-  const winners = winnerIds.length
-    ? winnerIds.map((id) => `<@${id}>`).join(', ')
-    : t(g, 'info.none');
+  const individual = normalizePrizeMode(giveaway.prizeMode) === 'INDIVIDUAL' && giveawayPrizes(giveaway).length > 0;
+
+  let winnerValue = t(g, 'info.none');
+  if (winners.length) {
+    // Im INDIVIDUAL-Modus steht der Preis direkt hinter dem Gewinner — die
+    // Zuordnung ist sonst nirgends ablesbar.
+    winnerValue = individual
+      ? winnerPrizeLines(g, giveaway, winners)
+      : winners.map((w) => `<@${w.userId}>`).join(', ');
+  }
+
   const embed = new EmbedBuilder()
     .setColor(0x2b2d31)
     .setTitle(`${t(g, 'giveaway.ended_title')} — ${giveaway.title}`)
     .setDescription(giveaway.description)
     .addFields(
-      { name: t(g, 'giveaway.field.winners'), value: winners, inline: false },
+      { name: t(g, 'giveaway.field.winners'), value: winnerValue.slice(0, 1024), inline: false },
       { name: t(g, 'giveaway.field.host'), value: `<@${giveaway.hostId}>`, inline: true },
       { name: t(g, 'giveaway.field.entries'), value: String(entryCount), inline: true },
     )
     .setFooter({ text: t(g, 'giveaway.footer', { id: giveaway.id }) });
-  if (giveaway.prize) embed.addFields({ name: t(g, 'giveaway.field.prize'), value: giveaway.prize, inline: true });
+
+  // Im INDIVIDUAL-Modus steht die Preisliste schon bei den Gewinnern.
+  if (!individual) for (const field of prizeFields(g, giveaway)) embed.addFields(field);
   return embed;
 }
 
@@ -118,16 +179,32 @@ export function buildButtonRow(giveaway, settings, { disabled = false } = {}) {
   return new ActionRowBuilder().addComponents(button);
 }
 
-/** Ergebnis-Nachricht (Text) für /gend bzw. Scheduler. */
-export function buildResultContent(giveaway, winnerIds, entryCount = 0) {
+/**
+ * Ergebnis-Nachricht (Text) für /gend bzw. Scheduler.
+ * @param {{userId: string, prizeIndex: number|null}[]} winners
+ */
+export function buildResultContent(giveaway, winners, entryCount = 0) {
   const g = giveaway.guildId;
-  if (!winnerIds || winnerIds.length === 0) {
+  if (!winners || winners.length === 0) {
     // Niemand teilgenommen vs. Teilnehmer vorhanden, aber keiner gültig (Blacklist/Guild verlassen).
     const key = entryCount === 0 ? 'end.no_entries' : 'end.no_valid';
     return t(g, key, { title: giveaway.title });
   }
-  const mentions = winnerIds.map((id) => `<@${id}>`).join(', ');
+  if (normalizePrizeMode(giveaway.prizeMode) === 'INDIVIDUAL' && giveawayPrizes(giveaway).length) {
+    return t(g, 'end.winners_individual', { title: giveaway.title, lines: winnerPrizeLines(g, giveaway, winners) });
+  }
+  const mentions = winners.map((w) => `<@${w.userId}>`).join(', ');
   return t(g, 'end.winners', { winners: mentions, title: giveaway.title });
+}
+
+/** Reroll-Nachricht (Text) — gleiche Logik wie die Ergebnis-Nachricht. */
+export function buildRerollContent(giveaway, winners) {
+  const g = giveaway.guildId;
+  if (normalizePrizeMode(giveaway.prizeMode) === 'INDIVIDUAL' && giveawayPrizes(giveaway).length) {
+    return t(g, 'reroll.winners_individual', { title: giveaway.title, lines: winnerPrizeLines(g, giveaway, winners) });
+  }
+  const mentions = winners.map((w) => `<@${w.userId}>`).join(', ');
+  return t(g, 'reroll.winners', { title: giveaway.title, winners: mentions });
 }
 
 /** Settings-Übersicht. */
@@ -222,6 +299,12 @@ export function buildInfoEmbed(guildId, giveaway, { entryCount = 0, winnerIds = 
   } else if (giveaway.endedAt) {
     embed.addFields({ name: t(g, 'info.field.ended'), value: rel(giveaway.endedAt), inline: true });
   }
+  const prizes = giveawayPrizes(giveaway);
+  if (prizes.length > 1) {
+    embed.addFields({ name: t(g, 'info.field.prizemode'), value: t(g, `prize.mode.${normalizePrizeMode(giveaway.prizeMode).toLowerCase()}`), inline: true });
+  }
+  for (const field of prizeFields(g, giveaway)) embed.addFields(field);
+
   if (winnerIds.length) {
     embed.addFields({ name: t(g, 'giveaway.field.winners'), value: winners, inline: false });
   }

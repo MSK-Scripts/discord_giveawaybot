@@ -6,15 +6,16 @@
 // Deaktiviert (gibt null zurück), solange RESULT_PUBLISH_URL/-SECRET fehlen.
 import { prisma } from '../database/prisma.js';
 import { logger } from '../utils/logger.js';
+import { giveawayPrizes, prizesForWinner, normalizePrizeMode, inlinePrizes } from '../utils/prizes.js';
 
 /**
  * @param {import('discord.js').Client} client
  * @param {object} giveaway   Giveaway-Row
  * @param {object} settings   Guild-Settings (aktuell ungenutzt, für spätere Optionen)
- * @param {string[]} winnerIds aktuelle Gewinner-IDs
+ * @param {{userId: string, prizeIndex: number|null}[]} winnerList aktuelle Gewinner
  * @returns {Promise<string|null>} öffentliche URL der Ergebnis-Seite oder null
  */
-export async function publishResult(client, giveaway, settings, winnerIds = []) {
+export async function publishResult(client, giveaway, settings, winnerList = []) {
   const url = process.env.RESULT_PUBLISH_URL;
   const secret = process.env.RESULT_PUBLISH_SECRET;
   if (!url || !secret) return null; // Feature nicht konfiguriert
@@ -22,9 +23,12 @@ export async function publishResult(client, giveaway, settings, winnerIds = []) 
   try {
     const entryCount = await prisma.entry.count({ where: { giveawayId: giveaway.id } });
 
+    const prizes = giveawayPrizes(giveaway);
+    const mode = normalizePrizeMode(giveaway.prizeMode);
+
     // Nur die Gewinner-Usernamen auflösen (keine Teilnehmer!) — parallel (≤100).
     const winners = await Promise.all(
-      winnerIds.map(async (userId) => {
+      winnerList.map(async ({ userId, prizeIndex }) => {
         let username = userId;
         try {
           const user = await client.users.fetch(userId);
@@ -32,7 +36,10 @@ export async function publishResult(client, giveaway, settings, winnerIds = []) 
         } catch {
           // unbekannter/gelöschter User -> ID als Fallback
         }
-        return { userId, username };
+        // Nur im INDIVIDUAL-Modus gehört ein Preis zu einer Person. Sonst gilt
+        // die gemeinsame Liste, die ohnehin im Payload steht.
+        const own = mode === 'INDIVIDUAL' ? prizesForWinner(prizes, mode, prizeIndex) : [];
+        return { userId, username, prize: own.length ? inlinePrizes(own) : null };
       }),
     );
 
@@ -41,7 +48,11 @@ export async function publishResult(client, giveaway, settings, winnerIds = []) 
       giveawayId: giveaway.id,
       guildId: giveaway.guildId,
       title: giveaway.title,
-      prize: giveaway.prize ?? null,
+      // `prize` bleibt als Zusammenfassung im Payload, damit eine Shop-Version
+      // ohne Preisliste weiter etwas anzuzeigen hat.
+      prize: prizes.length ? inlinePrizes(prizes).slice(0, 256) : null,
+      prizes,
+      prizeMode: mode,
       endedAt: endedAt.toISOString(),
       winnersCount: giveaway.winnersCount,
       entryCount,

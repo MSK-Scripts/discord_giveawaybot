@@ -3,18 +3,30 @@ import { getSettings } from '../services/settingsService.js';
 import { getGiveaway, editActiveMessage, sendGuildLog } from '../services/giveawayService.js';
 import { isManager } from '../utils/permissions.js';
 import { prisma } from '../database/prisma.js';
+import { giveawayPrizes, normalizePrizeInput, serializePrizes, normalizePrizeMode, MAX_PRIZES } from '../utils/prizes.js';
 import { t } from '../utils/i18n.js';
 
 export default {
   data: new SlashCommandBuilder()
     .setName('gedit')
-    .setDescription('Edit a running giveaway (title, description, winners, prize)')
+    .setDescription('Edit a running giveaway (title, description, winners, prizes)')
     .setDMPermission(false)
     .addStringOption((o) => o.setName('id').setDescription('Giveaway ID').setRequired(true))
     .addStringOption((o) => o.setName('title').setDescription('New title').setMaxLength(256).setRequired(false))
     .addStringOption((o) => o.setName('description').setDescription('New description').setMaxLength(2000).setRequired(false))
     .addIntegerOption((o) => o.setName('winners').setDescription('Number of winners (1-100)').setMinValue(1).setMaxValue(100).setRequired(false))
-    .addStringOption((o) => o.setName('prize').setDescription('New prize').setMaxLength(256).setRequired(false)),
+    // Slash-Optionen kennen keine Zeilenumbrüche, deshalb hier mit | getrennt.
+    .addStringOption((o) => o.setName('prizes').setDescription('New prizes, separated by | (e.g. "Nitro | Steam key")').setMaxLength(2000).setRequired(false))
+    .addStringOption((o) =>
+      o
+        .setName('mode')
+        .setDescription('How multiple prizes are handed out')
+        .setRequired(false)
+        .addChoices(
+          { name: 'Everyone gets all prizes', value: 'ALL' },
+          { name: 'One prize per winner', value: 'INDIVIDUAL' },
+        ),
+    ),
 
   async execute(client, interaction) {
     const guildId = interaction.guildId;
@@ -36,11 +48,34 @@ export default {
     const title = interaction.options.getString('title', false);
     const description = interaction.options.getString('description', false);
     const winners = interaction.options.getInteger('winners', false);
-    const prize = interaction.options.getString('prize', false);
+    const prizes = interaction.options.getString('prizes', false);
+    const mode = interaction.options.getString('mode', false);
     if (title != null) data.title = title.trim();
     if (description != null) data.description = description.trim();
     if (winners != null) data.winnersCount = winners;
-    if (prize != null) data.prize = prize.trim();
+
+    // Preise und Modus hängen zusammen: wer nur eines von beiden ändert, bekommt
+    // den bestehenden Wert des anderen dazu, sonst stimmt die Gewinnerzahl nicht mehr.
+    if (prizes != null || mode != null) {
+      const input = normalizePrizeInput({
+        prizes: prizes != null ? prizes : giveawayPrizes(giveaway),
+        mode: mode ?? giveaway.prizeMode,
+        winnersCount: winners ?? giveaway.winnersCount,
+      });
+      if (!input.ok) {
+        const key = input.error === 'too_many_prizes' ? 'create.too_many_prizes' : 'create.no_prizes';
+        return interaction.reply({ content: t(guildId, key, { max: MAX_PRIZES }), flags: MessageFlags.Ephemeral });
+      }
+      if (winners != null && input.mode === 'INDIVIDUAL' && winners !== input.winnersCount) {
+        return interaction.reply({ content: t(guildId, 'edit.winners_locked'), flags: MessageFlags.Ephemeral });
+      }
+      data.prizes = serializePrizes(input.prizes);
+      data.prizeMode = input.mode;
+      data.winnersCount = input.winnersCount;
+    } else if (winners != null && normalizePrizeMode(giveaway.prizeMode) === 'INDIVIDUAL') {
+      // Ein Preis pro Gewinner: die Gewinnerzahl folgt der Preisliste, nicht der Eingabe.
+      return interaction.reply({ content: t(guildId, 'edit.winners_locked'), flags: MessageFlags.Ephemeral });
+    }
 
     if (Object.keys(data).length === 0) {
       return interaction.reply({ content: t(guildId, 'edit.nothing'), flags: MessageFlags.Ephemeral });

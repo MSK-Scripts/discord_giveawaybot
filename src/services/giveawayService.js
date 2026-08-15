@@ -3,8 +3,9 @@ import { MessageFlags } from 'discord.js';
 import { prisma } from '../database/prisma.js';
 import { logger } from '../utils/logger.js';
 import { getSettings } from './settingsService.js';
-import { buildGiveawayEmbed, buildEndedEmbed, buildCancelledEmbed, buildButtonRow, buildResultContent } from '../utils/embeds.js';
+import { buildGiveawayEmbed, buildEndedEmbed, buildCancelledEmbed, buildButtonRow, buildResultContent, buildRerollContent } from '../utils/embeds.js';
 import { checkEligibility, ticketWeight, mergeGiveawayEligibility } from '../utils/eligibility.js';
+import { giveawayPrizes, prizesForWinner, assignPrizes, serializePrizes, normalizePrizeMode, inlinePrizes, bulletList } from '../utils/prizes.js';
 import { generateGiveawayId } from '../utils/id.js';
 import { publishResult } from './resultPublisher.js';
 import { issueCoupons, revokeCoupons } from './tebexService.js';
@@ -44,11 +45,20 @@ export async function countEntries(giveawayId) {
   return prisma.entry.count({ where: { giveawayId } });
 }
 
-export async function getWinnerIds(giveawayId, { onlyActive = false } = {}) {
-  const winners = await prisma.winner.findMany({
+/**
+ * Gewinner mit ihrem Preis-Slot, in der Reihenfolge der Preise.
+ * @returns {Promise<{userId: string, prizeIndex: number|null}[]>}
+ */
+export async function getWinners(giveawayId, { onlyActive = false } = {}) {
+  return prisma.winner.findMany({
     where: { giveawayId, ...(onlyActive ? { rerolled: false } : {}) },
-    select: { userId: true },
+    select: { userId: true, prizeIndex: true },
+    orderBy: [{ prizeIndex: 'asc' }, { pickedAt: 'asc' }],
   });
+}
+
+export async function getWinnerIds(giveawayId, { onlyActive = false } = {}) {
+  const winners = await getWinners(giveawayId, { onlyActive });
   return winners.map((w) => w.userId);
 }
 
@@ -211,22 +221,34 @@ function messageLink(giveaway) {
  * Schickt jedem Gewinner eine DM (Preis + optionaler Claim-Hinweis + Link).
  * Fehler werden ignoriert.
  *
+ * `winners` sind Objekte { userId, prizeIndex }: im INDIVIDUAL-Modus bekommt
+ * jeder einen anderen Preis genannt, der Preisteil kann also nicht wie der Rest
+ * einmal vorab gebaut werden.
+ *
  * `coupons` ist eine Map userId -> { code, expiresAt }. Der Code ist pro
  * Gewinner verschieden und darf deshalb NICHT in den gemeinsamen Textteil.
  */
-export async function dmWinners(client, giveaway, settings, winnerIds, { resultUrl = null, coupons = null } = {}) {
-  if (!winnerIds?.length) return;
+export async function dmWinners(client, giveaway, settings, winners, { resultUrl = null, coupons = null } = {}) {
+  if (!winners?.length) return;
   const g = giveaway.guildId;
-  const prize = giveaway.prize || giveaway.title;
   const guildName = client.guilds.cache.get(g)?.name ?? '';
   const link = messageLink(giveaway);
-  let base = t(g, 'dm.winner', { prize, guild: guildName });
-  if (settings.claimMessage) base += `\n${settings.claimMessage}`;
-  if (link) base += `\n${t(g, 'dm.winner_link', { link })}`;
-  if (resultUrl) base += `\n${t(g, 'result.link', { url: resultUrl })}`;
+  const prizes = giveawayPrizes(giveaway);
 
-  for (const userId of winnerIds) {
-    let content = base;
+  // Alles, was für alle Gewinner gleich ist.
+  let tail = '';
+  if (settings.claimMessage) tail += `\n${settings.claimMessage}`;
+  if (link) tail += `\n${t(g, 'dm.winner_link', { link })}`;
+  if (resultUrl) tail += `\n${t(g, 'result.link', { url: resultUrl })}`;
+
+  for (const { userId, prizeIndex } of winners) {
+    const own = prizesForWinner(prizes, giveaway.prizeMode, prizeIndex);
+    // Ohne Preisangabe bleibt es beim bisherigen Verhalten: der Titel steht für den Preis.
+    let content = own.length > 1
+      ? t(g, 'dm.winner_multi', { prizes: bulletList(own), guild: guildName })
+      : t(g, 'dm.winner', { prize: own[0] ?? giveaway.title, guild: guildName });
+    content += tail;
+
     const coupon = coupons?.get(userId);
     if (coupon) {
       content += `\n\n${t(g, 'dm.coupon', { code: coupon.code, percent: giveaway.couponPercent })}`;
@@ -246,7 +268,7 @@ export async function dmWinners(client, giveaway, settings, winnerIds, { resultU
 }
 
 /** Original-Nachricht editieren (Button disabled, Ended-Embed) + Ergebnis posten. */
-async function finalizeMessages(client, giveaway, settings, winnerIds, { resultUrl = null, coupons = null } = {}) {
+async function finalizeMessages(client, giveaway, settings, winners, { resultUrl = null, coupons = null } = {}) {
   const entryCount = await countEntries(giveaway.id);
   let channel = null;
   try {
@@ -261,7 +283,7 @@ async function finalizeMessages(client, giveaway, settings, winnerIds, { resultU
     try {
       const msg = await channel.messages.fetch(giveaway.messageId);
       await msg.edit({
-        embeds: [buildEndedEmbed(giveaway, settings, { winnerIds, entryCount })],
+        embeds: [buildEndedEmbed(giveaway, settings, { winners, entryCount })],
         components: [buildButtonRow(giveaway, settings, { disabled: true })],
       });
     } catch (err) {
@@ -271,11 +293,11 @@ async function finalizeMessages(client, giveaway, settings, winnerIds, { resultU
 
   // Ergebnis-Nachricht posten (mit optionalem Link zur öffentlichen Ergebnis-Seite).
   try {
-    let content = buildResultContent(giveaway, winnerIds, entryCount);
+    let content = buildResultContent(giveaway, winners, entryCount);
     if (resultUrl) content += `\n${t(giveaway.guildId, 'result.link', { url: resultUrl })}`;
     await channel.send({
       content,
-      allowedMentions: { users: winnerIds },
+      allowedMentions: { users: winners.map((w) => w.userId) },
       flags: MessageFlags.SuppressEmbeds,
     });
   } catch (err) {
@@ -285,7 +307,7 @@ async function finalizeMessages(client, giveaway, settings, winnerIds, { resultU
   // Gewinner per DM benachrichtigen (fire-and-forget, Fehler werden geschluckt).
   // Der Coupon-Code steht bewusst NUR hier und nicht in der öffentlichen
   // Ergebnis-Nachricht.
-  await dmWinners(client, giveaway, settings, winnerIds, { resultUrl, coupons });
+  await dmWinners(client, giveaway, settings, winners, { resultUrl, coupons });
 }
 
 /**
@@ -330,22 +352,25 @@ export async function endGiveaway(giveaway, client) {
     let winnerIds = [];
     if (guild) winnerIds = await drawWinners(fresh, guild, settings, {});
 
-    if (winnerIds.length) {
+    // Ziehungsreihenfolge = Preisreihenfolge: der erste Gezogene bekommt Preis 1.
+    const winners = assignPrizes(winnerIds, fresh.prizeMode);
+
+    if (winners.length) {
       await prisma.winner.createMany({
-        data: winnerIds.map((userId) => ({ giveawayId: id, userId })),
+        data: winners.map(({ userId, prizeIndex }) => ({ giveawayId: id, userId, prizeIndex })),
         skipDuplicates: true,
       });
     }
 
     // Publish the public result page (returns the URL, or null).
-    const resultUrl = await publishResult(client, fresh, settings, winnerIds);
+    const resultUrl = await publishResult(client, fresh, settings, winners);
 
     // Tebex-Coupons: ein eigener Code pro Gewinner, im Store der Guild.
     // No-op, wenn die Guild kein Secret hinterlegt oder das Giveaway keinen
     // Rabatt konfiguriert hat. Fehler brechen das Beenden nicht ab.
     const coupons = await issueCoupons(settings, fresh, winnerIds);
 
-    await finalizeMessages(client, fresh, settings, winnerIds, { resultUrl, coupons });
+    await finalizeMessages(client, fresh, settings, winners, { resultUrl, coupons });
     await sendGuildLog(client, settings, t(fresh.guildId, 'log.ended', {
       id, title: fresh.title, count: winnerIds.length,
     }));
@@ -379,8 +404,13 @@ export async function sendGuildLog(client, settings, content) {
  * Bei Sende-Fehler wird der DB-Eintrag wieder entfernt (kein verwaistes Giveaway).
  * @returns {Promise<string>} die Giveaway-ID
  */
-export async function postGiveaway(client, channel, settings, { guildId, hostId, title, description, prize, winnersCount, endAt }) {
+export async function postGiveaway(client, channel, settings, { guildId, hostId, title, description, prizes = [], prizeMode = 'ALL', winnersCount, endAt }) {
   const id = await generateGiveawayId();
+  // Im INDIVIDUAL-Modus ist die Gewinnerzahl die Anzahl der Preise, nicht die
+  // Eingabe. Hier zentral aufgelöst, damit keine Aufrufstelle es vergessen kann.
+  const mode = normalizePrizeMode(prizeMode);
+  const prizeList = Array.isArray(prizes) ? prizes : [];
+  const winners = mode === 'INDIVIDUAL' && prizeList.length ? prizeList.length : winnersCount;
   // "Ending soon"-Reminder einplanen, falls in der Guild aktiviert und noch in der Zukunft.
   const reminderMin = Number(settings.reminderMinutes) || 0;
   let reminderAt = null;
@@ -390,7 +420,8 @@ export async function postGiveaway(client, channel, settings, { guildId, hostId,
   }
   const giveaway = await createGiveaway({
     id, guildId, channelId: channel.id, hostId, title, description,
-    prize: prize || null, winnersCount, endAt, status: 'ACTIVE', reminderAt,
+    prizes: serializePrizes(prizeList), prizeMode: mode,
+    winnersCount: winners, endAt, status: 'ACTIVE', reminderAt,
   });
   try {
     const content = settings.notifyRole ? `<@&${settings.notifyRole}>` : undefined;
@@ -453,15 +484,23 @@ export async function resumeGiveaway(client, giveaway, settings) {
 /**
  * Ersetzt EINEN Gewinner eines beendeten Giveaways durch einen neuen (zieht 1,
  * schließt alle bisherigen Gewinner aus). Markiert den alten als rerolled.
- * @returns {Promise<string|null>} neue userId oder null (kein gültiger Ersatz)
+ *
+ * Der Ersatz erbt den Preis-Slot des Ersetzten. Würde er stattdessen hinten
+ * angehängt, verschöbe sich im INDIVIDUAL-Modus die Zuordnung aller übrigen
+ * Gewinner, obwohl an deren Preis nichts geändert wurde.
+ *
+ * @returns {Promise<{userId: string, prizeIndex: number|null}|null>} der neue
+ *          Gewinner oder null (kein gültiger Ersatz)
  */
 export async function replaceWinner(giveaway, guild, settings, oldUserId) {
-  const current = await getWinnerIds(giveaway.id); // alle bisherigen Gewinner ausschließen
-  const drawn = await drawWinners(giveaway, guild, settings, { exclude: current });
+  const current = await getWinners(giveaway.id); // alle bisherigen Gewinner ausschließen
+  const drawn = await drawWinners(giveaway, guild, settings, { exclude: current.map((w) => w.userId) });
   const newWinner = drawn[0] ?? null;
 
   // Kein gültiger Ersatz -> alten Gewinner NICHT verändern (sonst Dateninkonsistenz).
   if (!newWinner) return null;
+
+  const prizeIndex = current.find((w) => w.userId === oldUserId)?.prizeIndex ?? null;
 
   await prisma.winner.updateMany({
     where: { giveawayId: giveaway.id, userId: oldUserId },
@@ -469,10 +508,10 @@ export async function replaceWinner(giveaway, guild, settings, oldUserId) {
   });
   await prisma.winner.upsert({
     where: { giveawayId_userId: { giveawayId: giveaway.id, userId: newWinner } },
-    update: { rerolled: false },
-    create: { giveawayId: giveaway.id, userId: newWinner },
+    update: { rerolled: false, prizeIndex },
+    create: { giveawayId: giveaway.id, userId: newWinner, prizeIndex },
   });
-  return newWinner;
+  return { userId: newWinner, prizeIndex };
 }
 
 // ── Abbrechen mit Discord-Finalisierung (Command + Dashboard teilen sich dies) ─
@@ -510,31 +549,36 @@ export async function cancelAndFinalize(client, giveaway, settings, { actor } = 
 export async function rerollAll(client, giveaway, settings, { actor } = {}) {
   const guild = await client.guilds.fetch(giveaway.guildId).catch(() => null);
   const previousWinners = await getWinnerIds(giveaway.id);
-  const newWinners = guild ? await drawWinners(giveaway, guild, settings, { exclude: previousWinners }) : [];
-  if (newWinners.length === 0) return [];
+  const newWinnerIds = guild ? await drawWinners(giveaway, guild, settings, { exclude: previousWinners }) : [];
+  if (newWinnerIds.length === 0) return [];
+
+  // Alle Gewinner sind neu, also werden auch die Preis-Slots neu vergeben.
+  const newWinners = assignPrizes(newWinnerIds, giveaway.prizeMode);
 
   await prisma.winner.updateMany({ where: { giveawayId: giveaway.id }, data: { rerolled: true } });
-  await prisma.winner.createMany({ data: newWinners.map((userId) => ({ giveawayId: giveaway.id, userId })), skipDuplicates: true });
+  await prisma.winner.createMany({
+    data: newWinners.map(({ userId, prizeIndex }) => ({ giveawayId: giveaway.id, userId, prizeIndex })),
+    skipDuplicates: true,
+  });
 
   // Die alten Gewinner verlieren ihren Coupon, die neuen bekommen einen eigenen.
   await revokeCoupons(settings, giveaway, previousWinners);
-  const coupons = await issueCoupons(settings, giveaway, newWinners);
+  const coupons = await issueCoupons(settings, giveaway, newWinnerIds);
 
   const resultUrl = await publishResult(client, giveaway, settings, newWinners);
 
   try {
     const channel = await client.channels.fetch(giveaway.channelId);
-    const mentions = newWinners.map((u) => `<@${u}>`).join(', ');
-    let content = t(giveaway.guildId, 'reroll.winners', { title: giveaway.title, winners: mentions });
+    let content = buildRerollContent(giveaway, newWinners);
     if (resultUrl) content += `\n${t(giveaway.guildId, 'result.link', { url: resultUrl })}`;
-    await channel.send({ content, allowedMentions: { users: newWinners }, flags: MessageFlags.SuppressEmbeds });
+    await channel.send({ content, allowedMentions: { users: newWinnerIds }, flags: MessageFlags.SuppressEmbeds });
   } catch (err) {
     logger.warn(`rerollAll(${giveaway.id}): Nachricht konnte nicht gepostet werden:`, err?.message ?? err);
   }
 
   await dmWinners(client, giveaway, settings, newWinners, { resultUrl, coupons });
   await sendGuildLog(client, settings, t(giveaway.guildId, 'log.rerolled', { id: giveaway.id, title: giveaway.title, user: actor }));
-  return newWinners;
+  return newWinnerIds;
 }
 
 /**
@@ -547,26 +591,32 @@ export async function rerollSingle(client, giveaway, settings, oldUserId, { acto
   if (!activeWinners.includes(oldUserId)) return { error: 'not_winner' };
 
   const guild = await client.guilds.fetch(giveaway.guildId).catch(() => null);
-  const newWinner = guild ? await replaceWinner(giveaway, guild, settings, oldUserId) : null;
-  if (!newWinner) return { error: 'no_valid' };
+  const replacement = guild ? await replaceWinner(giveaway, guild, settings, oldUserId) : null;
+  if (!replacement) return { error: 'no_valid' };
+  const newWinner = replacement.userId;
 
   // Nur der ersetzte Gewinner verliert seinen Coupon, die übrigen behalten ihren.
   await revokeCoupons(settings, giveaway, [oldUserId]);
   const coupons = await issueCoupons(settings, giveaway, [newWinner]);
 
-  const resultUrl = await publishResult(client, giveaway, settings, await getWinnerIds(giveaway.id, { onlyActive: true }));
+  const resultUrl = await publishResult(client, giveaway, settings, await getWinners(giveaway.id, { onlyActive: true }));
 
   try {
     const channel = await client.channels.fetch(giveaway.channelId);
+    // Im INDIVIDUAL-Modus gehört zur Meldung der Preis, um den es geht.
+    const own = prizesForWinner(giveawayPrizes(giveaway), giveaway.prizeMode, replacement.prizeIndex);
+    const key = normalizePrizeMode(giveaway.prizeMode) === 'INDIVIDUAL' && own.length ? 'reroll.replaced_prize' : 'reroll.replaced';
     await channel.send({
-      content: t(giveaway.guildId, 'reroll.replaced', { old: `<@${oldUserId}>`, new: `<@${newWinner}>`, title: giveaway.title }),
+      content: t(giveaway.guildId, key, {
+        old: `<@${oldUserId}>`, new: `<@${newWinner}>`, title: giveaway.title, prize: inlinePrizes(own),
+      }),
       allowedMentions: { users: [newWinner] },
     });
   } catch (err) {
     logger.warn(`rerollSingle(${giveaway.id}): Nachricht konnte nicht gepostet werden:`, err?.message ?? err);
   }
 
-  await dmWinners(client, giveaway, settings, [newWinner], { resultUrl, coupons });
+  await dmWinners(client, giveaway, settings, [replacement], { resultUrl, coupons });
   await sendGuildLog(client, settings, t(giveaway.guildId, 'log.rerolled', { id: giveaway.id, title: giveaway.title, user: actor }));
   return { newWinner };
 }

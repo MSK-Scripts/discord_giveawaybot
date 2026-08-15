@@ -99,8 +99,8 @@ npm run test:db             # applies the migrations to it
 
 | Command | Permissions | Description |
 |---|---|---|
-| `/gcreate` | Manager | Modal → giveaway in the current channel (incl. optional prize) |
-| `/gedit <id>` | Manager | Edit a running giveaway (title, description, winners, prize) |
+| `/gcreate [mode]` | Manager | Modal → giveaway in the current channel. `mode` picks how the prizes are handed out (see below) |
+| `/gedit <id>` | Manager | Edit a running giveaway (title, description, winners, prizes, mode) |
 | `/gextend <id> <duration>` | Manager | Extend a running giveaway's end time |
 | `/gcancel <id>` | Manager | Cancel an active giveaway |
 | `/gend <id>` | Manager | End immediately + draw winners |
@@ -119,6 +119,17 @@ npm run test:db             # applies the migrations to it
 "Manager" = **Manage Server** OR the configured `manager` role.
 
 `set`/`remove blacklist`, `whitelist` and `bonus` accept an optional `giveaway_id` to scope a role to a single giveaway (in addition to the server-wide values). See the **[documentation](https://docu.msk-scripts.de/discord/discord_giveaway/configuration)** for the full command and configuration reference.
+
+## Prizes
+
+A giveaway can carry up to 20 prizes — one per line in the modal's prize field, or separated by `|` in `/gedit prizes:…`. The `mode` option decides how they are handed out:
+
+| `mode` | Behaviour |
+|---|---|
+| `ALL` (default) | Every winner receives all prizes |
+| `INDIVIDUAL` | Winner 1 gets prize 1, winner 2 gets prize 2, … |
+
+`INDIVIDUAL` couples the number of winners to the length of the list: the modal drops the winners field, the dashboard locks it, and `/gedit` refuses a `winners` value that contradicts the prizes. Every winner row stores its `prizeIndex`, so replacing a single winner via `/greroll <id> <winner>` hands the replacement **that** prize instead of shifting everyone else's.
 
 ## Permissions / Invite
 `/ginvite` builds the invite URL from `PermissionFlagsBits` (not hardcoded):

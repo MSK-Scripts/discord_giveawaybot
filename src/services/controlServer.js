@@ -24,6 +24,7 @@ import {
   sendGuildLog,
 } from './giveawayService.js';
 import { verifySecret, listPackages } from './tebexService.js';
+import { normalizePrizeInput, normalizePrizeMode, parsePrizes, serializePrizes } from '../utils/prizes.js';
 import { encryptSecret, decryptSecret, secretHint, checkEncryptionKey } from '../utils/secretBox.js';
 import { parseDuration } from '../utils/duration.js';
 import { t } from '../utils/i18n.js';
@@ -119,7 +120,8 @@ function serializeGiveaway(g, extra = {}) {
     hostId: g.hostId,
     title: g.title,
     description: g.description,
-    prize: g.prize,
+    prizes: parsePrizes(g.prizes),
+    prizeMode: normalizePrizeMode(g.prizeMode),
     winnersCount: g.winnersCount,
     status: g.status,
     endAt: g.endAt ? new Date(g.endAt).toISOString() : null,
@@ -187,9 +189,14 @@ async function listGiveaways(guildId) {
   for (const g of rows) {
     const entryCount = await prisma.entry.count({ where: { giveawayId: g.id } });
     const winners = g.status === 'ENDED'
-      ? await prisma.winner.findMany({ where: { giveawayId: g.id, rerolled: false }, select: { userId: true } })
+      ? await prisma.winner.findMany({
+        where: { giveawayId: g.id, rerolled: false },
+        select: { userId: true, prizeIndex: true },
+        orderBy: [{ prizeIndex: 'asc' }, { pickedAt: 'asc' }],
+      })
       : [];
-    out.push(serializeGiveaway(g, { entryCount, winnerIds: winners.map((w) => w.userId) }));
+    // winnerIds bleibt für die Liste erhalten, winners trägt zusätzlich den Preis-Slot.
+    out.push(serializeGiveaway(g, { entryCount, winnerIds: winners.map((w) => w.userId), winners }));
   }
   return out;
 }
@@ -198,12 +205,16 @@ async function getGiveawayDetail(guildId, id) {
   const g = await getGiveaway(id, guildId);
   if (!g) return null;
   const entryCount = await prisma.entry.count({ where: { giveawayId: id } });
-  const winners = await prisma.winner.findMany({ where: { giveawayId: id }, select: { userId: true, rerolled: true } });
+  const winners = await prisma.winner.findMany({
+    where: { giveawayId: id },
+    select: { userId: true, rerolled: true, prizeIndex: true },
+    orderBy: [{ prizeIndex: 'asc' }, { pickedAt: 'asc' }],
+  });
   return serializeGiveaway(g, { entryCount, winners });
 }
 
 async function createGiveawayEndpoint(client, guildId, body) {
-  const { channelId, title, description, prize, winnersCount, duration } = body || {};
+  const { channelId, title, description, prizes, prizeMode, winnersCount, duration } = body || {};
   if (!GUILD_RE.test(String(channelId ?? ''))) return { status: 400, body: { error: 'invalid_channel' } };
   if (!title || !description) return { status: 400, body: { error: 'missing_fields' } };
 
@@ -212,6 +223,10 @@ async function createGiveawayEndpoint(client, guildId, body) {
 
   const winners = Number(winnersCount);
   if (!Number.isInteger(winners) || winners < 1 || winners > 100) return { status: 400, body: { error: 'invalid_winners' } };
+
+  // Preise + Modus; im INDIVIDUAL-Modus ersetzt die Preisanzahl die Gewinnerzahl.
+  const prizeInput = normalizePrizeInput({ prizes, mode: prizeMode, winnersCount: winners });
+  if (!prizeInput.ok) return { status: 400, body: { error: prizeInput.error } };
 
   const channel = await client.channels.fetch(String(channelId)).catch(() => null);
   if (!channel || channel.guildId !== guildId || typeof channel.isTextBased !== 'function' || !channel.isTextBased()) {
@@ -228,8 +243,9 @@ async function createGiveawayEndpoint(client, guildId, body) {
     hostId: client.user.id,
     title: String(title).slice(0, 256),
     description: String(description).slice(0, 2000),
-    prize: prize ? String(prize).slice(0, 256) : null,
-    winnersCount: winners,
+    prizes: prizeInput.prizes,
+    prizeMode: prizeInput.mode,
+    winnersCount: prizeInput.winnersCount,
     endAt,
   });
 
@@ -252,11 +268,27 @@ async function editGiveawayEndpoint(client, guildId, body) {
   const data = {};
   if (body.title != null) data.title = String(body.title).trim().slice(0, 256);
   if (body.description != null) data.description = String(body.description).trim().slice(0, 2000);
-  if (body.prize != null) data.prize = String(body.prize).trim().slice(0, 256) || null;
   if (body.winnersCount != null) {
     const w = Number(body.winnersCount);
     if (!Number.isInteger(w) || w < 1 || w > 100) return { status: 400, body: { error: 'invalid_winners' } };
     data.winnersCount = w;
+  }
+
+  // Preise und Modus gehören zusammen: fehlt eines, gilt der bestehende Wert,
+  // sonst passt die abgeleitete Gewinnerzahl nicht mehr zur Liste.
+  if (body.prizes != null || body.prizeMode != null) {
+    const input = normalizePrizeInput({
+      prizes: body.prizes != null ? body.prizes : parsePrizes(giveaway.prizes),
+      mode: body.prizeMode ?? giveaway.prizeMode,
+      winnersCount: data.winnersCount ?? giveaway.winnersCount,
+    });
+    if (!input.ok) return { status: 400, body: { error: input.error } };
+    data.prizes = serializePrizes(input.prizes);
+    data.prizeMode = input.mode;
+    data.winnersCount = input.winnersCount;
+  } else if (data.winnersCount != null && normalizePrizeMode(giveaway.prizeMode) === 'INDIVIDUAL' && parsePrizes(giveaway.prizes).length) {
+    // Ein Preis pro Gewinner: die Zahl folgt der Preisliste, nicht der Eingabe.
+    return { status: 400, body: { error: 'winners_locked' } };
   }
 
   const coupon = parseCouponInput(body);

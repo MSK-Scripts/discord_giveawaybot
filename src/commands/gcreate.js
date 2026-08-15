@@ -8,6 +8,7 @@ import {
 } from 'discord.js';
 import { getSettings } from '../services/settingsService.js';
 import { isManager } from '../utils/permissions.js';
+import { normalizePrizeMode } from '../utils/prizes.js';
 import { t } from '../utils/i18n.js';
 
 export default {
@@ -16,7 +17,19 @@ export default {
     .setDescription('Create a giveaway in this channel')
     // Sichtbar für alle; der serverseitige isManager-Check (ManageGuild ODER
     // managerRole) entscheidet, sodass die Manager-Rolle ohne Integrations-Override greift.
-    .setDMPermission(false),
+    .setDMPermission(false)
+    // Der Verteilmodus steht als Option am Command, nicht im Modal: Discord
+    // erlaubt nur fünf Modal-Felder, und die sind belegt.
+    .addStringOption((o) =>
+      o
+        .setName('mode')
+        .setDescription('How multiple prizes are handed out (default: everyone gets all prizes)')
+        .setRequired(false)
+        .addChoices(
+          { name: 'Everyone gets all prizes', value: 'ALL' },
+          { name: 'One prize per winner', value: 'INDIVIDUAL' },
+        ),
+    ),
 
   async execute(client, interaction) {
     const guildId = interaction.guildId;
@@ -27,7 +40,12 @@ export default {
       return interaction.reply({ content: t(guildId, 'error.no_permission'), flags: MessageFlags.Ephemeral });
     }
 
-    const modal = new ModalBuilder().setCustomId('gw:create').setTitle(t(guildId, 'modal.title'));
+    // INDIVIDUAL: ein Preis pro Gewinner. Die Gewinnerzahl ergibt sich dann aus
+    // der Preisliste, das Gewinner-Feld entfällt und macht Platz für die Preise.
+    const mode = normalizePrizeMode(interaction.options.getString('mode', false));
+    const individual = mode === 'INDIVIDUAL';
+
+    const modal = new ModalBuilder().setCustomId(`gw:create:${mode}`).setTitle(t(guildId, 'modal.title'));
 
     const titleInput = new TextInputBuilder()
       .setCustomId('title')
@@ -59,20 +77,23 @@ export default {
       .setMaxLength(3)
       .setRequired(true);
 
+    // Ein Preis pro Zeile. Deshalb Paragraph statt Short.
     const prizeInput = new TextInputBuilder()
-      .setCustomId('prize')
-      .setLabel(t(guildId, 'modal.field.prize'))
-      .setStyle(TextInputStyle.Short)
-      .setMaxLength(256)
-      .setRequired(false);
+      .setCustomId('prizes')
+      .setLabel(t(guildId, individual ? 'modal.field.prizes_individual' : 'modal.field.prizes'))
+      .setStyle(TextInputStyle.Paragraph)
+      .setPlaceholder(t(guildId, 'modal.placeholder.prizes'))
+      .setMaxLength(2000)
+      .setRequired(individual);
 
-    modal.addComponents(
+    const rows = [
       new ActionRowBuilder().addComponents(titleInput),
       new ActionRowBuilder().addComponents(descInput),
       new ActionRowBuilder().addComponents(durationInput),
-      new ActionRowBuilder().addComponents(winnersInput),
-      new ActionRowBuilder().addComponents(prizeInput),
-    );
+    ];
+    if (!individual) rows.push(new ActionRowBuilder().addComponents(winnersInput));
+    rows.push(new ActionRowBuilder().addComponents(prizeInput));
+    modal.addComponents(...rows);
 
     // showModal MUSS die erste Acknowledge-Aktion sein (kein vorheriges reply/defer).
     await interaction.showModal(modal);

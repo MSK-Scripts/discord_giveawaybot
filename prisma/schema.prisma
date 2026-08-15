@@ -63,7 +63,14 @@ model Giveaway {
   hostId       String // wer hat erstellt
   title        String
   description  String    @db.Text
-  prize        String?   @db.Text // optionaler Preis (5. Modal-Feld)
+  // ── Preise ─────────────────────────────────────────────────────────────────
+  // Ein Giveaway kann mehrere Preise haben. `prizeMode` entscheidet, wie sie
+  // verteilt werden:
+  //   ALL        = jeder Gewinner bekommt alle Preise
+  //   INDIVIDUAL = Gewinner N bekommt Preis N, deshalb ist winnersCount dort
+  //                immer die Anzahl der Preise (siehe utils/prizes.js).
+  prizes       String    @default("[]") @db.Text // JSON-Array von Preis-Texten
+  prizeMode    String    @default("ALL") // ALL | INDIVIDUAL
   winnersCount Int       @default(1)
   endAt        DateTime
   status       String    @default("ACTIVE") // ACTIVE | PAUSED | ENDED | CANCELLED
@@ -123,6 +130,10 @@ model Winner {
   giveawayId String
   userId     String
   rerolled   Boolean  @default(false)
+  /// Slot im `prizes`-Array des Giveaways (nur bei prizeMode = INDIVIDUAL).
+  /// null = der Gewinner bekommt alle Preise. Beim Reroll erbt der Ersatz den
+  /// Slot des Ersetzten, damit sich die Zuordnung nicht verschiebt.
+  prizeIndex Int?
   pickedAt   DateTime @default(now())
   giveaway   Giveaway @relation(fields: [giveawayId], references: [id], onDelete: Cascade)
 

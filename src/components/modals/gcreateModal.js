@@ -1,8 +1,9 @@
-// Modal-Submit-Handler für /gcreate (customId "gw:create").
+// Modal-Submit-Handler für /gcreate (customId "gw:create:<PRIZE_MODE>").
 import { MessageFlags, PermissionFlagsBits } from 'discord.js';
 import { parseDuration } from '../../utils/duration.js';
 import { getSettings } from '../../services/settingsService.js';
 import { postGiveaway } from '../../services/giveawayService.js';
+import { normalizePrizeInput, MAX_PRIZES } from '../../utils/prizes.js';
 import { t } from '../../utils/i18n.js';
 import { logger } from '../../utils/logger.js';
 
@@ -13,16 +14,29 @@ const REQUIRED_PERMS = [
 ];
 
 export default {
-  customId: 'gw:create',
+  // Prefix statt exaktem Match: der Verteilmodus reist in der customId mit, weil
+  // er als Slash-Option an /gcreate gesetzt wird und das Modal keine Rückfrage kennt.
+  prefix: 'gw:create',
   async execute(client, interaction) {
     const guildId = interaction.guildId;
     const settings = await getSettings(guildId);
+    const mode = interaction.customId.split(':')[2] ?? 'ALL';
 
-    const title = interaction.fields.getTextInputValue('title').trim();
-    const description = interaction.fields.getTextInputValue('description').trim();
-    const durationRaw = interaction.fields.getTextInputValue('duration').trim();
-    const winnersRaw = interaction.fields.getTextInputValue('winners').trim();
-    const prize = interaction.fields.getTextInputValue('prize')?.trim() || null;
+    // getTextInputValue wirft für nicht gesendete Felder — im INDIVIDUAL-Modus
+    // enthält das Modal kein Gewinner-Feld, dort bestimmt die Preisliste die Zahl.
+    const field = (id, fallback = '') => {
+      try {
+        return interaction.fields.getTextInputValue(id) ?? fallback;
+      } catch {
+        return fallback;
+      }
+    };
+
+    const title = field('title').trim();
+    const description = field('description').trim();
+    const durationRaw = field('duration').trim();
+    const prizesRaw = field('prizes');
+    const winnersRaw = field('winners', '1').trim();
 
     // Dauer validieren.
     const dur = parseDuration(durationRaw);
@@ -31,9 +45,17 @@ export default {
     }
 
     // Gewinneranzahl validieren (1..100).
-    const winnersCount = Number.parseInt(winnersRaw, 10);
-    if (!Number.isInteger(winnersCount) || winnersCount < 1 || winnersCount > 100) {
+    const requestedWinners = Number.parseInt(winnersRaw, 10);
+    if (!Number.isInteger(requestedWinners) || requestedWinners < 1 || requestedWinners > 100) {
       return interaction.reply({ content: t(guildId, 'create.invalid_winners'), flags: MessageFlags.Ephemeral });
+    }
+
+    // Preise + Modus normalisieren; im INDIVIDUAL-Modus fällt dabei die
+    // Gewinnerzahl aus der Preisliste.
+    const prizeInput = normalizePrizeInput({ prizes: prizesRaw, mode, winnersCount: requestedWinners });
+    if (!prizeInput.ok) {
+      const key = prizeInput.error === 'too_many_prizes' ? 'create.too_many_prizes' : 'create.no_prizes';
+      return interaction.reply({ content: t(guildId, key, { max: MAX_PRIZES }), flags: MessageFlags.Ephemeral });
     }
 
     // Ziel-Channel ermitteln (kann uncached null sein).
@@ -64,8 +86,9 @@ export default {
         hostId: interaction.user.id,
         title,
         description,
-        prize,
-        winnersCount,
+        prizes: prizeInput.prizes,
+        prizeMode: prizeInput.mode,
+        winnersCount: prizeInput.winnersCount,
         endAt,
       });
     } catch (err) {
@@ -73,6 +96,10 @@ export default {
       return interaction.reply({ content: t(guildId, 'error.generic'), flags: MessageFlags.Ephemeral });
     }
 
-    return interaction.reply({ content: t(guildId, 'create.success', { id }), flags: MessageFlags.Ephemeral });
+    // Im INDIVIDUAL-Modus die abgeleitete Gewinnerzahl nennen, damit sie nicht überrascht.
+    const content = prizeInput.mode === 'INDIVIDUAL'
+      ? t(guildId, 'create.success_individual', { id, count: prizeInput.winnersCount })
+      : t(guildId, 'create.success', { id });
+    return interaction.reply({ content, flags: MessageFlags.Ephemeral });
   },
 };
