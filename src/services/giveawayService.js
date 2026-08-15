@@ -8,7 +8,7 @@ import { checkEligibility, ticketWeight, mergeGiveawayEligibility } from '../uti
 import { giveawayPrizes, prizesForWinner, assignPrizes, serializePrizes, normalizePrizeMode, inlinePrizes, bulletList } from '../utils/prizes.js';
 import { generateGiveawayId } from '../utils/id.js';
 import { publishResult } from './resultPublisher.js';
-import { issueCoupons, revokeCoupons } from './tebexService.js';
+import { issueCoupons, revokeCoupons, manualCodeForWinner } from './tebexService.js';
 import { t } from '../utils/i18n.js';
 
 export async function createGiveaway(data) {
@@ -249,13 +249,23 @@ export async function dmWinners(client, giveaway, settings, winners, { resultUrl
       : t(g, 'dm.winner', { prize: own[0] ?? giveaway.title, guild: guildName });
     content += tail;
 
-    const coupon = coupons?.get(userId);
-    if (coupon) {
-      content += `\n\n${t(g, 'dm.coupon', { code: coupon.code, percent: giveaway.couponPercent })}`;
-      content += coupon.expiresAt
-        ? `\n${t(g, 'dm.coupon_expires', { date: new Date(coupon.expiresAt).toLocaleDateString('en-CA') })}`
-        : `\n${t(g, 'dm.coupon_forever')}`;
-      if (settings.tebexStoreUrl) content += `\n${t(g, 'dm.coupon_store', { url: settings.tebexStoreUrl })}`;
+    // Fest eingetragener Code (z.B. aus dem Shop eines Partners) hat Vorrang;
+    // für diesen Gewinner wurde deshalb gar kein eigener erzeugt.
+    const manual = manualCodeForWinner(giveaway, prizeIndex);
+    if (manual) {
+      content += `\n\n${t(g, 'dm.coupon_manual', { code: manual })}`;
+      // Der Hinweis ist Freitext des Veranstalters (meist: wo der Code gilt) und
+      // wird wie claimMessage unübersetzt übernommen.
+      if (giveaway.couponManualNote) content += `\n${giveaway.couponManualNote}`;
+    } else {
+      const coupon = coupons?.get(userId);
+      if (coupon) {
+        content += `\n\n${t(g, 'dm.coupon', { code: coupon.code, percent: giveaway.couponPercent })}`;
+        content += coupon.expiresAt
+          ? `\n${t(g, 'dm.coupon_expires', { date: new Date(coupon.expiresAt).toLocaleDateString('en-CA') })}`
+          : `\n${t(g, 'dm.coupon_forever')}`;
+        if (settings.tebexStoreUrl) content += `\n${t(g, 'dm.coupon_store', { url: settings.tebexStoreUrl })}`;
+      }
     }
 
     try {
@@ -368,7 +378,7 @@ export async function endGiveaway(giveaway, client) {
     // Tebex-Coupons: ein eigener Code pro Gewinner, im Store der Guild.
     // No-op, wenn die Guild kein Secret hinterlegt oder das Giveaway keinen
     // Rabatt konfiguriert hat. Fehler brechen das Beenden nicht ab.
-    const coupons = await issueCoupons(settings, fresh, winnerIds);
+    const coupons = await issueCoupons(settings, fresh, winners);
 
     await finalizeMessages(client, fresh, settings, winners, { resultUrl, coupons });
     await sendGuildLog(client, settings, t(fresh.guildId, 'log.ended', {
@@ -541,6 +551,23 @@ export async function cancelAndFinalize(client, giveaway, settings, { actor } = 
 
 // ── Reroll (Command + Dashboard teilen sich dies) ────────────────────────────
 /**
+ * Warnt im Log-Channel, wenn ein neu gezogener Gewinner einen fest eingetragenen
+ * Code bekommt.
+ *
+ * Selbst erzeugte Coupons widerruft der Bot beim Reroll im Store. Einen Code aus
+ * einem fremden Shop kann er nicht widerrufen: der ersetzte Gewinner hat ihn
+ * bereits per DM und behält ihn. Das lässt sich nicht verhindern, nur sagen —
+ * wer den Code sperren will, macht das im Shop des Partners.
+ */
+async function warnAboutManualCodes(client, giveaway, settings, winners) {
+  const affected = winners.filter(({ prizeIndex }) => manualCodeForWinner(giveaway, prizeIndex));
+  if (!affected.length) return;
+  await sendGuildLog(client, settings, t(giveaway.guildId, 'log.coupon_manual_reroll', {
+    id: giveaway.id, count: affected.length,
+  }));
+}
+
+/**
  * Zieht ALLE Gewinner eines beendeten Giveaways neu (schließt bisherige aus),
  * postet die Ergebnis-Nachricht, schickt DMs, loggt und aktualisiert die
  * öffentliche Ergebnis-Seite.
@@ -563,7 +590,8 @@ export async function rerollAll(client, giveaway, settings, { actor } = {}) {
 
   // Die alten Gewinner verlieren ihren Coupon, die neuen bekommen einen eigenen.
   await revokeCoupons(settings, giveaway, previousWinners);
-  const coupons = await issueCoupons(settings, giveaway, newWinnerIds);
+  const coupons = await issueCoupons(settings, giveaway, newWinners);
+  await warnAboutManualCodes(client, giveaway, settings, newWinners);
 
   const resultUrl = await publishResult(client, giveaway, settings, newWinners);
 
@@ -597,7 +625,9 @@ export async function rerollSingle(client, giveaway, settings, oldUserId, { acto
 
   // Nur der ersetzte Gewinner verliert seinen Coupon, die übrigen behalten ihren.
   await revokeCoupons(settings, giveaway, [oldUserId]);
-  const coupons = await issueCoupons(settings, giveaway, [newWinner]);
+  // Der Ersatz erbt den Preis-Slot, also auch dessen Paketauswahl.
+  const coupons = await issueCoupons(settings, giveaway, [replacement]);
+  await warnAboutManualCodes(client, giveaway, settings, [replacement]);
 
   const resultUrl = await publishResult(client, giveaway, settings, await getWinners(giveaway.id, { onlyActive: true }));
 

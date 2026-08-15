@@ -183,6 +183,8 @@
   "dm.winner": "🎉 Congratulations! You won **{prize}** in **{guild}**.",
   "dm.winner_link": "🔗 View the giveaway: {link}",
   "result.link": "🔗 Results & winners: {url}",
+  "dm.coupon_manual": "🎟️ Your coupon code: **{code}**",
+  "log.coupon_manual_reroll": "⚠️ Giveaway `{id}`: {count} new winner(s) received a manually entered code. Those cannot be revoked by the bot, the replaced winner keeps theirs.",
   "dm.coupon": "🎟️ Your personal coupon code: **{code}** ({percent}% off)",
   "dm.coupon_expires": "⏳ Valid until {date}, single use.",
   "dm.coupon_forever": "♾️ No expiry date, single use.",

@@ -19,6 +19,7 @@ import { customAlphabet } from 'nanoid';
 import { prisma } from '../database/prisma.js';
 import { logger } from '../utils/logger.js';
 import { decryptSecret } from '../utils/secretBox.js';
+import { normalizePrizeMode, parseSlotNumbers, slotNumbers, parseSlotStrings, slotString } from '../utils/prizes.js';
 
 const BASE_URL = 'https://plugin.tebex.io';
 const TIMEOUT_MS = 10_000;
@@ -96,6 +97,52 @@ function parsePackages(value) {
   }
 }
 
+/**
+ * Welche Pakete deckt der Coupon dieses Gewinners ab?
+ *
+ * Bei `prizeMode = INDIVIDUAL` kann pro Preis-Slot eine eigene Auswahl stehen:
+ * Gewinner 1 gewinnt Script A und bekommt seinen Rabatt auch auf Script A,
+ * Gewinner 2 entsprechend auf Script B. Ohne Slots (Modus ALL) gibt es keinen
+ * "Gewinner N" — die Ziehungsreihenfolge ist dort willkürlich und wird nirgends
+ * angezeigt —, also gilt für alle dieselbe Auswahl.
+ *
+ * Ein leerer Slot fällt auf die gemeinsame Auswahl zurück, und ist die auch
+ * leer, gilt der Rabatt auf den ganzen Warenkorb. So lässt sich "Gewinner 1 nur
+ * Script A, alle anderen alles" ohne Sonderfall ausdrücken.
+ *
+ * @param {number|null} prizeIndex Preis-Slot des Gewinners
+ * @returns {number[]} Tebex-Paket-IDs, leer = ganzer Warenkorb
+ */
+export function couponPackagesForWinner(giveaway, prizeIndex) {
+  const shared = parsePackages(giveaway?.couponPackages);
+  if (normalizePrizeMode(giveaway?.prizeMode) !== 'INDIVIDUAL') return shared;
+
+  const own = slotNumbers(parseSlotNumbers(giveaway?.couponPackagesPerPrize), prizeIndex);
+  return own.length ? own : shared;
+}
+
+/**
+ * Der fest eingetragene Code dieses Gewinners, falls einer hinterlegt ist.
+ *
+ * Gedacht für Codes aus einem FREMDEN Shop: bei einem gemeinsamen Giveaway mit
+ * einem anderen Entwickler kann der Bot dessen Coupons nicht erzeugen, er hat
+ * keinen Zugriff auf dessen Store. Eingetragene Codes braucht er dafür auch
+ * nicht — sie funktionieren ganz ohne hinterlegten eigenen Store.
+ *
+ * Gleiche Slot-Logik wie bei den Paketen: erst der eigene Slot, dann der
+ * gemeinsame Code. Für den betroffenen Gewinner hat er Vorrang vor dem selbst
+ * erzeugten Coupon; beides gleichzeitig wäre ein Rabatt zu viel.
+ *
+ * @returns {string} '' wenn keiner hinterlegt ist
+ */
+export function manualCodeForWinner(giveaway, prizeIndex) {
+  const shared = String(giveaway?.couponManualCode ?? '').trim();
+  if (normalizePrizeMode(giveaway?.prizeMode) !== 'INDIVIDUAL') return shared;
+
+  const own = slotString(parseSlotStrings(giveaway?.couponManualCodesPerPrize), prizeIndex);
+  return own || shared;
+}
+
 /** `yyyy-mm-dd`, wie die Coupon-API es erwartet. */
 function formatExpiry(date) {
   return date.toISOString().slice(0, 10);
@@ -155,9 +202,9 @@ export async function listPackages(publicToken) {
  *
  * @returns {Promise<{code:string, expiresAt:Date|null}|null>} null bei Fehler
  */
-async function issueOne(secret, giveaway, userId) {
+async function issueOne(secret, giveaway, userId, prizeIndex = null) {
   const percent = Number(giveaway.couponPercent);
-  const packages = parsePackages(giveaway.couponPackages);
+  const packages = couponPackagesForWinner(giveaway, prizeIndex);
   const validDays = Number(giveaway.couponValidDays) || 0;
 
   const expiresAt = validDays > 0 ? new Date(Date.now() + validDays * 86_400_000) : null;
@@ -201,18 +248,28 @@ async function issueOne(secret, giveaway, userId) {
  * Ein Fehlschlag bei einem Gewinner stoppt die anderen nicht — besser ein
  * Gewinner ohne Code als alle ohne.
  *
+ * @param {{userId: string, prizeIndex: number|null}[]} winners Gewinner mit
+ *        ihrem Preis-Slot; der Slot entscheidet über die Paketauswahl.
  * @returns {Promise<Map<string, {code:string, expiresAt:Date|null}>>} userId -> Coupon
  */
-export async function issueCoupons(settings, giveaway, winnerIds) {
+export async function issueCoupons(settings, giveaway, winners) {
   const issued = new Map();
-  if (!winnerIds?.length || !couponConfigured(settings, giveaway)) return issued;
+  if (!winners?.length || !couponConfigured(settings, giveaway)) return issued;
 
   const secret = resolveSecret(settings, giveaway.guildId);
   if (!secret) return issued;
 
-  for (const userId of winnerIds) {
+  for (const { userId, prizeIndex = null } of winners) {
+    // Eine vergessene Aufrufstelle, die noch nackte IDs übergibt, würde sonst
+    // einen Coupon für "undefined" anlegen. Lieber laut überspringen.
+    if (typeof userId !== 'string' || !userId) {
+      logger.warn(`tebex(${giveaway.guildId}): Gewinner ohne userId übersprungen — issueCoupons erwartet { userId, prizeIndex }.`);
+      continue;
+    }
+    // Wer einen fest eingetragenen Code bekommt, bekommt keinen zweiten dazu.
+    if (manualCodeForWinner(giveaway, prizeIndex)) continue;
     try {
-      const coupon = await issueOne(secret, giveaway, userId);
+      const coupon = await issueOne(secret, giveaway, userId, prizeIndex);
       if (coupon) issued.set(userId, coupon);
     } catch (err) {
       logger.warn(`tebex(${giveaway.guildId}): Coupon für ${userId} in Giveaway ${giveaway.id} fehlgeschlagen:`, err?.message ?? err);

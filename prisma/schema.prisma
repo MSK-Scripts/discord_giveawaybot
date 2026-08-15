@@ -86,7 +86,21 @@ model Giveaway {
   // Giveaway ab.
   couponPercent   Int? // Rabatt in Prozent (1-100)
   couponPackages  String @default("[]") @db.Text // JSON-Array von Tebex-Paket-IDs; leer = ganzer Warenkorb
+  /// Paketauswahl je Preis-Slot: JSON-Array von Arrays, gleich indiziert wie
+  /// `prizes`. Nur bei prizeMode = INDIVIDUAL sinnvoll, denn nur dort gibt es
+  /// überhaupt einen "Gewinner N". Ein leerer Slot fällt auf `couponPackages`
+  /// zurück, siehe services/tebexService.js.
+  couponPackagesPerPrize String @default("[]") @db.Text
   couponValidDays Int? // Gültigkeit in Tagen ab Ziehung; null = läuft nie ab
+
+  // ── Manuell eingetragene Codes ─────────────────────────────────────────────
+  // Für Codes aus einem FREMDEN Shop (gemeinsames Giveaway mit einem anderen
+  // Entwickler). Der Bot erzeugt sie nicht, er stellt sie nur zu, und er kann
+  // sie deshalb auch nicht widerrufen. Brauchen kein Store-Secret und haben für
+  // den betroffenen Gewinner Vorrang vor dem selbst erzeugten Coupon.
+  couponManualCode String? // gilt für alle Gewinner
+  couponManualCodesPerPrize String @default("[]") @db.Text // JSON-Array von Codes, wie `prizes` indiziert
+  couponManualNote String? @db.Text // Hinweis in der DM, z.B. wo der Code einzulösen ist
 
   createdAt    DateTime  @default(now())
   endedAt      DateTime?

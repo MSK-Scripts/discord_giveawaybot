@@ -24,7 +24,10 @@ import {
   sendGuildLog,
 } from './giveawayService.js';
 import { verifySecret, listPackages } from './tebexService.js';
-import { normalizePrizeInput, normalizePrizeMode, parsePrizes, serializePrizes } from '../utils/prizes.js';
+import {
+  normalizePrizeInput, normalizePrizeMode, parsePrizes, serializePrizes,
+  parseSlotNumbers, serializeSlotNumbers, parseSlotStrings, serializeSlotStrings, MAX_PRIZES,
+} from '../utils/prizes.js';
 import { encryptSecret, decryptSecret, secretHint, checkEncryptionKey } from '../utils/secretBox.js';
 import { parseDuration } from '../utils/duration.js';
 import { t } from '../utils/i18n.js';
@@ -133,6 +136,10 @@ function serializeGiveaway(g, extra = {}) {
     bonusRoles: obj(g.bonusRoles),
     couponPercent: g.couponPercent ?? null,
     couponPackages: arr(g.couponPackages),
+    couponPackagesPerPrize: parseSlotNumbers(g.couponPackagesPerPrize),
+    couponManualCode: g.couponManualCode ?? null,
+    couponManualCodesPerPrize: parseSlotStrings(g.couponManualCodesPerPrize),
+    couponManualNote: g.couponManualNote ?? null,
     couponValidDays: g.couponValidDays ?? null,
     ...extra,
   };
@@ -161,6 +168,37 @@ function parseCouponInput(body) {
     const ids = list.map((id) => Number(id)).filter((id) => Number.isInteger(id) && id > 0);
     if (ids.length > 50) return { ok: false, error: 'too_many_packages' };
     data.couponPackages = JSON.stringify([...new Set(ids)]);
+  }
+
+  // Paketauswahl je Preis-Slot (nur INDIVIDUAL). Ein leerer Slot ist erlaubt und
+  // bedeutet "hier gilt die gemeinsame Auswahl", siehe tebexService.
+  if (Object.prototype.hasOwnProperty.call(body, 'couponPackagesPerPrize')) {
+    const rows = body.couponPackagesPerPrize;
+    if (rows != null && !Array.isArray(rows)) return { ok: false, error: 'invalid_packages' };
+    if (Array.isArray(rows) && rows.length > MAX_PRIZES) return { ok: false, error: 'too_many_prizes' };
+    if (Array.isArray(rows) && rows.some((row) => Array.isArray(row) && row.length > 50)) {
+      return { ok: false, error: 'too_many_packages' };
+    }
+    data.couponPackagesPerPrize = serializeSlotNumbers(rows ?? []);
+  }
+
+  // Fest eingetragene Codes (fremder Shop). Bewusst ohne Store-Prüfung: sie
+  // funktionieren gerade dann, wenn die Guild gar keinen eigenen Store hat.
+  if (Object.prototype.hasOwnProperty.call(body, 'couponManualCode')) {
+    const code = String(body.couponManualCode ?? '').trim().slice(0, 128);
+    data.couponManualCode = code || null;
+  }
+
+  if (Object.prototype.hasOwnProperty.call(body, 'couponManualCodesPerPrize')) {
+    const rows = body.couponManualCodesPerPrize;
+    if (rows != null && !Array.isArray(rows)) return { ok: false, error: 'invalid_codes' };
+    if (Array.isArray(rows) && rows.length > MAX_PRIZES) return { ok: false, error: 'too_many_prizes' };
+    data.couponManualCodesPerPrize = serializeSlotStrings(rows ?? []);
+  }
+
+  if (Object.prototype.hasOwnProperty.call(body, 'couponManualNote')) {
+    const note = String(body.couponManualNote ?? '').trim().slice(0, 500);
+    data.couponManualNote = note || null;
   }
 
   if (Object.prototype.hasOwnProperty.call(body, 'couponValidDays')) {

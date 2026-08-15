@@ -2,6 +2,22 @@
 
 All notable changes to the **MSK Giveaway Bot**. Format based on [Keep a Changelog](https://keepachangelog.com).
 
+## [1.6.0]
+
+### Added
+- **The Tebex coupon can be limited to different packages per winner.** Until now one package selection applied to the whole giveaway, so a giveaway handing out "Script A" and "Script B" gave both winners the same coupon. With `prizeMode = INDIVIDUAL` the dashboard now shows a package picker **per prize**, and the winner of a prize gets their discount on that prize.
+
+  New column `couponPackagesPerPrize` (JSON array of arrays, index-aligned with `prizes`). An empty slot falls back to the shared `couponPackages`, and if that is empty too the code discounts the whole cart, so "winner 1 only Script A, everyone else anything" needs no special case. A reroll of a single winner keeps this correct without extra work: the replacement inherits the prize slot and therefore its packages.
+
+  The per-slot list is deliberately ignored when everyone gets all prizes. There is no "winner 2" in that mode — the draw order is arbitrary and shown nowhere — so a per-winner package would be a promise the bot cannot keep.
+
+  Percentage and validity remain per giveaway. `issueCoupons` now takes `{ userId, prizeIndex }` objects instead of bare IDs and skips (loudly) anything else, so a call site that was missed cannot quietly issue a coupon for `undefined`.
+- **Coupon codes can be entered by hand**, for a giveaway run together with another creator. The bot cannot generate a code for someone else's shop, so it now delivers one you type in: a code for all winners, or one per prize when each winner gets their own, plus a free-text note for the DM (usually where to redeem it).
+
+  New columns `couponManualCode`, `couponManualCodesPerPrize` and `couponManualNote`. Entered codes need **no Tebex store of your own** — they work on a guild that never connected one — and they take precedence over a generated coupon for that winner, so nobody collects two discounts.
+
+  What a foreign code cannot do is stated rather than papered over: the bot cannot validate it, and it cannot revoke it on a reroll, because the replaced winner already has it in their DM. That case now writes a warning to the log channel instead of passing silently.
+
 ## [1.5.0]
 
 ### Added

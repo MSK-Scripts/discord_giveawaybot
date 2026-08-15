@@ -90,13 +90,19 @@ async function guildWithStore(overrides = {}) {
 
 const couponPosts = () => calls.filter((c) => c.method === 'POST' && c.url.endsWith('/coupons'));
 
+/**
+ * Gewinner in der Reihenfolge der Preis-Slots. `issueCoupons` erwartet
+ * { userId, prizeIndex }, weil der Slot über die Paketauswahl entscheidet.
+ */
+const winners = (...userIds) => userIds.map((userId, prizeIndex) => ({ userId, prizeIndex }));
+
 test('jeder Gewinner bekommt einen eigenen Code', { skip }, async () => {
   installStub();
   const guildId = await guildWithStore();
   const settings = await settingsService.getSettings(guildId);
   const gw = await createTestGiveaway(prisma, guildId, { couponPercent: 25, winnersCount: 3 });
 
-  const issued = await tebex.issueCoupons(settings, gw, ['u1', 'u2', 'u3']);
+  const issued = await tebex.issueCoupons(settings, gw, winners('u1', 'u2', 'u3'));
 
   assert.equal(issued.size, 3);
   const codes = [...issued.values()].map((c) => c.code);
@@ -114,6 +120,166 @@ test('jeder Gewinner bekommt einen eigenen Code', { skip }, async () => {
   }
 });
 
+test('jeder Preis-Slot kann eigene Pakete haben', { skip }, async () => {
+  installStub();
+  const guildId = await guildWithStore();
+  const settings = await settingsService.getSettings(guildId);
+  const gw = await createTestGiveaway(prisma, guildId, {
+    couponPercent: 40,
+    prizes: JSON.stringify(['Script A', 'Script B']),
+    prizeMode: 'INDIVIDUAL',
+    winnersCount: 2,
+    couponPackagesPerPrize: JSON.stringify([[101], [202]]),
+  });
+
+  await tebex.issueCoupons(settings, gw, winners('u1', 'u2'));
+
+  const posts = couponPosts();
+  assert.equal(posts.length, 2);
+  assert.deepEqual(posts[0].body.packages, [101], 'Gewinner 1 bekommt den Rabatt auf Script A');
+  assert.deepEqual(posts[1].body.packages, [202], 'Gewinner 2 auf Script B');
+  for (const post of posts) assert.equal(post.body.effective_on, 'package');
+});
+
+test('ein leerer Slot fällt auf die gemeinsame Auswahl zurück', { skip }, async () => {
+  installStub();
+  const guildId = await guildWithStore();
+  const settings = await settingsService.getSettings(guildId);
+  const gw = await createTestGiveaway(prisma, guildId, {
+    couponPercent: 40,
+    prizes: JSON.stringify(['Script A', 'Freie Wahl']),
+    prizeMode: 'INDIVIDUAL',
+    winnersCount: 2,
+    couponPackages: JSON.stringify([999]),
+    couponPackagesPerPrize: JSON.stringify([[101], []]),
+  });
+
+  await tebex.issueCoupons(settings, gw, winners('u1', 'u2'));
+
+  const posts = couponPosts();
+  assert.deepEqual(posts[0].body.packages, [101]);
+  assert.deepEqual(posts[1].body.packages, [999], 'ohne eigene Auswahl gilt die gemeinsame');
+});
+
+test('ohne Preis-Slots gilt die Auswahl je Slot nicht', { skip }, async () => {
+  installStub();
+  const guildId = await guildWithStore();
+  const settings = await settingsService.getSettings(guildId);
+  // prizeMode ALL: es gibt keinen "Gewinner N", die Ziehungsreihenfolge ist
+  // willkürlich. Eine Zuordnung je Slot wäre dort eine stille Lüge.
+  const gw = await createTestGiveaway(prisma, guildId, {
+    couponPercent: 40,
+    prizes: JSON.stringify(['Script A', 'Script B']),
+    prizeMode: 'ALL',
+    winnersCount: 2,
+    couponPackages: JSON.stringify([999]),
+    couponPackagesPerPrize: JSON.stringify([[101], [202]]),
+  });
+
+  await tebex.issueCoupons(settings, gw, winners('u1', 'u2'));
+
+  for (const post of couponPosts()) assert.deepEqual(post.body.packages, [999]);
+});
+
+test('ohne jede Auswahl gilt der Rabatt auf den ganzen Warenkorb', { skip }, async () => {
+  installStub();
+  const guildId = await guildWithStore();
+  const settings = await settingsService.getSettings(guildId);
+  const gw = await createTestGiveaway(prisma, guildId, {
+    couponPercent: 40,
+    prizes: JSON.stringify(['Script A']),
+    prizeMode: 'INDIVIDUAL',
+    winnersCount: 1,
+  });
+
+  await tebex.issueCoupons(settings, gw, winners('u1'));
+
+  const [post] = couponPosts();
+  assert.equal(post.body.effective_on, 'cart');
+  assert.deepEqual(post.body.packages, []);
+});
+
+test('der Ersatz nach einem Reroll erbt die Pakete seines Slots', { skip }, async () => {
+  installStub();
+  const guildId = await guildWithStore();
+  const settings = await settingsService.getSettings(guildId);
+  const gw = await createTestGiveaway(prisma, guildId, {
+    couponPercent: 40,
+    prizes: JSON.stringify(['Script A', 'Script B']),
+    prizeMode: 'INDIVIDUAL',
+    winnersCount: 2,
+    couponPackagesPerPrize: JSON.stringify([[101], [202]]),
+  });
+
+  await tebex.issueCoupons(settings, gw, winners('u1', 'u2'));
+  calls.length = 0;
+
+  // Gewinner 1 wird ersetzt: der Neue steht auf Slot 0, also wieder Script A.
+  await tebex.issueCoupons(settings, gw, [{ userId: 'u3', prizeIndex: 0 }]);
+
+  const [post] = couponPosts();
+  assert.deepEqual(post.body.packages, [101]);
+});
+
+// ── Manuell eingetragene Codes (fremder Shop) ────────────────────────────────
+
+test('ein manuell eingetragener Code wird zugestellt, ohne Tebex zu fragen', { skip }, async () => {
+  installStub();
+  const guildId = testGuildId(); // absichtlich OHNE Store-Secret
+  const settings = await settingsService.getSettings(guildId);
+  const gw = await createTestGiveaway(prisma, guildId, {
+    couponManualCode: 'PARTNER-2026',
+    couponManualNote: 'Einzulösen bei partner.tebex.io',
+  });
+  const users = await addEntries(prisma, gw.id, 1);
+  const client = fakeClient({ guild: fakeGuild(users) });
+
+  const winnerIds = await service.endGiveaway(gw, client);
+  assert.equal(winnerIds.length, 1);
+
+  assert.equal(couponPosts().length, 0, 'für einen fremden Shop wird nichts erzeugt');
+  const dm = client.dms.find((d) => d.userId === winnerIds[0]);
+  assert.ok(dm.payload.content.includes('PARTNER-2026'), 'der Code steht in der DM');
+  assert.ok(dm.payload.content.includes('partner.tebex.io'), 'der Hinweis auch');
+
+  // Der Code gehört in die DM und nirgendwo sonst.
+  for (const sent of client.sent) assert.ok(!String(sent.content).includes('PARTNER-2026'));
+});
+
+test('ein eingetragener Code verdrängt den selbst erzeugten', { skip }, async () => {
+  installStub();
+  const guildId = await guildWithStore();
+  const settings = await settingsService.getSettings(guildId);
+  const gw = await createTestGiveaway(prisma, guildId, {
+    couponPercent: 30,
+    prizes: JSON.stringify(['Eigenes Script', 'Script vom Partner']),
+    prizeMode: 'INDIVIDUAL',
+    winnersCount: 2,
+    couponManualCodesPerPrize: JSON.stringify(['', 'PARTNER-XY']),
+  });
+
+  const issued = await tebex.issueCoupons(settings, gw, winners('u1', 'u2'));
+
+  assert.equal(issued.size, 1, 'nur für Slot 1 wird ein eigener Code erzeugt');
+  assert.ok(issued.has('u1'));
+  assert.ok(!issued.has('u2'), 'Slot 2 hat seinen festen Code, kein zweiter Rabatt');
+  assert.equal(couponPosts().length, 1);
+});
+
+test('ohne Slot-Code gilt der gemeinsame, und ALL kennt keine Slots', { skip }, async () => {
+  const individual = {
+    prizeMode: 'INDIVIDUAL',
+    couponManualCode: 'ALLGEMEIN',
+    couponManualCodesPerPrize: JSON.stringify(['NUR-SLOT-0']),
+  };
+  assert.equal(tebex.manualCodeForWinner(individual, 0), 'NUR-SLOT-0');
+  assert.equal(tebex.manualCodeForWinner(individual, 1), 'ALLGEMEIN', 'leerer Slot fällt zurück');
+
+  const all = { ...individual, prizeMode: 'ALL' };
+  assert.equal(tebex.manualCodeForWinner(all, 0), 'ALLGEMEIN', 'ohne Slots zählt nur der gemeinsame');
+  assert.equal(tebex.manualCodeForWinner({}, 0), '');
+});
+
 test('Prozentsatz, Pakete und Gültigkeit landen so bei Tebex', { skip }, async () => {
   installStub();
   const guildId = await guildWithStore();
@@ -124,7 +290,7 @@ test('Prozentsatz, Pakete und Gültigkeit landen so bei Tebex', { skip }, async 
     couponValidDays: 30,
   });
 
-  await tebex.issueCoupons(settings, gw, ['u1']);
+  await tebex.issueCoupons(settings, gw, winners('u1'));
 
   const [post] = couponPosts();
   assert.equal(post.body.discount_type, 'percentage');
@@ -143,7 +309,7 @@ test('ohne Paketauswahl gilt der Rabatt auf den ganzen Warenkorb', { skip }, asy
   const settings = await settingsService.getSettings(guildId);
   const gw = await createTestGiveaway(prisma, guildId, { couponPercent: 10 });
 
-  await tebex.issueCoupons(settings, gw, ['u1']);
+  await tebex.issueCoupons(settings, gw, winners('u1'));
 
   const [post] = couponPosts();
   assert.equal(post.body.effective_on, 'cart');
@@ -158,13 +324,13 @@ test('ohne Store-Secret oder ohne Prozentsatz passiert gar nichts', { skip }, as
   const bare = testGuildId();
   const bareSettings = await settingsService.getSettings(bare);
   const gw1 = await createTestGiveaway(prisma, bare, { couponPercent: 20 });
-  assert.equal((await tebex.issueCoupons(bareSettings, gw1, ['u1'])).size, 0);
+  assert.equal((await tebex.issueCoupons(bareSettings, gw1, winners('u1'))).size, 0);
 
   // Guild mit Secret, aber Giveaway ohne Coupon
   const guildId = await guildWithStore();
   const settings = await settingsService.getSettings(guildId);
   const gw2 = await createTestGiveaway(prisma, guildId, { couponPercent: null });
-  assert.equal((await tebex.issueCoupons(settings, gw2, ['u1'])).size, 0);
+  assert.equal((await tebex.issueCoupons(settings, gw2, winners('u1'))).size, 0);
 
   assert.equal(couponPosts().length, 0, 'kein einziger Aufruf an Tebex');
 });
@@ -176,7 +342,7 @@ test('ein Fehlschlag reißt die anderen Gewinner nicht mit', { skip }, async () 
   const gw = await createTestGiveaway(prisma, guildId, { couponPercent: 15, winnersCount: 3 });
 
   failNext = 1; // der erste Coupon scheitert
-  const issued = await tebex.issueCoupons(settings, gw, ['u1', 'u2', 'u3']);
+  const issued = await tebex.issueCoupons(settings, gw, winners('u1', 'u2', 'u3'));
 
   assert.equal(issued.size, 2, 'zwei von drei — besser als keiner');
   assert.ok(!issued.has('u1'));
@@ -193,7 +359,7 @@ test('ein unlesbares Secret führt nicht zu einem Aufruf mit Müll', { skip }, a
   const settings = await settingsService.getSettings(guildId);
   const gw = await createTestGiveaway(prisma, guildId, { couponPercent: 20 });
 
-  assert.equal((await tebex.issueCoupons(settings, gw, ['u1'])).size, 0);
+  assert.equal((await tebex.issueCoupons(settings, gw, winners('u1'))).size, 0);
   assert.equal(couponPosts().length, 0);
 });
 
@@ -203,7 +369,7 @@ test('der Reroll widerruft den alten Code und stellt einen neuen aus', { skip },
   const settings = await settingsService.getSettings(guildId);
   const gw = await createTestGiveaway(prisma, guildId, { couponPercent: 40 });
 
-  const first = await tebex.issueCoupons(settings, gw, ['u1']);
+  const first = await tebex.issueCoupons(settings, gw, winners('u1'));
   const oldCode = first.get('u1').code;
 
   await tebex.revokeCoupons(settings, gw, ['u1']);
@@ -221,7 +387,7 @@ test('der Reroll widerruft den alten Code und stellt einen neuen aus', { skip },
   assert.equal(active.size, 0);
 
   // Der neue Gewinner bekommt einen eigenen Code.
-  const second = await tebex.issueCoupons(settings, gw, ['u2']);
+  const second = await tebex.issueCoupons(settings, gw, winners('u2'));
   assert.notEqual(second.get('u2').code, oldCode);
 });
 

@@ -183,6 +183,8 @@
   "dm.winner": "🎉 Glückwunsch! Du hast **{prize}** in **{guild}** gewonnen.",
   "dm.winner_link": "🔗 Zum Giveaway: {link}",
   "result.link": "🔗 Ergebnisse & Gewinner: {url}",
+  "dm.coupon_manual": "🎟️ Dein Gutscheincode: **{code}**",
+  "log.coupon_manual_reroll": "⚠️ Giveaway `{id}`: {count} neue Gewinner haben einen manuell eingetragenen Code bekommen. Die kann der Bot nicht widerrufen, der ersetzte Gewinner behält seinen.",
   "dm.coupon": "🎟️ Dein persönlicher Gutscheincode: **{code}** ({percent}% Rabatt)",
   "dm.coupon_expires": "⏳ Gültig bis {date}, einmalig einlösbar.",
   "dm.coupon_forever": "♾️ Ohne Ablaufdatum, einmalig einlösbar.",

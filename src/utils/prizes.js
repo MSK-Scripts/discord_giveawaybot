@@ -107,6 +107,69 @@ export function numberedList(prizes) {
   return prizes.map((p, i) => `${i + 1}. ${p}`).join('\n');
 }
 
+// ── Zahlenlisten je Preis-Slot ───────────────────────────────────────────────
+// Genutzt für die Tebex-Paketauswahl pro Gewinner (`couponPackagesPerPrize`).
+// Hier steht nur die Mechanik der Slots, die Coupon-Bedeutung in tebexService.
+
+/** JSON -> Array von Zahlen-Arrays. Defekte Werte ergeben eine leere Matrix. */
+export function parseSlotNumbers(raw) {
+  const rows = Array.isArray(raw) ? raw : safeParse(raw);
+  if (!Array.isArray(rows)) return [];
+  return rows.slice(0, MAX_PRIZES).map((row) => cleanIds(row));
+}
+
+function safeParse(raw) {
+  try {
+    return JSON.parse(raw ?? '[]');
+  } catch {
+    return [];
+  }
+}
+
+/** Positive Ganzzahlen, ohne Duplikate, höchstens 50 pro Slot. */
+function cleanIds(row) {
+  if (!Array.isArray(row)) return [];
+  const ids = row.map((id) => Number(id)).filter((id) => Number.isInteger(id) && id > 0);
+  return [...new Set(ids)].slice(0, 50);
+}
+
+export function serializeSlotNumbers(rows) {
+  return JSON.stringify(parseSlotNumbers(rows));
+}
+
+/**
+ * JSON -> Array von Strings je Preis-Slot (manuell eingetragene Coupon-Codes).
+ * Leere Slots bleiben als leerer String erhalten, damit die Indizes stimmen.
+ */
+export function parseSlotStrings(raw, maxLength = 128) {
+  const rows = Array.isArray(raw) ? raw : safeParse(raw);
+  if (!Array.isArray(rows)) return [];
+  return rows.slice(0, MAX_PRIZES).map((v) => String(v ?? '').trim().slice(0, maxLength));
+}
+
+export function serializeSlotStrings(rows) {
+  const list = parseSlotStrings(rows);
+  // Nur hinten kürzen: ein leerer Slot in der Mitte hält die Zuordnung.
+  while (list.length && !list[list.length - 1]) list.pop();
+  return JSON.stringify(list);
+}
+
+/** Der Eintrag eines Slots, oder '' wenn keiner gesetzt ist. */
+export function slotString(rows, index) {
+  if (!Number.isInteger(index)) return '';
+  return rows[index] ?? '';
+}
+
+/**
+ * Die Liste eines Slots, oder eine leere Liste.
+ * Ein nicht belegter Slot ist ausdrücklich kein Fehler: er bedeutet "hier gilt
+ * die gemeinsame Auswahl", die Entscheidung darüber trifft der Aufrufer.
+ */
+export function slotNumbers(rows, index) {
+  if (!Number.isInteger(index)) return [];
+  return rows[index] ?? [];
+}
+
 /**
  * Prüft und normalisiert eine Preis-Eingabe (Dashboard, Modal, /gedit).
  * @param {{prizes?: string[]|string, mode?: string, winnersCount?: number}} input
