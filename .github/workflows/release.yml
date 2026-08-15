@@ -1,7 +1,12 @@
 name: Release
 
 # Wird durch ein Versions-Tag (z.B. v1.2.0 oder v1.2.0-rc.1) ausgelöst:
-# erst die Prüfung aus ci.yml, dann ein GitHub-Release mit automatischen Notes.
+# erst die Prüfung aus ci.yml, dann ein GitHub-Release.
+#
+# Der Text kommt aus CHANGELOG.md, die automatisch erzeugten Notes hängen
+# darunter. Die allein reichen nicht: sie listen ausschließlich gemergte Pull
+# Requests, und hier wird das meiste direkt auf main committet. v1.5.0 bestand
+# dadurch nur aus Dependabot-Bumps, das eigentliche Feature fehlte.
 
 on:
   push:
@@ -26,9 +31,16 @@ jobs:
         with:
           fetch-depth: 0 # volle Historie für die Release-Notes-Generierung
 
+      # Der Tag geht über die Umgebung, nicht per ${{ }} in die Shell-Zeile.
+      - name: Extract the changelog section for this tag
+        env:
+          TAG: ${{ github.ref_name }}
+        run: node scripts/changelog-section.js "$TAG" > RELEASE_NOTES.md
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v3
         with:
+          body_path: RELEASE_NOTES.md
           generate_release_notes: true
           draft: false
           # Tags mit Suffix (z.B. -rc.1, -beta) werden als Pre-Release markiert.
