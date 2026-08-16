@@ -2,6 +2,15 @@
 
 All notable changes to the **MSK Giveaway Bot**. Format based on [Keep a Changelog](https://keepachangelog.com).
 
+## [1.6.1]
+
+### Fixed
+- **A fixed code from another shop no longer swallows the coupon from your own.** With both configured, only the entered code reached the winner: the bot skipped creating its own coupon for that winner entirely, so a prize that was set up simply never arrived and nothing said so.
+
+  The two shops have nothing to do with each other, and a joint giveaway is exactly the case where there is something to win in both. Both codes are now issued and both appear in the same DM, each as its own block with its own note or store link. Configure only one of the two and nothing changes.
+
+  Anyone who used a fixed code to suppress the generated coupon for a single prize slot should clear the discount percentage for that giveaway instead.
+
 ## [1.6.0]
 
 ### Added

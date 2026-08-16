@@ -130,8 +130,13 @@ export function couponPackagesForWinner(giveaway, prizeIndex) {
  * nicht — sie funktionieren ganz ohne hinterlegten eigenen Store.
  *
  * Gleiche Slot-Logik wie bei den Paketen: erst der eigene Slot, dann der
- * gemeinsame Code. Für den betroffenen Gewinner hat er Vorrang vor dem selbst
- * erzeugten Coupon; beides gleichzeitig wäre ein Rabatt zu viel.
+ * gemeinsame Code.
+ *
+ * Ein eingetragener Code schließt den selbst erzeugten NICHT aus. Genau der
+ * Fall, für den das Feature existiert — ein gemeinsames Giveaway —, ist auch
+ * der Fall, in dem es aus beiden Shops etwas zu gewinnen gibt. Wer beides
+ * konfiguriert, meint beides; einen davon still zu unterschlagen wäre ein
+ * verlorener Preis ohne jede Rückmeldung.
  *
  * @returns {string} '' wenn keiner hinterlegt ist
  */
@@ -266,8 +271,6 @@ export async function issueCoupons(settings, giveaway, winners) {
       logger.warn(`tebex(${giveaway.guildId}): Gewinner ohne userId übersprungen — issueCoupons erwartet { userId, prizeIndex }.`);
       continue;
     }
-    // Wer einen fest eingetragenen Code bekommt, bekommt keinen zweiten dazu.
-    if (manualCodeForWinner(giveaway, prizeIndex)) continue;
     try {
       const coupon = await issueOne(secret, giveaway, userId, prizeIndex);
       if (coupon) issued.set(userId, coupon);

@@ -246,7 +246,7 @@ test('ein manuell eingetragener Code wird zugestellt, ohne Tebex zu fragen', { s
   for (const sent of client.sent) assert.ok(!String(sent.content).includes('PARTNER-2026'));
 });
 
-test('ein eingetragener Code verdrängt den selbst erzeugten', { skip }, async () => {
+test('ein eingetragener Code verdrängt den selbst erzeugten nicht', { skip }, async () => {
   installStub();
   const guildId = await guildWithStore();
   const settings = await settingsService.getSettings(guildId);
@@ -260,10 +260,45 @@ test('ein eingetragener Code verdrängt den selbst erzeugten', { skip }, async (
 
   const issued = await tebex.issueCoupons(settings, gw, winners('u1', 'u2'));
 
-  assert.equal(issued.size, 1, 'nur für Slot 1 wird ein eigener Code erzeugt');
+  // Beide Slots bekommen einen Coupon aus dem eigenen Store. Slot 1 hat
+  // zusätzlich den festen Code des Partners — die beiden Shops haben
+  // miteinander nichts zu tun, einer davon darf nicht den anderen abschalten.
+  assert.equal(issued.size, 2, 'auch der Slot mit festem Code bekommt seinen eigenen Coupon');
   assert.ok(issued.has('u1'));
-  assert.ok(!issued.has('u2'), 'Slot 2 hat seinen festen Code, kein zweiter Rabatt');
-  assert.equal(couponPosts().length, 1);
+  assert.ok(issued.has('u2'));
+  assert.equal(couponPosts().length, 2);
+});
+
+test('sind beide Coupons konfiguriert, stehen beide in der DM', { skip }, async () => {
+  installStub();
+  const guildId = await guildWithStore();
+  const gw = await createTestGiveaway(prisma, guildId, {
+    couponPercent: 100,
+    couponValidDays: 1,
+    couponManualCode: 'PARTNER-2026',
+    couponManualNote: 'Einzulösen bei partner.example.com',
+  });
+  const users = await addEntries(prisma, gw.id, 1);
+  const client = fakeClient({ guild: fakeGuild(users) });
+
+  const winnerIds = await service.endGiveaway(gw, client);
+  assert.equal(winnerIds.length, 1);
+
+  const row = await prisma.giveawayCoupon.findFirst({ where: { giveawayId: gw.id } });
+  assert.ok(row, 'der eigene Coupon wird trotz festem Code erzeugt');
+
+  const dm = client.dms.find((d) => d.userId === winnerIds[0]);
+  const content = dm.payload.content;
+  assert.ok(content.includes(row.code), 'der Code aus dem eigenen Store steht in der DM');
+  assert.ok(content.includes('PARTNER-2026'), 'der feste Code auch');
+  assert.ok(content.includes('partner.example.com'), 'samt Hinweis');
+
+  // Keiner der beiden gehört in den öffentlichen Teil.
+  for (const message of client.sent) {
+    const text = String(message.content ?? '');
+    assert.ok(!text.includes(row.code) && !text.includes('PARTNER-2026'));
+  }
+  settingsService.evict(guildId);
 });
 
 test('ohne Slot-Code gilt der gemeinsame, und ALL kennt keine Slots', { skip }, async () => {

@@ -249,23 +249,25 @@ export async function dmWinners(client, giveaway, settings, winners, { resultUrl
       : t(g, 'dm.winner', { prize: own[0] ?? giveaway.title, guild: guildName });
     content += tail;
 
-    // Fest eingetragener Code (z.B. aus dem Shop eines Partners) hat Vorrang;
-    // für diesen Gewinner wurde deshalb gar kein eigener erzeugt.
+    // Eigener Store und fremder Shop schließen sich NICHT aus: bei einem
+    // gemeinsamen Giveaway gibt es aus beiden etwas zu gewinnen. Wer beides
+    // konfiguriert hat, bekommt beides, jeweils als eigener Block.
+    const coupon = coupons?.get(userId);
+    if (coupon) {
+      content += `\n\n${t(g, 'dm.coupon', { code: coupon.code, percent: giveaway.couponPercent })}`;
+      content += coupon.expiresAt
+        ? `\n${t(g, 'dm.coupon_expires', { date: new Date(coupon.expiresAt).toLocaleDateString('en-CA') })}`
+        : `\n${t(g, 'dm.coupon_forever')}`;
+      if (settings.tebexStoreUrl) content += `\n${t(g, 'dm.coupon_store', { url: settings.tebexStoreUrl })}`;
+    }
+
+    // Fest eingetragener Code aus dem Shop eines Partners.
     const manual = manualCodeForWinner(giveaway, prizeIndex);
     if (manual) {
       content += `\n\n${t(g, 'dm.coupon_manual', { code: manual })}`;
       // Der Hinweis ist Freitext des Veranstalters (meist: wo der Code gilt) und
       // wird wie claimMessage unübersetzt übernommen.
       if (giveaway.couponManualNote) content += `\n${giveaway.couponManualNote}`;
-    } else {
-      const coupon = coupons?.get(userId);
-      if (coupon) {
-        content += `\n\n${t(g, 'dm.coupon', { code: coupon.code, percent: giveaway.couponPercent })}`;
-        content += coupon.expiresAt
-          ? `\n${t(g, 'dm.coupon_expires', { date: new Date(coupon.expiresAt).toLocaleDateString('en-CA') })}`
-          : `\n${t(g, 'dm.coupon_forever')}`;
-        if (settings.tebexStoreUrl) content += `\n${t(g, 'dm.coupon_store', { url: settings.tebexStoreUrl })}`;
-      }
     }
 
     try {
