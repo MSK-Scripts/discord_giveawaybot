@@ -50,7 +50,13 @@ model GiveawayTemplate {
   description  String   @db.Text
   duration     String // z.B. "1d2h30m"
   winnersCount Int      @default(1)
+  // Preisliste wie bei Giveaway: JSON-Array + Verteilmodus. Ohne die beiden
+  // könnte eine Vorlage seit v1.5.0 nicht mehr abbilden, was ein Giveaway
+  // ausmacht, und /gtemplate use legte eines ganz ohne Preise an.
+  prizes       String   @default("[]") @db.Text
+  prizeMode    String   @default("ALL")
   createdAt    DateTime @default(now())
+  updatedAt    DateTime @default(now()) @updatedAt
 
   @@unique([guildId, name])
 }

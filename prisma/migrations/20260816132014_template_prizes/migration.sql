@@ -1,0 +1,7 @@
+-- AlterTable
+ALTER TABLE `GiveawayTemplate` ADD COLUMN `prizeMode` VARCHAR(191) NOT NULL DEFAULT 'ALL',
+    ADD COLUMN `prizes` TEXT NOT NULL DEFAULT '[]',
+    ADD COLUMN `updatedAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3);
+
+-- AlterTable
+ALTER TABLE `GuildSettings` MODIFY `buttonEmoji` VARCHAR(191) NOT NULL DEFAULT '🎉';

@@ -149,6 +149,11 @@
   "template.empty": "Todavía no hay plantillas.",
   "template.list_title": "📋 Plantillas de sorteo",
   "template.entry": "`{name}` — **{title}** · {duration} · {winners} ganador(es)",
+  "template.limit": "❌ Ya tienes {max} plantillas. Elimina una primero.",
+  "template.name_taken": "❌ Ya existe una plantilla llamada `{name}`.",
+  "template.prizes": "Premios",
+  "log.template_saved": "📋 Plantilla `{name}` guardada por {user}.",
+  "log.template_deleted": "📋 Plantilla `{name}` eliminada por {user}.",
   "template.deleted": "✅ Plantilla `{name}` eliminada.",
   "template.not_found": "❌ No hay ninguna plantilla llamada `{name}`.",
 

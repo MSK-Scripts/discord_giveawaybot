@@ -1,10 +1,14 @@
 import { SlashCommandBuilder, MessageFlags, EmbedBuilder, PermissionFlagsBits } from 'discord.js';
 import { getSettings } from '../services/settingsService.js';
-import { saveTemplate, listTemplates, getTemplate, deleteTemplate } from '../services/templateService.js';
-import { postGiveaway } from '../services/giveawayService.js';
+import {
+  saveTemplate, listTemplates, getTemplate, deleteTemplate, countTemplates,
+  normalizeTemplateInput, MAX_TEMPLATES,
+} from '../services/templateService.js';
+import { postGiveaway, sendGuildLog } from '../services/giveawayService.js';
 import { isManager } from '../utils/permissions.js';
 import { parseDuration } from '../utils/duration.js';
 import { resolveColor } from '../utils/embeds.js';
+import { parsePrizes, inlinePrizes, PRIZE_MODES, MAX_PRIZES } from '../utils/prizes.js';
 import { t } from '../utils/i18n.js';
 import { logger } from '../utils/logger.js';
 
@@ -27,7 +31,17 @@ export default {
         .addStringOption((o) => o.setName('title').setDescription('Giveaway title').setRequired(true))
         .addStringOption((o) => o.setName('description').setDescription('Giveaway description').setRequired(true))
         .addStringOption((o) => o.setName('duration').setDescription('e.g. 1d2h30m').setRequired(true))
-        .addIntegerOption((o) => o.setName('winners').setDescription('Number of winners (1-100)').setMinValue(1).setMaxValue(100).setRequired(true)),
+        .addIntegerOption((o) => o.setName('winners').setDescription('Number of winners (1-100)').setMinValue(1).setMaxValue(100))
+        .addStringOption((o) => o.setName('prizes').setDescription('Prizes, separated by | (e.g. Script A | Script B)'))
+        .addStringOption((o) =>
+          o
+            .setName('mode')
+            .setDescription('How the prizes are handed out')
+            .addChoices(
+              { name: 'Everyone gets all prizes', value: 'ALL' },
+              { name: 'One prize per winner', value: 'INDIVIDUAL' },
+            ),
+        ),
     )
     .addSubcommand((s) => s.setName('list').setDescription('List all templates'))
     .addSubcommand((s) =>
@@ -49,15 +63,37 @@ export default {
 
     if (sub === 'save') {
       const name = interaction.options.getString('name', true).trim();
-      const duration = interaction.options.getString('duration', true).trim();
-      if (!parseDuration(duration).ok) return reply(t(guildId, 'create.invalid_duration'));
-      await saveTemplate(guildId, {
+
+      // Geprüft wird zentral, damit Command und Dashboard dieselbe Vorstellung
+      // davon haben, was eine gültige Vorlage ist.
+      const input = normalizeTemplateInput({
         name,
-        title: interaction.options.getString('title', true).trim(),
-        description: interaction.options.getString('description', true).trim(),
-        duration,
-        winnersCount: interaction.options.getInteger('winners', true),
+        title: interaction.options.getString('title', true),
+        description: interaction.options.getString('description', true),
+        duration: interaction.options.getString('duration', true),
+        winnersCount: interaction.options.getInteger('winners') ?? 1,
+        prizes: interaction.options.getString('prizes') ?? '',
+        prizeMode: interaction.options.getString('mode') ?? PRIZE_MODES[0],
       });
+      if (!input.ok) {
+        if (input.error === 'invalid_duration') return reply(t(guildId, 'create.invalid_duration'));
+        if (input.error === 'winners_locked') return reply(t(guildId, 'edit.winners_locked'));
+        if (input.error === 'too_many_prizes' || input.error === 'individual_needs_prizes') {
+          const key = input.error === 'too_many_prizes' ? 'create.too_many_prizes' : 'create.no_prizes';
+          return reply(t(guildId, key, { max: MAX_PRIZES }));
+        }
+        return reply(t(guildId, 'error.generic'));
+      }
+
+      // Nur beim Anlegen begrenzen: ein Überschreiben muss auch am Limit gehen,
+      // sonst sperrt sich eine Guild mit vollen Vorlagen selbst aus.
+      const existing = await getTemplate(guildId, name);
+      if (!existing && (await countTemplates(guildId)) >= MAX_TEMPLATES) {
+        return reply(t(guildId, 'template.limit', { max: MAX_TEMPLATES }));
+      }
+
+      await saveTemplate(guildId, input.data);
+      await sendGuildLog(client, settings, t(guildId, 'log.template_saved', { name, user: `<@${interaction.user.id}>` }));
       return reply(t(guildId, 'template.saved', { name }));
     }
 
@@ -69,7 +105,16 @@ export default {
         .setTitle(t(guildId, 'template.list_title'))
         .setDescription(
           templates
-            .map((tpl) => t(guildId, 'template.entry', { name: tpl.name, title: tpl.title, duration: tpl.duration, winners: tpl.winnersCount }))
+            .map((tpl) => {
+              let line = t(guildId, 'template.entry', {
+                name: tpl.name, title: tpl.title, duration: tpl.duration, winners: tpl.winnersCount,
+              });
+              const prizes = parsePrizes(tpl.prizes);
+              // Die Preise stehen in einer zweiten Zeile: sie können lang werden
+              // und würden die Übersicht sonst unlesbar machen.
+              if (prizes.length) line += `\n   ${t(guildId, 'template.prizes')}: ${inlinePrizes(prizes)}`;
+              return line;
+            })
             .join('\n'),
         );
       return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
@@ -78,6 +123,7 @@ export default {
     if (sub === 'delete') {
       const name = interaction.options.getString('name', true).trim();
       const ok = await deleteTemplate(guildId, name);
+      if (ok) await sendGuildLog(client, settings, t(guildId, 'log.template_deleted', { name, user: `<@${interaction.user.id}>` }));
       return reply(ok ? t(guildId, 'template.deleted', { name }) : t(guildId, 'template.not_found', { name }));
     }
 
@@ -98,11 +144,15 @@ export default {
       }
 
       try {
+        // Preise und Modus reisen mit. postGiveaway leitet die Gewinnerzahl im
+        // INDIVIDUAL-Modus selbst aus der Preisliste ab.
         const id = await postGiveaway(client, channel, settings, {
           guildId,
           hostId: interaction.user.id,
           title: tpl.title,
           description: tpl.description,
+          prizes: parsePrizes(tpl.prizes),
+          prizeMode: tpl.prizeMode,
           winnersCount: tpl.winnersCount,
           endAt: new Date(Date.now() + dur.ms),
         });

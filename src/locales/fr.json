@@ -149,6 +149,11 @@
   "template.empty": "Il n'y a pas encore de modèles.",
   "template.list_title": "📋 Modèles de giveaway",
   "template.entry": "`{name}` — **{title}** · {duration} · {winners} gagnant(s)",
+  "template.limit": "❌ Tu as déjà {max} modèles. Supprime-en un d'abord.",
+  "template.name_taken": "❌ Il existe déjà un modèle nommé `{name}`.",
+  "template.prizes": "Lots",
+  "log.template_saved": "📋 Modèle `{name}` enregistré par {user}.",
+  "log.template_deleted": "📋 Modèle `{name}` supprimé par {user}.",
   "template.deleted": "✅ Modèle `{name}` supprimé.",
   "template.not_found": "❌ Aucun modèle nommé `{name}`.",
 

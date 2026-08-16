@@ -149,6 +149,11 @@
   "template.empty": "Es gibt noch keine Vorlagen.",
   "template.list_title": "📋 Giveaway-Vorlagen",
   "template.entry": "`{name}` — **{title}** · {duration} · {winners} Gewinner",
+  "template.limit": "❌ Du hast bereits {max} Vorlagen. Lösche zuerst eine.",
+  "template.name_taken": "❌ Es gibt bereits eine Vorlage mit dem Namen `{name}`.",
+  "template.prizes": "Preise",
+  "log.template_saved": "📋 Vorlage `{name}` gespeichert von {user}.",
+  "log.template_deleted": "📋 Vorlage `{name}` gelöscht von {user}.",
   "template.deleted": "✅ Vorlage `{name}` gelöscht.",
   "template.not_found": "❌ Keine Vorlage mit dem Namen `{name}`.",
 

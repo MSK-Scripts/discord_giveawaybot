@@ -25,6 +25,10 @@ import {
 } from './giveawayService.js';
 import { verifySecret, listPackages } from './tebexService.js';
 import {
+  listTemplates, getTemplate, getTemplateById, saveTemplate, updateTemplateById,
+  deleteTemplateById, countTemplates, normalizeTemplateInput, serializeTemplate, MAX_TEMPLATES,
+} from './templateService.js';
+import {
   normalizePrizeInput, normalizePrizeMode, parsePrizes, serializePrizes,
   parseSlotNumbers, serializeSlotNumbers, parseSlotStrings, serializeSlotStrings, MAX_PRIZES,
 } from '../utils/prizes.js';
@@ -371,6 +375,52 @@ async function extendGiveawayEndpoint(client, guildId, body) {
   return { status: 200, body: { ok: true, endAt: newEndAt.toISOString() } };
 }
 
+// ── Vorlagen ────────────────────────────────────────────────────────────────
+// Dieselben Service-Funktionen wie /gtemplate, inklusive derselben Prüfung
+// (normalizeTemplateInput). Das Dashboard darf hier nichts erlauben, was der
+// Command ablehnt, und umgekehrt.
+
+async function saveTemplateEndpoint(client, guildId, body) {
+  const rawId = body?.id;
+  const editing = rawId !== undefined && rawId !== null && rawId !== '';
+
+  // Beim Bearbeiten zählt der bestehende Datensatz für alles, was nicht
+  // mitgeschickt wurde — sonst würde eine Änderung am Titel die Preise leeren.
+  const current = editing ? await getTemplateById(guildId, rawId) : null;
+  if (editing && !current) return { status: 404, body: { error: 'not_found' } };
+
+  const input = normalizeTemplateInput(body ?? {}, { partial: editing, current });
+  if (!input.ok) return { status: 400, body: { error: input.error } };
+
+  const settings = await getSettings(guildId);
+
+  if (editing) {
+    const res = await updateTemplateById(guildId, current.id, input.data);
+    if (!res.ok) return { status: res.error === 'name_taken' ? 409 : 404, body: { error: res.error } };
+    await sendGuildLog(client, settings, t(guildId, 'log.template_saved', { name: res.template.name, user: ACTOR }));
+    return { status: 200, body: { ok: true, template: serializeTemplate(res.template) } };
+  }
+
+  const existing = await getTemplate(guildId, input.data.name);
+  if (existing) return { status: 409, body: { error: 'name_taken' } };
+  if ((await countTemplates(guildId)) >= MAX_TEMPLATES) {
+    return { status: 409, body: { error: 'template_limit', max: MAX_TEMPLATES } };
+  }
+
+  const created = await saveTemplate(guildId, input.data);
+  await sendGuildLog(client, settings, t(guildId, 'log.template_saved', { name: created.name, user: ACTOR }));
+  return { status: 200, body: { ok: true, template: serializeTemplate(created) } };
+}
+
+async function deleteTemplateEndpoint(client, guildId, body) {
+  const tpl = await getTemplateById(guildId, body?.id);
+  if (!tpl) return { status: 404, body: { error: 'not_found' } };
+  await deleteTemplateById(guildId, tpl.id);
+  const settings = await getSettings(guildId);
+  await sendGuildLog(client, settings, t(guildId, 'log.template_deleted', { name: tpl.name, user: ACTOR }));
+  return { status: 200, body: { ok: true } };
+}
+
 async function lifecycleEndpoint(client, guildId, action, body) {
   const id = String(body?.id ?? '').trim().toUpperCase();
   if (!ID_RE.test(id)) return { status: 400, body: { error: 'invalid_id' } };
@@ -544,6 +594,9 @@ async function handle(client, req, res) {
     if (method === 'GET' && path === '/settings') return send(res, 200, { settings: publicSettings(await getSettings(guildId)) });
     if (method === 'GET' && path === '/roles') return send(res, 200, { roles: listRoles(client, guildId) });
     if (method === 'GET' && path === '/channels') return send(res, 200, { channels: listChannels(client, guildId) });
+    if (method === 'GET' && path === '/templates') {
+      return send(res, 200, { templates: (await listTemplates(guildId)).map(serializeTemplate) });
+    }
 
     // ── Tebex: alles hinter dem Guild-Besitzer ───────────────────────────────
     // Ein Plugin-Secret ist Vollzugriff auf den Store. Deshalb strenger als der
@@ -594,6 +647,12 @@ async function handle(client, req, res) {
     if (method === 'POST' && ['/giveaway/end', '/giveaway/cancel', '/giveaway/pause', '/giveaway/resume', '/giveaway/reroll'].includes(path)) {
       const action = path.split('/').pop();
       const r = await lifecycleEndpoint(client, guildId, action, body); return send(res, r.status, r.body);
+    }
+    if (method === 'POST' && path === '/template/save') {
+      const r = await saveTemplateEndpoint(client, guildId, body); return send(res, r.status, r.body);
+    }
+    if (method === 'POST' && path === '/template/delete') {
+      const r = await deleteTemplateEndpoint(client, guildId, body); return send(res, r.status, r.body);
     }
     if (method === 'POST' && path === '/settings') {
       const r = await updateSettingsEndpoint(guildId, body); return send(res, r.status, r.body);

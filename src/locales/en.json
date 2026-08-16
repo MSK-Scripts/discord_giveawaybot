@@ -149,6 +149,11 @@
   "template.empty": "There are no templates yet.",
   "template.list_title": "📋 Giveaway templates",
   "template.entry": "`{name}` — **{title}** · {duration} · {winners} winner(s)",
+  "template.limit": "❌ You already have {max} templates. Delete one first.",
+  "template.name_taken": "❌ There is already a template named `{name}`.",
+  "template.prizes": "Prizes",
+  "log.template_saved": "📋 Template `{name}` saved by {user}.",
+  "log.template_deleted": "📋 Template `{name}` deleted by {user}.",
   "template.deleted": "✅ Template `{name}` deleted.",
   "template.not_found": "❌ No template named `{name}`.",
 

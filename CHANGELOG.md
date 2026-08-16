@@ -2,6 +2,19 @@
 
 All notable changes to the **MSK Giveaway Bot**. Format based on [Keep a Changelog](https://keepachangelog.com).
 
+## [1.7.0]
+
+### Added
+- **Templates can be managed in the web dashboard.** They existed only as `/gtemplate` before, which meant typing a title, a description and a duration into slash options. The dashboard now has a **Templates** tab that creates, edits and deletes them in a form, and the create form has a **Use template** selector above it that fills in every field. The fields stay editable afterwards: a template is a starting point, not a fixed form.
+
+  New control endpoints `GET /templates`, `POST /template/save` and `POST /template/delete`, all going through the same `templateService` and the same validation as the slash command. The dashboard cannot save a template the command would reject, or the other way round.
+
+### Changed
+- **A template now carries the prize list and its distribution mode.** It could not since 1.5.0, and `/gtemplate use` created a giveaway with no prizes at all even though prizes were meant when the template was saved. New columns `prizes` and `prizeMode` on `GiveawayTemplate` (migration `20260816132014_template_prizes`), and `/gtemplate save` gained the optional `prizes` and `mode` options.
+
+  In "one prize per winner" mode the number of winners follows the prize list here too, so `winners` became optional on `/gtemplate save` and is rejected when it contradicts the list. Coupon settings deliberately stay out of templates: Tebex packages are stored as IDs of one specific store and would quietly go stale in a template kept for months.
+- Saving and deleting a template is written to the log channel, from the command and from the dashboard alike. Everything else in a giveaway's life was already logged.
+
 ## [1.6.1]
 
 ### Fixed

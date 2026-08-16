@@ -114,7 +114,7 @@ npm run test:db             # applies the migrations to it
 | `/gsettings set …` | ManageGuild | Set/add a setting: lang, color, emoji, button, blacklist, whitelist, bonus, minaccount, minmember, manager, notify, log, reminder, claim |
 | `/gsettings remove …` | ManageGuild | Remove/clear a setting: blacklist, whitelist, bonus, manager, notify, claim |
 | `/gpause` `/gresume` | Manager | Pause / resume a giveaway |
-| `/gtemplate save\|list\|delete\|use` | Manager | Giveaway templates |
+| `/gtemplate save\|list\|delete\|use` | Manager | Giveaway templates, including the prize list |
 
 "Manager" = **Manage Server** OR the configured `manager` role.
 
@@ -138,6 +138,7 @@ ViewChannel, SendMessages, EmbedLinks, ReadMessageHistory, UseExternalEmojis, Me
 ## Web dashboard & public results (msk-scripts.de)
 The official instance integrates with **msk-scripts.de**:
 - **Web dashboard** — `…/giveaway/dashboard` lets server admins (Discord login, Manage Server) create and fully manage giveaways and per-server settings from the browser. The shop proxies every action to a **localhost-only** HTTP control endpoint in the bot (`services/controlServer.js`, header `X-Control-Secret` = `CONTROL_SECRET`), so all Discord side-effects and the settings cache stay consistent. No public port is opened.
+- **Templates in the dashboard** — a **Templates** tab creates, edits and deletes them, and the create form has a **Use template** selector that fills every field (all of them stay editable). A template is a prepared giveaway without a channel and without an end date: title, description, duration, winners and the prize list with its mode. It deliberately carries no coupon settings, because Tebex package IDs belong to one specific store and would silently go stale in a template kept for months. Up to 50 per guild.
 - **Public results page** — when a giveaway ends, the bot pushes the winners (username) and the anonymous participant count to the shop (`RESULT_PUBLISH_URL`, `Authorization: Bearer ${RESULT_PUBLISH_SECRET}`), which hosts a results page at `…/giveaway/g/<token>` and links it in the results message + winner DMs. The full participant list is never published.
 
 - **Tebex winner coupons** — see below.
