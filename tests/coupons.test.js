@@ -14,6 +14,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { randomBytes } from 'node:crypto';
+import { MessageFlags } from 'discord.js';
 import { openTestDb, skipDb, cleanup, createTestGiveaway, addEntries, testGuildId } from './helpers/db.js';
 import { fakeClient, fakeGuild } from './helpers/discord.js';
 
@@ -31,6 +32,19 @@ if (!skip) i18n.loadLocales();
 
 const PLUGIN_SECRET = 'tebex-plugin-secret-abcdef123456';
 const STORE_URL = 'https://store.example.com';
+
+// Freitext des Veranstalters, so wie er im Dashboard eingetragen wird: samt URL,
+// denn genau dafür ist das Feld da.
+const MANUAL_NOTE = 'Einzulösen im Shop des Partners: https://partner.example.com';
+
+/**
+ * Steht der Hinweis unverändert als EIGENE Zeile in der DM?
+ *
+ * Bewusst ein Vergleich auf die ganze Zeile und kein `content.includes(...)`.
+ * Ein Teilstring-Vergleich auf etwas, das eine URL enthält, ist wertlos: davor
+ * und dahinter dürfte ein beliebiger Host stehen und der Test bliebe grün.
+ */
+const noteLine = (dm) => String(dm.payload.content).split('\n').includes(MANUAL_NOTE);
 
 // ── fetch-Stub ───────────────────────────────────────────────────────────────
 const realFetch = globalThis.fetch;
@@ -226,10 +240,9 @@ test('der Ersatz nach einem Reroll erbt die Pakete seines Slots', { skip }, asyn
 test('ein manuell eingetragener Code wird zugestellt, ohne Tebex zu fragen', { skip }, async () => {
   installStub();
   const guildId = testGuildId(); // absichtlich OHNE Store-Secret
-  const settings = await settingsService.getSettings(guildId);
   const gw = await createTestGiveaway(prisma, guildId, {
     couponManualCode: 'PARTNER-2026',
-    couponManualNote: 'Einzulösen bei partner.tebex.io',
+    couponManualNote: MANUAL_NOTE,
   });
   const users = await addEntries(prisma, gw.id, 1);
   const client = fakeClient({ guild: fakeGuild(users) });
@@ -240,7 +253,11 @@ test('ein manuell eingetragener Code wird zugestellt, ohne Tebex zu fragen', { s
   assert.equal(couponPosts().length, 0, 'für einen fremden Shop wird nichts erzeugt');
   const dm = client.dms.find((d) => d.userId === winnerIds[0]);
   assert.ok(dm.payload.content.includes('PARTNER-2026'), 'der Code steht in der DM');
-  assert.ok(dm.payload.content.includes('partner.tebex.io'), 'der Hinweis auch');
+  // Der Hinweis ist Freitext und wird unverändert übernommen, also wird die
+  // ganze Zeile verglichen. Ein Teilstring-Vergleich wäre schwächer: er bliebe
+  // grün, wenn davor oder dahinter etwas stünde.
+  assert.ok(noteLine(dm), 'der Hinweis steht unverändert darunter');
+  assert.equal(dm.payload.flags, MessageFlags.SuppressEmbeds, 'ohne Link-Vorschau');
 
   // Der Code gehört in die DM und nirgendwo sonst.
   for (const sent of client.sent) assert.ok(!String(sent.content).includes('PARTNER-2026'));
@@ -276,7 +293,7 @@ test('sind beide Coupons konfiguriert, stehen beide in der DM', { skip }, async 
     couponPercent: 100,
     couponValidDays: 1,
     couponManualCode: 'PARTNER-2026',
-    couponManualNote: 'Einzulösen bei partner.example.com',
+    couponManualNote: MANUAL_NOTE,
   });
   const users = await addEntries(prisma, gw.id, 1);
   const client = fakeClient({ guild: fakeGuild(users) });
@@ -291,7 +308,12 @@ test('sind beide Coupons konfiguriert, stehen beide in der DM', { skip }, async 
   const content = dm.payload.content;
   assert.ok(content.includes(row.code), 'der Code aus dem eigenen Store steht in der DM');
   assert.ok(content.includes('PARTNER-2026'), 'der feste Code auch');
-  assert.ok(content.includes('partner.example.com'), 'samt Hinweis');
+  assert.ok(noteLine(dm), 'samt Hinweis');
+  // Der Einlöse-Link des eigenen Stores steht ebenfalls drin, exakt verglichen.
+  assert.ok(
+    content.split('\n').includes(i18n.t(guildId, 'dm.coupon_store', { url: STORE_URL })),
+    'und der Link zum eigenen Store',
+  );
 
   // Keiner der beiden gehört in den öffentlichen Teil.
   for (const message of client.sent) {
