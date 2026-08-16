@@ -40,15 +40,35 @@ function rel(date) {
   return `<t:${Math.floor(ms / 1000)}:R>`;
 }
 
-/** Teilnahmebedingungen als Text (oder null, wenn keine gesetzt sind). */
-function requirementsValue(g, settings, giveaway) {
-  const eff = mergeGiveawayEligibility(settings, giveaway);
+/**
+ * Teilnahmebedingungen als Text (oder null, wenn keine gesetzt sind).
+ * @param {object} eff bereits zusammengeführte Bedingungen (mergeGiveawayEligibility)
+ */
+function requirementsValue(g, eff) {
   const parts = [];
   if (eff.whitelist?.length) parts.push(`${t(g, 'req.whitelist')}: ${eff.whitelist.map((id) => `<@&${id}>`).join(', ')}`);
   if (eff.blacklist?.length) parts.push(`${t(g, 'req.blacklist')}: ${eff.blacklist.map((id) => `<@&${id}>`).join(', ')}`);
-  if ((settings.minAccountDays ?? 0) > 0) parts.push(t(g, 'req.minaccount', { days: settings.minAccountDays }));
-  if ((settings.minMemberDays ?? 0) > 0) parts.push(t(g, 'req.minmember', { days: settings.minMemberDays }));
+  if ((eff.minAccountDays ?? 0) > 0) parts.push(t(g, 'req.minaccount', { days: eff.minAccountDays }));
+  if ((eff.minMemberDays ?? 0) > 0) parts.push(t(g, 'req.minmember', { days: eff.minMemberDays }));
   return parts.length ? parts.join('\n') : null;
+}
+
+/**
+ * Bonus-Lose als Text (oder null, wenn keine gesetzt sind).
+ *
+ * Bewusst ein eigenes Feld und keine weitere Zeile unter den Bedingungen: ein
+ * Bonus verbietet nichts, er erhöht nur die Chance. Unter der Überschrift
+ * "Bedingungen" würde er wie eine Hürde aussehen, und genau das Gegenteil soll
+ * ankommen — wer die Rolle hat, hat mehr davon.
+ * @param {object} eff bereits zusammengeführte Bedingungen (mergeGiveawayEligibility)
+ */
+function bonusValue(g, eff) {
+  const lines = Object.entries(eff.bonusRoles ?? {})
+    .filter(([, amount]) => Number(amount) > 0)
+    .sort((a, b) => Number(b[1]) - Number(a[1])) // der größte Bonus zuerst
+    .map(([id, amount]) => `<@&${id}> +${amount}`);
+  if (!lines.length) return null;
+  return `${lines.join('\n')}\n${t(g, 'req.bonus_hint')}`;
 }
 
 /**
@@ -109,8 +129,14 @@ export function buildGiveawayEmbed(giveaway, settings, { entryCount = 0 } = {}) 
 
   for (const field of prizeFields(g, giveaway)) embed.addFields(field);
 
-  const req = requirementsValue(g, settings, giveaway);
+  // Einmal zusammenführen, beide Felder lesen daraus (serverweit + je Giveaway).
+  const eff = mergeGiveawayEligibility(settings, giveaway);
+
+  const req = requirementsValue(g, eff);
   if (req) embed.addFields({ name: t(g, 'giveaway.field.requirements'), value: req.slice(0, 1024), inline: false });
+
+  const bonus = bonusValue(g, eff);
+  if (bonus) embed.addFields({ name: t(g, 'giveaway.field.bonus'), value: bonus.slice(0, 1024), inline: false });
 
   return embed;
 }

@@ -6,6 +6,7 @@ import { getSettings } from './settingsService.js';
 import { buildGiveawayEmbed, buildEndedEmbed, buildCancelledEmbed, buildButtonRow, buildResultContent, buildRerollContent } from '../utils/embeds.js';
 import { checkEligibility, ticketWeight, mergeGiveawayEligibility } from '../utils/eligibility.js';
 import { giveawayPrizes, prizesForWinner, assignPrizes, serializePrizes, normalizePrizeMode, inlinePrizes, bulletList } from '../utils/prizes.js';
+import { serializeRoleArray, serializeBonusRoles } from '../utils/roles.js';
 import { generateGiveawayId } from '../utils/id.js';
 import { publishResult } from './resultPublisher.js';
 import { issueCoupons, revokeCoupons, manualCodeForWinner } from './tebexService.js';
@@ -416,7 +417,10 @@ export async function sendGuildLog(client, settings, content) {
  * Bei Sende-Fehler wird der DB-Eintrag wieder entfernt (kein verwaistes Giveaway).
  * @returns {Promise<string>} die Giveaway-ID
  */
-export async function postGiveaway(client, channel, settings, { guildId, hostId, title, description, prizes = [], prizeMode = 'ALL', winnersCount, endAt }) {
+export async function postGiveaway(client, channel, settings, {
+  guildId, hostId, title, description, prizes = [], prizeMode = 'ALL', winnersCount, endAt,
+  blacklistRoles, whitelistRoles, bonusRoles,
+}) {
   const id = await generateGiveawayId();
   // Im INDIVIDUAL-Modus ist die Gewinnerzahl die Anzahl der Preise, nicht die
   // Eingabe. Hier zentral aufgelöst, damit keine Aufrufstelle es vergessen kann.
@@ -430,10 +434,16 @@ export async function postGiveaway(client, channel, settings, { guildId, hostId,
     const r = new Date(endAt.getTime() - reminderMin * 60000);
     if (r.getTime() > Date.now()) reminderAt = r;
   }
+  // Bedingungen je Giveaway gehören in den Datensatz, BEVOR die Nachricht rausgeht:
+  // Blacklist, Whitelist und Bonus-Lose stehen im Embed. Nachträglich gesetzt
+  // (wie die Coupon-Felder) würde die erste Fassung sie verschweigen.
   const giveaway = await createGiveaway({
     id, guildId, channelId: channel.id, hostId, title, description,
     prizes: serializePrizes(prizeList), prizeMode: mode,
     winnersCount: winners, endAt, status: 'ACTIVE', reminderAt,
+    blacklistRoles: blacklistRoles === undefined ? undefined : serializeRoleArray(blacklistRoles),
+    whitelistRoles: whitelistRoles === undefined ? undefined : serializeRoleArray(whitelistRoles),
+    bonusRoles: bonusRoles === undefined ? undefined : serializeBonusRoles(bonusRoles),
   });
   try {
     const content = settings.notifyRole ? `<@&${settings.notifyRole}>` : undefined;
@@ -466,6 +476,39 @@ export async function editActiveMessage(client, giveaway, settings, { disabled =
   } catch (err) {
     logger.warn(`editActiveMessage(${giveaway.id}):`, err?.message ?? err);
   }
+}
+
+// Serverweite Einstellungen, die im Embed eines laufenden Giveaways stehen.
+// Alles andere (Manager-Rolle, Log-Channel, Reminder, Claim-Text) ist unsichtbar
+// und braucht keinen Neuaufbau der Nachricht.
+export const EMBED_SETTINGS_KEYS = [
+  'lang', 'embedColor', 'buttonEmoji', 'buttonStyle',
+  'blacklist', 'whitelist', 'bonusRoles', 'minAccountDays', 'minMemberDays',
+];
+
+/**
+ * Baut die Nachrichten aller laufenden Giveaways einer Guild neu.
+ *
+ * Die serverweiten Bedingungen und Bonus-Lose stehen im Embed. Wer sie ändert,
+ * ändert damit die Anzeige jedes laufenden Giveaways — ohne diesen Aufruf steht
+ * dort weiter der alte Stand, und zwar bis zum nächsten Klick auf den
+ * Teilnahme-Button (der nur die Teilnehmerzahl anfasst) oder gar nicht mehr.
+ *
+ * @returns Anzahl der aufgefrischten Giveaways
+ */
+export async function refreshActiveEmbeds(client, guildId, settings) {
+  const rows = await prisma.giveaway.findMany({
+    where: { guildId, status: { in: ['ACTIVE', 'PAUSED'] } },
+  });
+  for (const giveaway of rows) {
+    // editActiveMessage loggt eigene Fehler und wirft nicht: eine gelöschte
+    // Nachricht darf die übrigen nicht aufhalten.
+    await editActiveMessage(client, giveaway, settings, {
+      disabled: giveaway.status !== 'ACTIVE',
+      paused: giveaway.status === 'PAUSED',
+    });
+  }
+  return rows.length;
 }
 
 /** Pausiert ein aktives Giveaway (Button deaktiviert, Timer eingefroren). */

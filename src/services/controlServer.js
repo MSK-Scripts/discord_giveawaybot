@@ -22,6 +22,8 @@ import {
   rerollAll,
   rerollSingle,
   sendGuildLog,
+  refreshActiveEmbeds,
+  EMBED_SETTINGS_KEYS,
 } from './giveawayService.js';
 import { verifySecret, listPackages } from './tebexService.js';
 import {
@@ -32,6 +34,9 @@ import {
   normalizePrizeInput, normalizePrizeMode, parsePrizes, serializePrizes,
   parseSlotNumbers, serializeSlotNumbers, parseSlotStrings, serializeSlotStrings, MAX_PRIZES,
 } from '../utils/prizes.js';
+import {
+  normalizeRoleArray, normalizeBonusRoles, serializeRoleArray, serializeBonusRoles,
+} from '../utils/roles.js';
 import { encryptSecret, decryptSecret, secretHint, checkEncryptionKey } from '../utils/secretBox.js';
 import { parseDuration } from '../utils/duration.js';
 import { t } from '../utils/i18n.js';
@@ -147,6 +152,46 @@ function serializeGiveaway(g, extra = {}) {
     couponValidDays: g.couponValidDays ?? null,
     ...extra,
   };
+}
+
+/**
+ * Prüft die Bedingungs-Felder je Giveaway aus dem Dashboard.
+ *
+ * Dieselben drei Angaben gibt es serverweit in den Settings; hier kommen die
+ * zusätzlichen dazu, die nur für dieses eine Giveaway gelten. Zusammengeführt
+ * wird erst beim Prüfen und Anzeigen (mergeGiveawayEligibility).
+ *
+ * Rückgabe sind die geprüften Werte als Array/Objekt, nicht als JSON-Text:
+ * `postGiveaway` braucht sie so, und `serializeEligibility` macht daraus die
+ * Spaltenwerte fürs Update.
+ * @returns {{ ok: true, values: object } | { ok: false, error: string }}
+ */
+function parseEligibilityInput(body) {
+  const values = {};
+
+  for (const key of ['blacklistRoles', 'whitelistRoles']) {
+    if (!Object.prototype.hasOwnProperty.call(body, key)) continue;
+    const res = normalizeRoleArray(body[key]);
+    if (!res.ok) return { ok: false, error: res.error };
+    values[key] = res.roles;
+  }
+
+  if (Object.prototype.hasOwnProperty.call(body, 'bonusRoles')) {
+    const res = normalizeBonusRoles(body.bonusRoles);
+    if (!res.ok) return { ok: false, error: res.error };
+    values.bonusRoles = res.bonus;
+  }
+
+  return { ok: true, values };
+}
+
+/** Geprüfte Bedingungs-Werte -> Spaltenwerte (JSON-Text). */
+function serializeEligibility(values) {
+  const data = {};
+  if (values.blacklistRoles) data.blacklistRoles = serializeRoleArray(values.blacklistRoles);
+  if (values.whitelistRoles) data.whitelistRoles = serializeRoleArray(values.whitelistRoles);
+  if (values.bonusRoles) data.bonusRoles = serializeBonusRoles(values.bonusRoles);
+  return data;
 }
 
 /**
@@ -278,6 +323,9 @@ async function createGiveawayEndpoint(client, guildId, body) {
   const coupon = parseCouponInput(body || {});
   if (!coupon.ok) return { status: 400, body: { error: coupon.error } };
 
+  const elig = parseEligibilityInput(body || {});
+  if (!elig.ok) return { status: 400, body: { error: elig.error } };
+
   const settings = await getSettings(guildId);
   const endAt = new Date(Date.now() + dur.ms);
   const id = await postGiveaway(client, channel, settings, {
@@ -289,6 +337,7 @@ async function createGiveawayEndpoint(client, guildId, body) {
     prizeMode: prizeInput.mode,
     winnersCount: prizeInput.winnersCount,
     endAt,
+    ...elig.values, // stehen im Embed, müssen also vor dem Posten im Datensatz sein
   });
 
   // Coupon-Konfiguration nachtragen: sie steht in keinem Embed, die Nachricht
@@ -336,6 +385,10 @@ async function editGiveawayEndpoint(client, guildId, body) {
   const coupon = parseCouponInput(body);
   if (!coupon.ok) return { status: 400, body: { error: coupon.error } };
   Object.assign(data, coupon.data);
+
+  const elig = parseEligibilityInput(body);
+  if (!elig.ok) return { status: 400, body: { error: elig.error } };
+  Object.assign(data, serializeEligibility(elig.values));
 
   if (Object.keys(data).length === 0) return { status: 400, body: { error: 'nothing' } };
 
@@ -463,13 +516,33 @@ async function lifecycleEndpoint(client, guildId, action, body) {
   }
 }
 
-async function updateSettingsEndpoint(guildId, body) {
+async function updateSettingsEndpoint(client, guildId, body) {
   const partial = {};
   for (const k of SETTINGS_KEYS) {
     if (body && Object.prototype.hasOwnProperty.call(body, k)) partial[k] = body[k];
   }
   if (Object.keys(partial).length === 0) return { status: 400, body: { error: 'nothing' } };
+
+  // Die drei Rollen-Felder werden geprüft statt roh in die Spalte geschrieben.
+  // Sie landen als JSON-Text in der DB, und eine kaputte Rollen-ID fällt dort
+  // nicht auf: sie greift einfach nie, und niemand erfährt warum.
+  for (const key of ['blacklist', 'whitelist']) {
+    if (!Object.prototype.hasOwnProperty.call(partial, key)) continue;
+    const res = normalizeRoleArray(partial[key]);
+    if (!res.ok) return { status: 400, body: { error: res.error } };
+    partial[key] = res.roles;
+  }
+  if (Object.prototype.hasOwnProperty.call(partial, 'bonusRoles')) {
+    const res = normalizeBonusRoles(partial.bonusRoles);
+    if (!res.ok) return { status: 400, body: { error: res.error } };
+    partial.bonusRoles = res.bonus;
+  }
   const updated = await updateSettings(guildId, partial);
+
+  // Steht die Änderung im Embed, müssen die laufenden Giveaways nachziehen.
+  if (Object.keys(partial).some((k) => EMBED_SETTINGS_KEYS.includes(k))) {
+    await refreshActiveEmbeds(client, guildId, updated);
+  }
   return { status: 200, body: { ok: true, settings: publicSettings(updated) } };
 }
 
@@ -655,7 +728,7 @@ async function handle(client, req, res) {
       const r = await deleteTemplateEndpoint(client, guildId, body); return send(res, r.status, r.body);
     }
     if (method === 'POST' && path === '/settings') {
-      const r = await updateSettingsEndpoint(guildId, body); return send(res, r.status, r.body);
+      const r = await updateSettingsEndpoint(client, guildId, body); return send(res, r.status, r.body);
     }
 
     return send(res, 404, { error: 'not_found' });

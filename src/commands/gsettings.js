@@ -6,8 +6,11 @@ import {
   setGiveawayWhitelistRoles,
   setGiveawayBonusRoles,
   sendGuildLog,
+  refreshActiveEmbeds,
+  editActiveMessage,
 } from '../services/giveawayService.js';
 import { buildSettingsEmbed } from '../utils/embeds.js';
+import { logger } from '../utils/logger.js';
 import { isValidEmoji } from '../utils/emoji.js';
 import { t, SUPPORTED_LANGS } from '../utils/i18n.js';
 
@@ -164,8 +167,32 @@ export default {
     // Jede tatsächliche Änderung in den Log-Channel schreiben (mit Akteur).
     const actor = `<@${interaction.user.id}>`;
     const logChange = (detail) => void sendGuildLog(client, settings, t(guildId, 'log.setting', { user: actor, detail }));
-    const applyReply = (content) => {
+
+    // Bedingungen, Bonus-Lose, Farbe und Button stehen im Embed laufender
+    // Giveaways. Bewusst NACH der Antwort und ohne await: die Interaktion muss
+    // in drei Sekunden beantwortet sein, und bei mehreren Giveaways dauert das
+    // Auffrischen länger als das. Die Settings werden dabei frisch gelesen,
+    // `settings` in dieser Closure ist der Stand von vor der Änderung.
+    const refreshEmbeds = () => {
+      getSettings(guildId)
+        .then((fresh) => refreshActiveEmbeds(client, guildId, fresh))
+        .catch((err) => logger.warn(`gsettings refresh(${guildId}):`, err?.message ?? err));
+    };
+
+    /** Nur das eine Giveaway auffrischen (bei `giveaway_id`). */
+    const refreshOne = (giveaway) => {
+      if (!giveaway || (giveaway.status !== 'ACTIVE' && giveaway.status !== 'PAUSED')) return;
+      getSettings(guildId)
+        .then((fresh) => editActiveMessage(client, giveaway, fresh, {
+          disabled: giveaway.status !== 'ACTIVE',
+          paused: giveaway.status === 'PAUSED',
+        }))
+        .catch((err) => logger.warn(`gsettings refreshOne(${giveaway.id}):`, err?.message ?? err));
+    };
+
+    const applyReply = (content, { embed = false } = {}) => {
       logChange(content);
+      if (embed) refreshEmbeds();
       return reply(content);
     };
 
@@ -214,7 +241,12 @@ export default {
 
       const suffix = gid ? t(guildId, 'settings.scope.giveaway', { id: gid }) : '';
       const content = t(guildId, key, { role: roleMention }) + suffix;
-      if (changed) logChange(content);
+      if (changed) {
+        logChange(content);
+        // Die Bedingungen stehen im Embed: je nach Umfang eines oder alle.
+        if (gid) refreshOne(giveaway);
+        else refreshEmbeds();
+      }
       return reply(content);
     };
 
@@ -226,27 +258,36 @@ export default {
       const suffix = gid ? t(guildId, 'settings.scope.giveaway', { id: gid }) : '';
 
       let bonus;
+      let giveaway = null;
       if (gid) {
-        const giveaway = await getGiveaway(gid, guildId);
+        giveaway = await getGiveaway(gid, guildId);
         if (!giveaway) return reply(t(guildId, 'error.not_found'));
         bonus = parseObj(giveaway.bonusRoles);
       } else {
         bonus = { ...(settings.bonusRoles ?? {}) };
       }
 
+      // Die Bonus-Lose stehen im Embed, deshalb wird es danach aufgefrischt.
+      const done = (content) => {
+        if (!gid) return applyReply(content, { embed: true });
+        logChange(content);
+        refreshOne(giveaway);
+        return reply(content);
+      };
+
       if (mode === 'set') {
         const amount = interaction.options.getInteger('amount', true);
         bonus[role.id] = amount;
         if (gid) await setGiveawayBonusRoles(gid, bonus);
         else await updateSettings(guildId, { bonusRoles: bonus });
-        return applyReply(t(guildId, 'settings.set.bonus_set', { role: roleMention, amount }) + suffix);
+        return done(t(guildId, 'settings.set.bonus_set', { role: roleMention, amount }) + suffix);
       }
       // remove
       if (!(role.id in bonus)) return reply(t(guildId, 'settings.remove.bonus_absent', { role: roleMention }) + suffix);
       delete bonus[role.id];
       if (gid) await setGiveawayBonusRoles(gid, bonus);
       else await updateSettings(guildId, { bonusRoles: bonus });
-      return applyReply(t(guildId, 'settings.set.bonus_removed', { role: roleMention }) + suffix);
+      return done(t(guildId, 'settings.set.bonus_removed', { role: roleMention }) + suffix);
     };
 
     // ── SET ──────────────────────────────────────────────────────────────────
@@ -255,25 +296,25 @@ export default {
         case 'lang': {
           const value = interaction.options.getString('value', true);
           await updateSettings(guildId, { lang: value });
-          return applyReply(t(value, 'settings.set.lang', { lang: value }));
+          return applyReply(t(value, 'settings.set.lang', { lang: value }), { embed: true });
         }
         case 'color': {
           const raw = interaction.options.getString('value', true).trim();
           if (!/^#?[0-9a-fA-F]{6}$/.test(raw)) return reply(t(guildId, 'settings.set.color_invalid'));
           const color = (raw.startsWith('#') ? raw : `#${raw}`).toLowerCase();
           await updateSettings(guildId, { embedColor: color });
-          return applyReply(t(guildId, 'settings.set.color', { color }));
+          return applyReply(t(guildId, 'settings.set.color', { color }), { embed: true });
         }
         case 'emoji': {
           const value = interaction.options.getString('value', true).trim();
           if (!isValidEmoji(value)) return reply(t(guildId, 'settings.set.emoji_invalid'));
           await updateSettings(guildId, { buttonEmoji: value });
-          return applyReply(t(guildId, 'settings.set.emoji', { emoji: value }));
+          return applyReply(t(guildId, 'settings.set.emoji', { emoji: value }), { embed: true });
         }
         case 'button': {
           const value = interaction.options.getString('value', true);
           await updateSettings(guildId, { buttonStyle: value });
-          return applyReply(t(guildId, 'settings.set.button', { style: value }));
+          return applyReply(t(guildId, 'settings.set.button', { style: value }), { embed: true });
         }
         case 'blacklist':
           return handleRoleList('blacklist', 'add');
@@ -294,12 +335,12 @@ export default {
         case 'minaccount': {
           const days = interaction.options.getInteger('days', true);
           await updateSettings(guildId, { minAccountDays: days });
-          return applyReply(days > 0 ? t(guildId, 'settings.set.minaccount_set', { days }) : t(guildId, 'settings.set.minaccount_off'));
+          return applyReply(days > 0 ? t(guildId, 'settings.set.minaccount_set', { days }) : t(guildId, 'settings.set.minaccount_off'), { embed: true });
         }
         case 'minmember': {
           const days = interaction.options.getInteger('days', true);
           await updateSettings(guildId, { minMemberDays: days });
-          return applyReply(days > 0 ? t(guildId, 'settings.set.minmember_set', { days }) : t(guildId, 'settings.set.minmember_off'));
+          return applyReply(days > 0 ? t(guildId, 'settings.set.minmember_set', { days }) : t(guildId, 'settings.set.minmember_off'), { embed: true });
         }
         case 'log': {
           const channel = interaction.options.getChannel('channel', true);

@@ -184,6 +184,8 @@
   "req.blacklist": "Roles bloqueados",
   "req.minaccount": "Edad mín. de cuenta: {days} día(s)",
   "req.minmember": "Antigüedad mín.: {days} día(s)",
+  "giveaway.field.bonus": "Boletos extra",
+  "req.bonus_hint": "Estos roles reciben boletos adicionales, así que tienen más probabilidades de ganar.",
 
   "dm.winner": "🎉 ¡Felicidades! Has ganado **{prize}** en **{guild}**.",
   "dm.winner_link": "🔗 Ver el sorteo: {link}",

@@ -1,16 +1,16 @@
 # Graph Report - discord_giveaway  (2026-08-16)
 
 ## Corpus Check
-- 88 files · ~87,913 words
+- 91 files · ~91,967 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 456 nodes · 1327 edges · 29 communities (26 shown, 3 thin omitted)
-- Extraction: 98% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 19 edges (avg confidence: 0.81)
+- 483 nodes · 1410 edges · 30 communities (27 shown, 3 thin omitted)
+- Extraction: 98% EXTRACTED · 2% INFERRED · 0% AMBIGUOUS · INFERRED: 22 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `e52f15f2`
+- Built from commit: `510b59f0`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -18,7 +18,7 @@
 - logger.js
 - prizes.test.js
 - Project Dependencies and Config
-- gsettings.js
+- cleanupService.js
 - giveawayService.js
 - controlServer.js
 - t
@@ -37,18 +37,19 @@
 - Test Database Setup
 - secret-box.test.js
 - changelog-section.js
+- roles.js
 
 ## God Nodes (most connected - your core abstractions)
-1. `t()` - 66 edges
+1. `t()` - 67 edges
 2. `getSettings()` - 52 edges
 3. `normalizePrizeMode()` - 30 edges
 4. `handle()` - 27 edges
 5. `getGiveaway()` - 26 edges
 6. `sendGuildLog()` - 24 edges
-7. `rerollSingle()` - 19 edges
-8. `logger` - 19 edges
+7. `logger` - 20 edges
+8. `rerollSingle()` - 19 edges
 9. `isManager()` - 19 edges
-10. `execute()` - 16 edges
+10. `postGiveaway()` - 17 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `GitHub Sponsors Funding (MSK-Scripts)` --conceptually_related_to--> `Discord Giveaway Bot`  [AMBIGUOUS]
@@ -70,39 +71,39 @@
 - **Defense-in-Depth Security Model** — security_least_privilege_intents, security_server_side_authorization, security_prisma_parameterized_queries, security_systemd_sandbox_hardening, security_secrets_in_env_only, security_supply_chain_controls [EXTRACTED 1.00]
 - **msk-shop Web Dashboard Integration Flow** — readme_web_dashboard, readme_localhost_control_endpoint, readme_public_results_page, changelog_shared_service_layer_extraction, changelog_scope_bound_oauth_session [EXTRACTED 1.00]
 
-## Communities (29 total, 3 thin omitted)
+## Communities (30 total, 3 thin omitted)
 
 ### Community 0 - "logger.js"
-Cohesion: 0.08
-Nodes (36): __dirname, main(), __dirname, fail(), main(), ok(), SRC, client (+28 more)
+Cohesion: 0.11
+Nodes (27): __dirname, main(), __dirname, fail(), main(), ok(), SRC, client (+19 more)
 
 ### Community 1 - "prizes.test.js"
-Cohesion: 0.12
-Nodes (25): calls, guildWithStore(), giveawayWithEntries(), NO_LIMITS, users, addEntries(), cleanup(), createTestGiveaway() (+17 more)
+Cohesion: 0.10
+Nodes (29): call(), createGiveaway(), editFor(), embedData(), calls, guildWithStore(), giveawayWithEntries(), NO_LIMITS (+21 more)
 
 ### Community 2 - "Project Dependencies and Config"
 Cohesion: 0.06
 Nodes (34): discord.js, dotenv, nanoid, author, dependencies, discord.js, dotenv, nanoid (+26 more)
 
-### Community 3 - "gsettings.js"
-Cohesion: 0.27
-Nodes (11): BUTTON_CHOICES, execute(), parseArr(), parseObj(), setGiveawayBlacklistRoles(), setGiveawayBonusRoles(), setGiveawayWhitelistRoles(), updateSettings() (+3 more)
+### Community 3 - "cleanupService.js"
+Cohesion: 0.21
+Nodes (11): prisma, execute(), execute(), deleteGuildData(), purgeOrphanedGuilds(), startMaintenance(), storedGuildIds(), deleteGuildResults() (+3 more)
 
 ### Community 4 - "giveawayService.js"
-Cohesion: 0.11
-Nodes (48): execute(), execute(), execute(), addOrRemoveEntry(), cancelGiveaway(), createGiveaway(), dmWinners(), drawWinners() (+40 more)
+Cohesion: 0.10
+Nodes (55): execute(), execute(), execute(), execute(), addOrRemoveEntry(), cancelGiveaway(), countEntries(), dmWinners() (+47 more)
 
 ### Community 5 - "controlServer.js"
 Cohesion: 0.08
-Nodes (60): execute(), REQUIRED_PERMS, execute(), REQUIRED_PERMS, prisma, clearTebex(), createGiveawayEndpoint(), deleteTemplateEndpoint() (+52 more)
+Nodes (64): execute(), REQUIRED_PERMS, execute(), REQUIRED_PERMS, clearTebex(), createGiveawayEndpoint(), editGiveawayEndpoint(), getGiveawayDetail() (+56 more)
 
 ### Community 6 - "t"
-Cohesion: 0.10
-Nodes (48): execute(), execute(), execute(), execute(), execute(), execute(), execute(), execute() (+40 more)
+Cohesion: 0.09
+Nodes (54): execute(), execute(), execute(), execute(), execute(), execute(), execute(), PERMISSIONS (+46 more)
 
 ### Community 7 - "tebexService.js"
-Cohesion: 0.16
-Nodes (20): revealTebexSecret(), setTebexSecret(), couponConfigured(), couponPackagesForWinner(), formatExpiry(), generateCouponCode(), issueCoupons(), issueOne() (+12 more)
+Cohesion: 0.17
+Nodes (19): setTebexSecret(), couponConfigured(), couponPackagesForWinner(), formatExpiry(), generateCouponCode(), issueCoupons(), issueOne(), nanoCode (+11 more)
 
 ### Community 8 - "Project Contribution Guidelines"
 Cohesion: 0.20
@@ -148,12 +149,16 @@ Nodes (5): `Entry`, `Giveaway`, `GuildSettings`, `Winner`, `GiveawayCoupon`
 Cohesion: 0.43
 Nodes (5): candidates(), CHANGELOG, __dirname, extractSection(), __dirname
 
+### Community 29 - "roles.js"
+Cohesion: 0.25
+Nodes (10): serializeEligibility(), MAX_BONUS_AMOUNT, MAX_BONUS_ROLES, MAX_ROLES, MIN_BONUS_AMOUNT, parseBonusRoles(), parseRoleArray(), safeJson() (+2 more)
+
 ## Ambiguous Edges - Review These
 - `GitHub Sponsors Funding (MSK-Scripts)` → `Discord Giveaway Bot`  [AMBIGUOUS]
   .github/FUNDING.yml · relation: conceptually_related_to
 
 ## Knowledge Gaps
-- **78 isolated node(s):** `__dirname`, `name`, `version`, `description`, `type` (+73 more)
+- **80 isolated node(s):** `__dirname`, `name`, `version`, `description`, `type` (+75 more)
   These have ≤1 connection - possible missing edges or undocumented components.
 - **3 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
@@ -162,15 +167,15 @@ _Questions this graph is uniquely positioned to answer:_
 
 - **What is the exact relationship between `GitHub Sponsors Funding (MSK-Scripts)` and `Discord Giveaway Bot`?**
   _Edge tagged AMBIGUOUS (relation: conceptually_related_to) - confidence is low._
-- **Why does `openTestDb()` connect `prizes.test.js` to `controlServer.js`?**
-  _High betweenness centrality (0.057) - this node is a cross-community bridge._
-- **Why does `t()` connect `t` to `gsettings.js`, `giveawayService.js`, `controlServer.js`?**
-  _High betweenness centrality (0.040) - this node is a cross-community bridge._
-- **Why does `getSettings()` connect `t` to `gsettings.js`, `giveawayService.js`, `controlServer.js`?**
-  _High betweenness centrality (0.030) - this node is a cross-community bridge._
+- **Why does `openTestDb()` connect `prizes.test.js` to `cleanupService.js`?**
+  _High betweenness centrality (0.062) - this node is a cross-community bridge._
+- **Why does `t()` connect `t` to `logger.js`, `giveawayService.js`, `controlServer.js`?**
+  _High betweenness centrality (0.041) - this node is a cross-community bridge._
+- **Why does `getSettings()` connect `t` to `logger.js`, `giveawayService.js`, `controlServer.js`?**
+  _High betweenness centrality (0.028) - this node is a cross-community bridge._
 - **What connects `__dirname`, `name`, `version` to the rest of the system?**
-  _78 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _80 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `logger.js` be split into smaller, more focused modules?**
-  _Cohesion score 0.08163265306122448 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.11261261261261261 - nodes in this community are weakly interconnected._
 - **Should `prizes.test.js` be split into smaller, more focused modules?**
-  _Cohesion score 0.12156448202959831 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.1036734693877551 - nodes in this community are weakly interconnected._

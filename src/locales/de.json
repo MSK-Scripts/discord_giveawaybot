@@ -184,6 +184,8 @@
   "req.blacklist": "Gesperrte Rollen",
   "req.minaccount": "Min. Account-Alter: {days} Tag(e)",
   "req.minmember": "Min. Zugehörigkeit: {days} Tag(e)",
+  "giveaway.field.bonus": "Bonus-Lose",
+  "req.bonus_hint": "Diese Rollen bekommen zusätzliche Lose und damit eine höhere Gewinnchance.",
 
   "dm.winner": "🎉 Glückwunsch! Du hast **{prize}** in **{guild}** gewonnen.",
   "dm.winner_link": "🔗 Zum Giveaway: {link}",

@@ -184,6 +184,8 @@
   "req.blacklist": "Blocked roles",
   "req.minaccount": "Min. account age: {days} day(s)",
   "req.minmember": "Min. membership: {days} day(s)",
+  "giveaway.field.bonus": "Bonus entries",
+  "req.bonus_hint": "These roles get extra entries, so their chance to win is higher.",
 
   "dm.winner": "🎉 Congratulations! You won **{prize}** in **{guild}**.",
   "dm.winner_link": "🔗 View the giveaway: {link}",

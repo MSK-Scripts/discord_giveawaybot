@@ -120,6 +120,20 @@ npm run test:db             # applies the migrations to it
 
 `set`/`remove blacklist`, `whitelist` and `bonus` accept an optional `giveaway_id` to scope a role to a single giveaway (in addition to the server-wide values). See the **[documentation](https://docu.msk-scripts.de/discord/discord_giveaway/configuration)** for the full command and configuration reference.
 
+## Entry conditions and bonus entries
+
+Three settings decide who may join and how much weight an entry carries. Each exists **server-wide** and **per giveaway**, and the two are combined rather than replacing one another: role lists are merged, bonus entries added up per role.
+
+| Setting | Effect |
+|---|---|
+| Blacklist | Holding one of these roles blocks entry |
+| Whitelist | At least one of these roles is required (empty = no requirement) |
+| Bonus entries | 1 to 100 extra entries per role, weighting the draw |
+
+All three can be set with `/gsettings` (optionally with `giveaway_id`) and in the **web dashboard**: server-wide in the settings tab, per giveaway in the create form and when editing a running one.
+
+Bonus entries appear in the giveaway message as their own **Bonus entries** field, so the extra chance is visible to everyone instead of only showing up in the draw. It is kept apart from the requirements field on purpose: a bonus forbids nothing, it only improves the odds. Changing any of this later updates the messages of running giveaways.
+
 ## Prizes
 
 A giveaway can carry up to 20 prizes — one per line in the modal's prize field, or separated by `|` in `/gedit prizes:…`. The `mode` option decides how they are handed out:
@@ -139,6 +153,7 @@ ViewChannel, SendMessages, EmbedLinks, ReadMessageHistory, UseExternalEmojis, Me
 The official instance integrates with **msk-scripts.de**:
 - **Web dashboard** — `…/giveaway/dashboard` lets server admins (Discord login, Manage Server) create and fully manage giveaways and per-server settings from the browser. The shop proxies every action to a **localhost-only** HTTP control endpoint in the bot (`services/controlServer.js`, header `X-Control-Secret` = `CONTROL_SECRET`), so all Discord side-effects and the settings cache stay consistent. No public port is opened.
 - **Templates in the dashboard** — a **Templates** tab creates, edits and deletes them, and the create form has a **Use template** selector that fills every field (all of them stay editable). A template is a prepared giveaway without a channel and without an end date: title, description, duration, winners and the prize list with its mode. It deliberately carries no coupon settings, because Tebex package IDs belong to one specific store and would silently go stale in a template kept for months. Up to 50 per guild.
+- **Entry conditions in the dashboard** — blacklist, whitelist and bonus entries per role, server-wide in the settings tab and per giveaway in the create and edit forms. See [Entry conditions and bonus entries](#entry-conditions-and-bonus-entries).
 - **Public results page** — when a giveaway ends, the bot pushes the winners (username) and the anonymous participant count to the shop (`RESULT_PUBLISH_URL`, `Authorization: Bearer ${RESULT_PUBLISH_SECRET}`), which hosts a results page at `…/giveaway/g/<token>` and links it in the results message + winner DMs. The full participant list is never published.
 
 - **Tebex winner coupons** — see below.

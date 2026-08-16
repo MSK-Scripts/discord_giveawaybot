@@ -2,6 +2,21 @@
 
 All notable changes to the **MSK Giveaway Bot**. Format based on [Keep a Changelog](https://keepachangelog.com).
 
+## [1.8.0]
+
+### Added
+- **Bonus entries are shown in the giveaway message.** A role could grant extra entries since 1.3, but nothing said so anywhere: the people who had the higher chance never learned about it, and the people who could get the role had no reason to. The active giveaway embed now carries a **Bonus entries** field listing every role with its extra entries and one line explaining what that means.
+
+  It is a field of its own, not another line under "Requirements". A bonus forbids nothing, it only raises the chance, and under that heading it would read like a hurdle instead of an advantage. Server-wide and per-giveaway bonus entries are added up first, so the field shows what actually counts in the draw. No bonus roles configured, no field.
+- **Bonus entries can be set in the web dashboard**, per role with its own number, in the settings tab. They were reachable only through `/gsettings bonus` before.
+- **Blacklist, whitelist and bonus entries can be set per giveaway in the dashboard**, in the create form and when editing a running giveaway. All three existed per giveaway in the database and in `/gsettings … giveaway_id`, but the dashboard could neither show nor change them.
+
+  They come on top of the server-wide settings rather than replacing them: role lists are merged, bonus entries added up per role. The create endpoint writes them **before** the message goes out, so the first version of the embed already names the conditions instead of showing them only after the next edit.
+
+### Changed
+- **Changing a server-wide setting now updates the running giveaways.** Blacklist, whitelist, bonus entries, minimum ages, embed color and button style all appear in the message of every active giveaway, and until now that message kept the state from when it was posted. Both the dashboard and `/gsettings` refresh the affected messages afterwards, and settings that appear in no embed (log channel, manager role, reminder, claim text) still touch nothing.
+- **Role input from the dashboard is validated instead of being written through.** A malformed role ID used to land in the JSON column as it came in, where it simply never matched: the condition looked saved and did nothing. Role lists, bonus roles and bonus amounts (whole numbers from 1 to 100, the same range `/gsettings` allows) are now checked, and a bad value is answered with an error rather than stored.
+
 ## [1.7.0]
 
 ### Added

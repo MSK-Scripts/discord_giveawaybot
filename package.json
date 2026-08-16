@@ -1,6 +1,6 @@
 {
   "name": "discord-giveaway-bot",
-  "version": "1.7.0",
+  "version": "1.8.0",
   "description": "Discord Giveaway Bot (discord.js v14, Prisma/MariaDB, mehrsprachig) — MSK Scripts",
   "type": "module",
   "main": "src/index.js",
