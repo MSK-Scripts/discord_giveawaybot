@@ -5,10 +5,12 @@ import {
   setGiveawayBlacklistRoles,
   setGiveawayWhitelistRoles,
   setGiveawayBonusRoles,
+  resetGiveawayEligibility,
   sendGuildLog,
   refreshActiveEmbeds,
   editActiveMessage,
 } from '../services/giveawayService.js';
+import { overrides, listToEdit, bonusToEdit } from '../utils/eligibility.js';
 import { buildSettingsEmbed } from '../utils/embeds.js';
 import { logger } from '../utils/logger.js';
 import { isValidEmoji } from '../utils/emoji.js';
@@ -20,24 +22,6 @@ const BUTTON_CHOICES = [
   { name: 'Success (Green)', value: 'SUCCESS' },
   { name: 'Danger (Red)', value: 'DANGER' },
 ];
-
-function parseArr(value) {
-  try {
-    const v = JSON.parse(value ?? '[]');
-    return Array.isArray(v) ? v : [];
-  } catch {
-    return [];
-  }
-}
-
-function parseObj(value) {
-  try {
-    const v = JSON.parse(value ?? '{}');
-    return v && typeof v === 'object' && !Array.isArray(v) ? v : {};
-  } catch {
-    return {};
-  }
-}
 
 export default {
   data: new SlashCommandBuilder()
@@ -148,7 +132,13 @@ export default {
         .addSubcommand((s) =>
           s.setName('notify').setDescription('Remove the notify role').addRoleOption((o) => o.setName('role').setDescription('Role').setRequired(true)),
         )
-        .addSubcommand((s) => s.setName('claim').setDescription('Remove the claim instructions')),
+        .addSubcommand((s) => s.setName('claim').setDescription('Remove the claim instructions'))
+        .addSubcommand((s) =>
+          s
+            .setName('conditions')
+            .setDescription('Drop a giveaway\'s own conditions so the server settings apply again')
+            .addStringOption((o) => o.setName('giveaway_id').setDescription('Giveaway ID').setRequired(true)),
+        ),
     ),
 
   async execute(client, interaction) {
@@ -207,13 +197,19 @@ export default {
       const gid = interaction.options.getString('giveaway_id', false)?.trim().toUpperCase();
       const roleMention = `<@&${role.id}>`;
 
-      // Liste lesen (per Giveaway oder serverweit)
+      // Liste lesen (per Giveaway oder serverweit).
+      //
+      // Je Giveaway gilt: hat das Giveaway noch nichts Eigenes, wird beim ersten
+      // Eingriff die serverweite Liste übernommen und dann geändert. Ohne diese
+      // Kopie würde ein einzelnes `add` die ganze Server-Liste ersetzen — der
+      // Aufrufer wollte eine Rolle ergänzen, nicht alle übrigen abschalten.
       let list;
       let giveaway = null;
       if (gid) {
         giveaway = await getGiveaway(gid, guildId);
         if (!giveaway) return reply(t(guildId, 'error.not_found'));
-        list = parseArr(kind === 'blacklist' ? giveaway.blacklistRoles : giveaway.whitelistRoles);
+        const own = kind === 'blacklist' ? giveaway.blacklistRoles : giveaway.whitelistRoles;
+        list = listToEdit(own, settings[kind]);
       } else {
         list = Array.isArray(settings[kind]) ? [...settings[kind]] : [];
       }
@@ -230,10 +226,15 @@ export default {
 
       // Speichern (nur wenn sich etwas geändert hat)
       const changed = key.endsWith('_added') || key.endsWith('_removed');
+      // Der Rückgabewert der Setter ist der GEÄNDERTE Datensatz. Mit dem alten
+      // baut editActiveMessage das Embed aus den Werten von vor der Änderung,
+      // die gerade gesetzte Rolle stünde dort also nicht.
+      let saved = giveaway;
       if (changed) {
         if (gid) {
-          if (kind === 'blacklist') await setGiveawayBlacklistRoles(gid, list);
-          else await setGiveawayWhitelistRoles(gid, list);
+          saved = kind === 'blacklist'
+            ? await setGiveawayBlacklistRoles(gid, list)
+            : await setGiveawayWhitelistRoles(gid, list);
         } else {
           await updateSettings(guildId, { [kind]: list });
         }
@@ -244,7 +245,7 @@ export default {
       if (changed) {
         logChange(content);
         // Die Bedingungen stehen im Embed: je nach Umfang eines oder alle.
-        if (gid) refreshOne(giveaway);
+        if (gid) refreshOne(saved);
         else refreshEmbeds();
       }
       return reply(content);
@@ -257,37 +258,38 @@ export default {
       const gid = interaction.options.getString('giveaway_id', false)?.trim().toUpperCase();
       const suffix = gid ? t(guildId, 'settings.scope.giveaway', { id: gid }) : '';
 
+      // Wie bei den Rollen-Listen: das erste Setzen an einem Giveaway übernimmt
+      // die serverweiten Bonus-Lose und ändert dann daran.
       let bonus;
       let giveaway = null;
       if (gid) {
         giveaway = await getGiveaway(gid, guildId);
         if (!giveaway) return reply(t(guildId, 'error.not_found'));
-        bonus = parseObj(giveaway.bonusRoles);
+        bonus = bonusToEdit(giveaway.bonusRoles, settings.bonusRoles);
       } else {
         bonus = { ...(settings.bonusRoles ?? {}) };
       }
 
-      // Die Bonus-Lose stehen im Embed, deshalb wird es danach aufgefrischt.
-      const done = (content) => {
+      // Die Bonus-Lose stehen im Embed, deshalb wird es danach aufgefrischt —
+      // mit dem gespeicherten Datensatz, nicht mit dem Stand von vorher.
+      const done = (content, saved) => {
         if (!gid) return applyReply(content, { embed: true });
         logChange(content);
-        refreshOne(giveaway);
+        refreshOne(saved ?? giveaway);
         return reply(content);
       };
 
       if (mode === 'set') {
         const amount = interaction.options.getInteger('amount', true);
         bonus[role.id] = amount;
-        if (gid) await setGiveawayBonusRoles(gid, bonus);
-        else await updateSettings(guildId, { bonusRoles: bonus });
-        return done(t(guildId, 'settings.set.bonus_set', { role: roleMention, amount }) + suffix);
+        const saved = gid ? await setGiveawayBonusRoles(gid, bonus) : await updateSettings(guildId, { bonusRoles: bonus });
+        return done(t(guildId, 'settings.set.bonus_set', { role: roleMention, amount }) + suffix, gid ? saved : null);
       }
       // remove
       if (!(role.id in bonus)) return reply(t(guildId, 'settings.remove.bonus_absent', { role: roleMention }) + suffix);
       delete bonus[role.id];
-      if (gid) await setGiveawayBonusRoles(gid, bonus);
-      else await updateSettings(guildId, { bonusRoles: bonus });
-      return done(t(guildId, 'settings.set.bonus_removed', { role: roleMention }) + suffix);
+      const saved = gid ? await setGiveawayBonusRoles(gid, bonus) : await updateSettings(guildId, { bonusRoles: bonus });
+      return done(t(guildId, 'settings.set.bonus_removed', { role: roleMention }) + suffix, gid ? saved : null);
     };
 
     // ── SET ──────────────────────────────────────────────────────────────────
@@ -387,6 +389,22 @@ export default {
         case 'claim': {
           await updateSettings(guildId, { claimMessage: null });
           return applyReply(t(guildId, 'settings.set.claim_cleared'));
+        }
+        case 'conditions': {
+          // Der Weg zurück: die eigenen Bedingungen des Giveaways fallen weg,
+          // ab da gilt wieder die serverweite Einstellung. Eine leere Liste tut
+          // das NICHT — die wäre ein eigener Wert und würde alles abschalten.
+          const gid = interaction.options.getString('giveaway_id', true).trim().toUpperCase();
+          const giveaway = await getGiveaway(gid, guildId);
+          if (!giveaway) return reply(t(guildId, 'error.not_found'));
+          const hadOwn = overrides(giveaway.blacklistRoles) || overrides(giveaway.whitelistRoles) || overrides(giveaway.bonusRoles);
+          if (!hadOwn) return reply(t(guildId, 'settings.remove.conditions_none', { id: gid }));
+          const saved = await resetGiveawayEligibility(gid);
+          const content = t(guildId, 'settings.remove.conditions_reset', { id: gid });
+          logChange(content);
+          // Die Bedingungen stehen im Embed dieses einen Giveaways.
+          refreshOne(saved);
+          return reply(content);
         }
         default:
           return reply(t(guildId, 'error.generic'));

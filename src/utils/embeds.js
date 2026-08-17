@@ -7,7 +7,7 @@ import {
 } from 'discord.js';
 import { t } from './i18n.js';
 import { parseEmoji } from './emoji.js';
-import { mergeGiveawayEligibility } from './eligibility.js';
+import { resolveGiveawayEligibility } from './eligibility.js';
 import {
   giveawayPrizes,
   normalizePrizeMode,
@@ -42,7 +42,7 @@ function rel(date) {
 
 /**
  * Teilnahmebedingungen als Text (oder null, wenn keine gesetzt sind).
- * @param {object} eff bereits zusammengeführte Bedingungen (mergeGiveawayEligibility)
+ * @param {object} eff bereits aufgelöste Bedingungen (resolveGiveawayEligibility)
  */
 function requirementsValue(g, eff) {
   const parts = [];
@@ -60,7 +60,7 @@ function requirementsValue(g, eff) {
  * Bonus verbietet nichts, er erhöht nur die Chance. Unter der Überschrift
  * "Bedingungen" würde er wie eine Hürde aussehen, und genau das Gegenteil soll
  * ankommen — wer die Rolle hat, hat mehr davon.
- * @param {object} eff bereits zusammengeführte Bedingungen (mergeGiveawayEligibility)
+ * @param {object} eff bereits aufgelöste Bedingungen (resolveGiveawayEligibility)
  */
 function bonusValue(g, eff) {
   const lines = Object.entries(eff.bonusRoles ?? {})
@@ -129,8 +129,10 @@ export function buildGiveawayEmbed(giveaway, settings, { entryCount = 0 } = {}) 
 
   for (const field of prizeFields(g, giveaway)) embed.addFields(field);
 
-  // Einmal zusammenführen, beide Felder lesen daraus (serverweit + je Giveaway).
-  const eff = mergeGiveawayEligibility(settings, giveaway);
+  // Einmal auflösen, beide Felder lesen daraus. Was das Giveaway selbst setzt,
+  // steht hier statt der serverweiten Einstellung — sonst würde im Embed eine
+  // Bedingung stehen, die für dieses Giveaway gar nicht gilt.
+  const eff = resolveGiveawayEligibility(settings, giveaway);
 
   const req = requirementsValue(g, eff);
   if (req) embed.addFields({ name: t(g, 'giveaway.field.requirements'), value: req.slice(0, 1024), inline: false });

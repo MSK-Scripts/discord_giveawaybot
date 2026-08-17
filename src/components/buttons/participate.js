@@ -2,7 +2,7 @@
 import { MessageFlags } from 'discord.js';
 import { getGiveaway, addOrRemoveEntry, scheduleEmbedRefresh } from '../../services/giveawayService.js';
 import { getSettings } from '../../services/settingsService.js';
-import { checkEligibility, mergeGiveawayEligibility } from '../../utils/eligibility.js';
+import { checkEligibility, resolveGiveawayEligibility } from '../../utils/eligibility.js';
 import { t } from '../../utils/i18n.js';
 
 export default {
@@ -26,8 +26,8 @@ export default {
     const settings = await getSettings(guildId);
     const member = interaction.member;
     if (member) {
-      // Serverweite + per-Giveaway Blacklist/Whitelist berücksichtigen.
-      const effective = mergeGiveawayEligibility(settings, giveaway);
+      // Eigene Bedingungen des Giveaways gehen vor, sonst gelten die serverweiten.
+      const effective = resolveGiveawayEligibility(settings, giveaway);
       const elig = checkEligibility(member, effective);
       if (!elig.ok) {
         return interaction.reply({ content: t(guildId, elig.reason, elig.vars), flags: MessageFlags.Ephemeral });

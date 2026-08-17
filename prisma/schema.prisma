@@ -55,6 +55,12 @@ model GiveawayTemplate {
   // ausmacht, und /gtemplate use legte eines ganz ohne Preise an.
   prizes       String   @default("[]") @db.Text
   prizeMode    String   @default("ALL")
+  // Teilnahmebedingungen wie beim Giveaway, mit derselben Bedeutung von NULL:
+  // NULL = die Vorlage sagt nichts dazu, das daraus erzeugte Giveaway übernimmt
+  // die serverweite Einstellung. Gesetzt = die Vorlage bringt ihre eigene mit.
+  blacklistRoles String? @db.Text
+  whitelistRoles String? @db.Text
+  bonusRoles     String? @db.Text
   createdAt    DateTime @default(now())
   updatedAt    DateTime @default(now()) @updatedAt
 
@@ -83,9 +89,15 @@ model Giveaway {
   pausedAt     DateTime? // Zeitpunkt der Pausierung (zum Verlängern von endAt beim Resume)
   reminderAt   DateTime? // Zeitpunkt für den "Ending soon"-Reminder (null = kein Reminder)
   reminderSent Boolean   @default(false) // ob der Reminder schon gepostet wurde
-  blacklistRoles String  @default("[]") @db.Text // JSON-Array: zusätzliche Blacklist-Rollen NUR für dieses Giveaway
-  whitelistRoles String  @default("[]") @db.Text // JSON-Array: zusätzliche Whitelist-Rollen NUR für dieses Giveaway
-  bonusRoles     String  @default("{}") @db.Text // JSON-Objekt RoleId->Bonus-Lose NUR für dieses Giveaway (additiv zu Guild)
+  // ── Teilnahmebedingungen dieses Giveaways ──────────────────────────────────
+  // NULL heißt "nichts eigenes gesetzt", dann gilt die serverweite Einstellung
+  // aus GuildSettings. Ist ein Feld gesetzt, ERSETZT es die serverweite für
+  // dieses Giveaway — auch als leere Liste, das ist dann ein bewusstes "hier
+  // gilt keine". Die drei Felder sind unabhängig: ein Giveaway kann die
+  // Blacklist überschreiben und die Bonus-Lose weiter erben.
+  blacklistRoles String? @db.Text // JSON-Array von Role-IDs
+  whitelistRoles String? @db.Text // JSON-Array von Role-IDs
+  bonusRoles     String? @db.Text // JSON-Objekt RoleId->Bonus-Lose
   // ── Automatischer Tebex-Coupon für die Gewinner ────────────────────────────
   // Pro Giveaway konfiguriert (nur im Web-Dashboard). Jeder Gewinner bekommt
   // einen EIGENEN Code. couponPercent = null schaltet das Feature für dieses

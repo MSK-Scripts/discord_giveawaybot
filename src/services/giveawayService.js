@@ -4,7 +4,7 @@ import { prisma } from '../database/prisma.js';
 import { logger } from '../utils/logger.js';
 import { getSettings } from './settingsService.js';
 import { buildGiveawayEmbed, buildEndedEmbed, buildCancelledEmbed, buildButtonRow, buildResultContent, buildRerollContent } from '../utils/embeds.js';
-import { checkEligibility, ticketWeight, mergeGiveawayEligibility } from '../utils/eligibility.js';
+import { checkEligibility, ticketWeight, resolveGiveawayEligibility } from '../utils/eligibility.js';
 import { giveawayPrizes, prizesForWinner, assignPrizes, serializePrizes, normalizePrizeMode, inlinePrizes, bulletList } from '../utils/prizes.js';
 import { serializeRoleArray, serializeBonusRoles } from '../utils/roles.js';
 import { generateGiveawayId } from '../utils/id.js';
@@ -20,6 +20,11 @@ export async function getGiveaway(id, guildId) {
   return prisma.giveaway.findFirst({ where: { id, guildId } });
 }
 
+// Die drei Setter schreiben die Bedingungen EINES Giveaways. Was hier landet,
+// gilt statt der serverweiten Einstellung — auch eine leere Liste, die heißt
+// "für dieses Giveaway gilt keine". Zurück zur Server-Einstellung geht es nur
+// über resetGiveawayEligibility.
+
 /** Per-Giveaway Blacklist-Rollen setzen (Array -> JSON). */
 export async function setGiveawayBlacklistRoles(id, roles) {
   return prisma.giveaway.update({ where: { id }, data: { blacklistRoles: JSON.stringify(roles) } });
@@ -33,6 +38,19 @@ export async function setGiveawayWhitelistRoles(id, roles) {
 /** Per-Giveaway Bonus-Lose setzen (Objekt RoleId->Anzahl -> JSON). */
 export async function setGiveawayBonusRoles(id, bonus) {
   return prisma.giveaway.update({ where: { id }, data: { bonusRoles: JSON.stringify(bonus) } });
+}
+
+/**
+ * Alle drei Bedingungen des Giveaways zurück auf die serverweite Einstellung.
+ *
+ * NULL statt leerer Liste: eine leere Liste wäre ein eigener Wert und würde die
+ * Server-Einstellung genauso überschreiben, nur eben mit "nichts".
+ */
+export async function resetGiveawayEligibility(id) {
+  return prisma.giveaway.update({
+    where: { id },
+    data: { blacklistRoles: null, whitelistRoles: null, bonusRoles: null },
+  });
 }
 
 export async function listActive(guildId) {
@@ -133,8 +151,8 @@ export async function drawWinners(giveaway, guild, settings, { exclude = [] } = 
     membersMap = null;
   }
 
-  // Serverweite + per-Giveaway Blacklist/Whitelist zusammenführen.
-  const effective = mergeGiveawayEligibility(settings, giveaway);
+  // Eigene Bedingungen des Giveaways gehen vor, sonst gelten die serverweiten.
+  const effective = resolveGiveawayEligibility(settings, giveaway);
 
   // Gültige Teilnehmer mit Gewicht (1 + Bonus-Lose) sammeln.
   const tickets = []; // userId pro Los (gewichtet)
@@ -437,13 +455,16 @@ export async function postGiveaway(client, channel, settings, {
   // Bedingungen je Giveaway gehören in den Datensatz, BEVOR die Nachricht rausgeht:
   // Blacklist, Whitelist und Bonus-Lose stehen im Embed. Nachträglich gesetzt
   // (wie die Coupon-Felder) würde die erste Fassung sie verschweigen.
+  //
+  // Nichts übergeben heißt NULL, also "es gilt die serverweite Einstellung".
+  // Eine übergebene (auch leere) Liste ersetzt sie für dieses Giveaway.
   const giveaway = await createGiveaway({
     id, guildId, channelId: channel.id, hostId, title, description,
     prizes: serializePrizes(prizeList), prizeMode: mode,
     winnersCount: winners, endAt, status: 'ACTIVE', reminderAt,
-    blacklistRoles: blacklistRoles === undefined ? undefined : serializeRoleArray(blacklistRoles),
-    whitelistRoles: whitelistRoles === undefined ? undefined : serializeRoleArray(whitelistRoles),
-    bonusRoles: bonusRoles === undefined ? undefined : serializeBonusRoles(bonusRoles),
+    blacklistRoles: blacklistRoles == null ? null : serializeRoleArray(blacklistRoles),
+    whitelistRoles: whitelistRoles == null ? null : serializeRoleArray(whitelistRoles),
+    bonusRoles: bonusRoles == null ? null : serializeBonusRoles(bonusRoles),
   });
   try {
     const content = settings.notifyRole ? `<@&${settings.notifyRole}>` : undefined;

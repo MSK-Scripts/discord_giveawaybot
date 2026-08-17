@@ -3,7 +3,9 @@
  */
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { checkEligibility, ticketWeight, mergeGiveawayEligibility } from '../src/utils/eligibility.js';
+import {
+  checkEligibility, ticketWeight, resolveGiveawayEligibility, overrides, listToEdit, bonusToEdit,
+} from '../src/utils/eligibility.js';
 import { fakeMember } from './helpers/discord.js';
 
 const BLOCKED = 'role-blocked';
@@ -57,26 +59,78 @@ test('bonus roles add tickets, everyone starts with one', () => {
   assert.equal(ticketWeight(both, { bonusRoles: { [BONUS]: 'nope', [ALLOWED]: -5 } }), 1);
 });
 
-test('per-giveaway roles merge with the server-wide ones', () => {
+test('per-giveaway roles replace the server-wide ones', () => {
   const settings = { blacklist: ['g-black'], whitelist: ['g-white'], bonusRoles: { [BONUS]: 2 } };
   const giveaway = {
     blacklistRoles: JSON.stringify(['gw-black']),
-    whitelistRoles: JSON.stringify(['g-white', 'gw-white']),
+    whitelistRoles: JSON.stringify(['gw-white']),
     bonusRoles: JSON.stringify({ [BONUS]: 3, 'gw-bonus': 1 }),
   };
 
-  const merged = mergeGiveawayEligibility(settings, giveaway);
-  assert.deepEqual(merged.blacklist, ['g-black', 'gw-black'], 'union');
-  assert.deepEqual(merged.whitelist, ['g-white', 'gw-white'], 'union without duplicates');
-  assert.deepEqual(merged.bonusRoles, { [BONUS]: 5, 'gw-bonus': 1 }, 'bonus tickets are added up per role');
+  const eff = resolveGiveawayEligibility(settings, giveaway);
+  assert.deepEqual(eff.blacklist, ['gw-black'], 'the server-wide role does not come along');
+  assert.deepEqual(eff.whitelist, ['gw-white']);
+  assert.deepEqual(eff.bonusRoles, { [BONUS]: 3, 'gw-bonus': 1 }, 'not added to the server-wide 2');
+});
+
+test('a field the giveaway does not set keeps the server-wide value', () => {
+  const settings = { blacklist: ['g-black'], whitelist: ['g-white'], bonusRoles: { [BONUS]: 2 } };
+
+  // Every field on its own: null means "nothing of its own here".
+  const nothing = resolveGiveawayEligibility(settings, { blacklistRoles: null, whitelistRoles: null, bonusRoles: null });
+  assert.deepEqual(nothing.blacklist, ['g-black']);
+  assert.deepEqual(nothing.whitelist, ['g-white']);
+  assert.deepEqual(nothing.bonusRoles, { [BONUS]: 2 });
+
+  // Mixed: an own blacklist, the rest inherited.
+  const mixed = resolveGiveawayEligibility(settings, { blacklistRoles: JSON.stringify(['gw-black']) });
+  assert.deepEqual(mixed.blacklist, ['gw-black']);
+  assert.deepEqual(mixed.whitelist, ['g-white'], 'untouched fields stay server-wide');
+  assert.deepEqual(mixed.bonusRoles, { [BONUS]: 2 });
+});
+
+test('an empty list is an override, not an absent one', () => {
+  // This is the whole point of the distinction: a giveaway may switch the
+  // server-wide blacklist off for itself.
+  const settings = { blacklist: ['g-black'], whitelist: ['g-white'], bonusRoles: { [BONUS]: 2 } };
+  const eff = resolveGiveawayEligibility(settings, {
+    blacklistRoles: '[]', whitelistRoles: '[]', bonusRoles: '{}',
+  });
+  assert.deepEqual(eff.blacklist, []);
+  assert.deepEqual(eff.whitelist, []);
+  assert.deepEqual(eff.bonusRoles, {});
+
+  assert.equal(overrides('[]'), true);
+  assert.equal(overrides(null), false);
+  assert.equal(overrides(undefined), false);
+  assert.equal(overrides(''), false, 'an old empty string means the same as NULL');
+});
+
+test('the first single change to a giveaway starts from the server-wide list', () => {
+  // /gsettings … giveaway_id changes one role at a time. Starting from an empty
+  // list would turn "add one role" into "switch all the others off".
+  assert.deepEqual(listToEdit(null, ['g-black']), ['g-black'], 'copied, not empty');
+  assert.deepEqual(listToEdit(JSON.stringify(['gw-black']), ['g-black']), ['gw-black'], 'its own list wins');
+  assert.deepEqual(listToEdit('[]', ['g-black']), [], 'a deliberate empty list stays empty');
+
+  assert.deepEqual(bonusToEdit(null, { [BONUS]: 2 }), { [BONUS]: 2 });
+  assert.deepEqual(bonusToEdit(JSON.stringify({ [BONUS]: 4 }), { [BONUS]: 2 }), { [BONUS]: 4 });
+
+  // The copy must not be the same object, otherwise editing it would change the
+  // cached server settings on the side.
+  const server = ['g-black'];
+  listToEdit(null, server).push('extra');
+  assert.deepEqual(server, ['g-black']);
 });
 
 test('unreadable JSON columns fall back to empty instead of throwing', () => {
-  const merged = mergeGiveawayEligibility(
-    { blacklist: [], whitelist: [], bonusRoles: {} },
+  const eff = resolveGiveawayEligibility(
+    { blacklist: ['g-black'], whitelist: [], bonusRoles: {} },
     { blacklistRoles: 'not json', whitelistRoles: '{"not":"an array"}', bonusRoles: '[1,2]' },
   );
-  assert.deepEqual(merged.blacklist, []);
-  assert.deepEqual(merged.whitelist, []);
-  assert.deepEqual(merged.bonusRoles, {});
+  // Broken but present: the field counts as set, so the server-wide list does
+  // not slip back in through the back door.
+  assert.deepEqual(eff.blacklist, []);
+  assert.deepEqual(eff.whitelist, []);
+  assert.deepEqual(eff.bonusRoles, {});
 });

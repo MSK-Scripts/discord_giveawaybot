@@ -112,17 +112,17 @@ npm run test:db             # applies the migrations to it
 | `/ginvite` | everyone | Invite link |
 | `/gsettings show` | ManageGuild | Show settings |
 | `/gsettings set …` | ManageGuild | Set/add a setting: lang, color, emoji, button, blacklist, whitelist, bonus, minaccount, minmember, manager, notify, log, reminder, claim |
-| `/gsettings remove …` | ManageGuild | Remove/clear a setting: blacklist, whitelist, bonus, manager, notify, claim |
+| `/gsettings remove …` | ManageGuild | Remove/clear a setting: blacklist, whitelist, bonus, manager, notify, claim, conditions |
 | `/gpause` `/gresume` | Manager | Pause / resume a giveaway |
-| `/gtemplate save\|list\|delete\|use` | Manager | Giveaway templates, including the prize list |
+| `/gtemplate save\|from\|list\|delete\|use` | Manager | Giveaway templates, including prizes and entry conditions |
 
 "Manager" = **Manage Server** OR the configured `manager` role.
 
-`set`/`remove blacklist`, `whitelist` and `bonus` accept an optional `giveaway_id` to scope a role to a single giveaway (in addition to the server-wide values). See the **[documentation](https://docu.msk-scripts.de/discord/discord_giveaway/configuration)** for the full command and configuration reference.
+`set`/`remove blacklist`, `whitelist` and `bonus` accept an optional `giveaway_id` to scope a role to a single giveaway. See the **[documentation](https://docu.msk-scripts.de/discord/discord_giveaway/configuration)** for the full command and configuration reference.
 
 ## Entry conditions and bonus entries
 
-Three settings decide who may join and how much weight an entry carries. Each exists **server-wide** and **per giveaway**, and the two are combined rather than replacing one another: role lists are merged, bonus entries added up per role.
+Three settings decide who may join and how much weight an entry carries. Each exists **server-wide** and **per giveaway**, and what a giveaway sets **replaces** the server-wide value for that giveaway — per setting, so a giveaway can bring its own blacklist and still inherit the bonus entries.
 
 | Setting | Effect |
 |---|---|
@@ -130,7 +130,9 @@ Three settings decide who may join and how much weight an entry carries. Each ex
 | Whitelist | At least one of these roles is required (empty = no requirement) |
 | Bonus entries | 1 to 100 extra entries per role, weighting the draw |
 
-All three can be set with `/gsettings` (optionally with `giveaway_id`) and in the **web dashboard**: server-wide in the settings tab, per giveaway in the create form and when editing a running one.
+A giveaway that sets nothing follows the server settings, including later changes to them. That is a different state from an empty list, which means "no such condition applies here" and is how a single giveaway runs without a server-wide rule. `/gsettings remove conditions giveaway_id:<ID>` goes back to following the server settings.
+
+All three can be set with `/gsettings` (optionally with `giveaway_id`) and in the **web dashboard**: server-wide in the settings tab, per giveaway in the create form and when editing a running one. The per-giveaway fields are prefilled with the server settings, so what the form shows is what will apply. Changing a role through `/gsettings … giveaway_id` starts from the server list as well, rather than replacing it with that one role.
 
 Bonus entries appear in the giveaway message as their own **Bonus entries** field, so the extra chance is visible to everyone instead of only showing up in the draw. It is kept apart from the requirements field on purpose: a bonus forbids nothing, it only improves the odds. Changing any of this later updates the messages of running giveaways.
 
@@ -152,7 +154,8 @@ ViewChannel, SendMessages, EmbedLinks, ReadMessageHistory, UseExternalEmojis, Me
 ## Web dashboard & public results (msk-scripts.de)
 The official instance integrates with **msk-scripts.de**:
 - **Web dashboard** — `…/giveaway/dashboard` lets server admins (Discord login, Manage Server) create and fully manage giveaways and per-server settings from the browser. The shop proxies every action to a **localhost-only** HTTP control endpoint in the bot (`services/controlServer.js`, header `X-Control-Secret` = `CONTROL_SECRET`), so all Discord side-effects and the settings cache stay consistent. No public port is opened.
-- **Templates in the dashboard** — a **Templates** tab creates, edits and deletes them, and the create form has a **Use template** selector that fills every field (all of them stay editable). A template is a prepared giveaway without a channel and without an end date: title, description, duration, winners and the prize list with its mode. It deliberately carries no coupon settings, because Tebex package IDs belong to one specific store and would silently go stale in a template kept for months. Up to 50 per guild.
+- **Templates in the dashboard** — a **Templates** tab creates, edits and deletes them, and the create form has a **Use template** selector that fills every field (all of them stay editable). A template is a prepared giveaway without a channel and without an end date: title, description, duration, winners, the prize list with its mode and, optionally, its own entry conditions. It deliberately carries no coupon settings, because Tebex package IDs belong to one specific store and would silently go stale in a template kept for months. Up to 50 per guild.
+- **Save a giveaway as a template** — every giveaway in the dashboard has a **Save as template** button, `/gtemplate from giveaway_id:<ID>` does the same in Discord. Title, description, prizes, mode, winners and the entry conditions are taken over; the duration is the span between creation and planned end. Works for running giveaways too, and an existing name is overwritten.
 - **Entry conditions in the dashboard** — blacklist, whitelist and bonus entries per role, server-wide in the settings tab and per giveaway in the create and edit forms. See [Entry conditions and bonus entries](#entry-conditions-and-bonus-entries).
 - **Public results page** — when a giveaway ends, the bot pushes the winners (username) and the anonymous participant count to the shop (`RESULT_PUBLISH_URL`, `Authorization: Bearer ${RESULT_PUBLISH_SECRET}`), which hosts a results page at `…/giveaway/g/<token>` and links it in the results message + winner DMs. The full participant list is never published.
 

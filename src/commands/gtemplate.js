@@ -2,9 +2,10 @@ import { SlashCommandBuilder, MessageFlags, EmbedBuilder, PermissionFlagsBits } 
 import { getSettings } from '../services/settingsService.js';
 import {
   saveTemplate, listTemplates, getTemplate, deleteTemplate, countTemplates,
-  normalizeTemplateInput, MAX_TEMPLATES,
+  normalizeTemplateInput, templateInputFromGiveaway, templateEligibility,
+  MAX_TEMPLATES, MAX_TEMPLATE_NAME,
 } from '../services/templateService.js';
-import { postGiveaway, sendGuildLog } from '../services/giveawayService.js';
+import { postGiveaway, sendGuildLog, getGiveaway } from '../services/giveawayService.js';
 import { isManager } from '../utils/permissions.js';
 import { parseDuration } from '../utils/duration.js';
 import { resolveColor } from '../utils/embeds.js';
@@ -42,6 +43,13 @@ export default {
               { name: 'One prize per winner', value: 'INDIVIDUAL' },
             ),
         ),
+    )
+    .addSubcommand((s) =>
+      s
+        .setName('from')
+        .setDescription('Save an existing giveaway as a template')
+        .addStringOption((o) => o.setName('giveaway_id').setDescription('Giveaway ID').setRequired(true))
+        .addStringOption((o) => o.setName('name').setDescription('Template name (defaults to the giveaway title)').setRequired(false)),
     )
     .addSubcommand((s) => s.setName('list').setDescription('List all templates'))
     .addSubcommand((s) =>
@@ -97,6 +105,30 @@ export default {
       return reply(t(guildId, 'template.saved', { name }));
     }
 
+    if (sub === 'from') {
+      const gid = interaction.options.getString('giveaway_id', true).trim().toUpperCase();
+      const giveaway = await getGiveaway(gid, guildId);
+      if (!giveaway) return reply(t(guildId, 'error.not_found'));
+
+      // Ohne eigenen Namen der Titel des Giveaways: das ist der Name, den sonst
+      // ohnehin jeder eintippt, und er passt in die Namensgrenze.
+      const name = (interaction.options.getString('name') ?? giveaway.title).trim().slice(0, MAX_TEMPLATE_NAME);
+      const input = normalizeTemplateInput(templateInputFromGiveaway(giveaway, name));
+      if (!input.ok) {
+        if (input.error === 'invalid_duration') return reply(t(guildId, 'create.invalid_duration'));
+        return reply(t(guildId, 'error.generic'));
+      }
+
+      const existing = await getTemplate(guildId, input.data.name);
+      if (!existing && (await countTemplates(guildId)) >= MAX_TEMPLATES) {
+        return reply(t(guildId, 'template.limit', { max: MAX_TEMPLATES }));
+      }
+
+      await saveTemplate(guildId, input.data);
+      await sendGuildLog(client, settings, t(guildId, 'log.template_from', { name: input.data.name, id: gid, user: `<@${interaction.user.id}>` }));
+      return reply(t(guildId, existing ? 'template.from_overwritten' : 'template.from_saved', { name: input.data.name, id: gid }));
+    }
+
     if (sub === 'list') {
       const templates = await listTemplates(guildId);
       if (!templates.length) return reply(t(guildId, 'template.empty'));
@@ -113,6 +145,13 @@ export default {
               // Die Preise stehen in einer zweiten Zeile: sie können lang werden
               // und würden die Übersicht sonst unlesbar machen.
               if (prizes.length) line += `\n   ${t(guildId, 'template.prizes')}: ${inlinePrizes(prizes)}`;
+              // Nur der Hinweis, dass die Vorlage eigene Bedingungen mitbringt.
+              // Welche das sind, steht im Dashboard — hier wären es drei weitere
+              // Zeilen voller Rollen-Erwähnungen je Vorlage.
+              const own = templateEligibility(tpl);
+              if (own.blacklistRoles || own.whitelistRoles || own.bonusRoles) {
+                line += `\n   ${t(guildId, 'template.conditions')}`;
+              }
               return line;
             })
             .join('\n'),
@@ -144,8 +183,10 @@ export default {
       }
 
       try {
-        // Preise und Modus reisen mit. postGiveaway leitet die Gewinnerzahl im
-        // INDIVIDUAL-Modus selbst aus der Preisliste ab.
+        // Preise, Modus und Bedingungen reisen mit. postGiveaway leitet die
+        // Gewinnerzahl im INDIVIDUAL-Modus selbst aus der Preisliste ab, und
+        // Bedingungen, zu denen die Vorlage nichts sagt, bleiben null: dann gilt
+        // die serverweite Einstellung.
         const id = await postGiveaway(client, channel, settings, {
           guildId,
           hostId: interaction.user.id,
@@ -155,6 +196,7 @@ export default {
           prizeMode: tpl.prizeMode,
           winnersCount: tpl.winnersCount,
           endAt: new Date(Date.now() + dur.ms),
+          ...templateEligibility(tpl),
         });
         return reply(t(guildId, 'create.success', { id }));
       } catch (err) {

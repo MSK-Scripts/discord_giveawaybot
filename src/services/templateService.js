@@ -2,10 +2,15 @@
  * Giveaway-Vorlagen pro Guild (CRUD).
  *
  * Eine Vorlage ist ein vorbereitetes Giveaway ohne Kanal und ohne Endzeitpunkt:
- * Titel, Beschreibung, Dauer, Gewinnerzahl und seit v1.7.0 auch die Preisliste
- * samt Verteilmodus. Ohne die Preise könnte sie seit v1.5.0 nicht mehr abbilden,
- * was ein Giveaway ausmacht — `/gtemplate use` legte bis dahin eines ganz ohne
- * Preise an, obwohl beim Speichern welche gemeint waren.
+ * Titel, Beschreibung, Dauer, Gewinnerzahl, seit v1.7.0 die Preisliste samt
+ * Verteilmodus und seit v1.9.0 die Teilnahmebedingungen. Ohne die Preise könnte
+ * sie seit v1.5.0 nicht mehr abbilden, was ein Giveaway ausmacht — `/gtemplate
+ * use` legte bis dahin eines ganz ohne Preise an, obwohl beim Speichern welche
+ * gemeint waren.
+ *
+ * Eine Vorlage entsteht von Hand oder aus einem gelaufenen Giveaway
+ * (`templateInputFromGiveaway`). Der zweite Weg ist der übliche: was einmal gut
+ * lief, soll sich wiederholen lassen, ohne alles abzuschreiben.
  *
  * Angelegt wird über den Namen (eindeutig je Guild), geändert und gelöscht
  * zusätzlich über die id: nur so lässt sich eine Vorlage umbenennen, ohne dass
@@ -16,8 +21,13 @@
  * Anlegen still veraltet.
  */
 import { prisma } from '../database/prisma.js';
-import { parseDuration } from '../utils/duration.js';
+import { parseDuration, formatDuration } from '../utils/duration.js';
 import { normalizePrizeInput, parsePrizes, serializePrizes, normalizePrizeMode } from '../utils/prizes.js';
+import {
+  normalizeRoleArray, normalizeBonusRoles, parseRoleArray, parseBonusRoles,
+  serializeRoleArray, serializeBonusRoles,
+} from '../utils/roles.js';
+import { overrides } from '../utils/eligibility.js';
 
 export const MAX_TEMPLATE_NAME = 64;
 export const MAX_TEMPLATES = 50;
@@ -88,8 +98,73 @@ export function normalizeTemplateInput(input = {}, { partial = false, current = 
     data.winnersCount = resolved.winnersCount;
   }
 
+  // Teilnahmebedingungen: `null` heißt "die Vorlage sagt nichts dazu", das
+  // daraus erzeugte Giveaway erbt dann die serverweite Einstellung. Eine
+  // gesetzte (auch leere) Liste bringt die Vorlage selbst mit.
+  for (const key of ['blacklistRoles', 'whitelistRoles']) {
+    if (!has(key)) continue;
+    if (input[key] === null) { data[key] = null; continue; }
+    const res = normalizeRoleArray(input[key]);
+    if (!res.ok) return { ok: false, error: res.error };
+    data[key] = serializeRoleArray(res.roles);
+  }
+  if (has('bonusRoles')) {
+    if (input.bonusRoles === null) {
+      data.bonusRoles = null;
+    } else {
+      const res = normalizeBonusRoles(input.bonusRoles);
+      if (!res.ok) return { ok: false, error: res.error };
+      data.bonusRoles = serializeBonusRoles(res.bonus);
+    }
+  }
+
   if (Object.keys(data).length === 0) return { ok: false, error: 'nothing' };
   return { ok: true, data };
+}
+
+/**
+ * Baut die Vorlagen-Eingabe aus einem bestehenden Giveaway.
+ *
+ * Übernommen wird alles, was eine Vorlage ausmacht: Titel, Beschreibung,
+ * Preise, Verteilmodus, Gewinnerzahl und die Bedingungen. Die Dauer entsteht aus
+ * der Spanne zwischen Erstellung und geplantem Ende — ein Giveaway speichert
+ * einen Zeitpunkt, eine Vorlage eine Dauer.
+ *
+ * Nicht übernommen: Kanal und Endzeitpunkt (werden beim Anlegen entschieden) und
+ * die Coupon-Konfiguration (hängt an Paket-IDs eines konkreten Stores, siehe
+ * Kopf dieser Datei).
+ *
+ * @param {object} giveaway DB-Zeile
+ * @param {string} name Name der Vorlage
+ * @returns {object} Eingabe für normalizeTemplateInput
+ */
+export function templateInputFromGiveaway(giveaway, name) {
+  const created = giveaway.createdAt ? new Date(giveaway.createdAt).getTime() : Date.now();
+  const ends = giveaway.endAt ? new Date(giveaway.endAt).getTime() : created;
+  return {
+    name,
+    title: giveaway.title,
+    description: giveaway.description,
+    duration: formatDuration(ends - created),
+    winnersCount: giveaway.winnersCount,
+    prizes: parsePrizes(giveaway.prizes),
+    prizeMode: normalizePrizeMode(giveaway.prizeMode),
+    // Was das Giveaway geerbt hat, erbt auch die Vorlage: die serverweite
+    // Einstellung hier einzufrieren würde eine spätere Änderung daran für jedes
+    // Giveaway aus dieser Vorlage aushebeln.
+    blacklistRoles: overrides(giveaway.blacklistRoles) ? parseRoleArray(giveaway.blacklistRoles) : null,
+    whitelistRoles: overrides(giveaway.whitelistRoles) ? parseRoleArray(giveaway.whitelistRoles) : null,
+    bonusRoles: overrides(giveaway.bonusRoles) ? parseBonusRoles(giveaway.bonusRoles) : null,
+  };
+}
+
+/** Bedingungen einer Vorlage -> Parameter für postGiveaway (null = erben). */
+export function templateEligibility(tpl) {
+  return {
+    blacklistRoles: overrides(tpl.blacklistRoles) ? parseRoleArray(tpl.blacklistRoles) : null,
+    whitelistRoles: overrides(tpl.whitelistRoles) ? parseRoleArray(tpl.whitelistRoles) : null,
+    bonusRoles: overrides(tpl.bonusRoles) ? parseBonusRoles(tpl.bonusRoles) : null,
+  };
 }
 
 /** Vorlage -> Objekt fürs Dashboard (JSON-Spalte als Array). */
@@ -103,6 +178,10 @@ export function serializeTemplate(tpl) {
     winnersCount: tpl.winnersCount,
     prizes: parsePrizes(tpl.prizes),
     prizeMode: normalizePrizeMode(tpl.prizeMode),
+    // null = die Vorlage bringt dazu nichts mit, das Giveaway erbt die
+    // serverweite Einstellung. Das Dashboard braucht den Unterschied zur leeren
+    // Liste, sonst zeigt es "keine Bedingung" für beides.
+    ...templateEligibility(tpl),
     createdAt: tpl.createdAt ? new Date(tpl.createdAt).toISOString() : null,
     updatedAt: tpl.updatedAt ? new Date(tpl.updatedAt).toISOString() : null,
   };

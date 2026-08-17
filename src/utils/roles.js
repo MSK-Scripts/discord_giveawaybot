@@ -1,9 +1,9 @@
 // Rollen-basierte Teilnahmebedingungen: Blacklist, Whitelist und Bonus-Lose.
 //
 // Dieselben drei Angaben gibt es zweimal — serverweit in `GuildSettings` und
-// zusätzlich je Giveaway in `Giveaway.*Roles`. Zusammengeführt werden sie in
-// `mergeGiveawayEligibility` (utils/eligibility.js), gespeichert sind sie überall
-// als JSON-Text.
+// je Giveaway in `Giveaway.*Roles`. Was am Giveaway steht, ersetzt die
+// serverweite Einstellung (aufgelöst in `resolveGiveawayEligibility`,
+// utils/eligibility.js), gespeichert sind sie überall als JSON-Text.
 //
 // Hier steht die Eingabeseite: was aus dem Dashboard hereinkommt, wird geprüft
 // statt still zurechtgebogen. Eine falsche Rollen-ID ist ein Tippfehler oder ein

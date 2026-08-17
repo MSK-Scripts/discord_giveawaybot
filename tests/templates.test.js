@@ -189,3 +189,106 @@ test('normalizeTemplateInput kürzt und trimmt wie die Giveaway-Eingabe', { skip
   assert.deepEqual(JSON.parse(res.data.prizes), ['A', 'B', 'C'], 'leere Einträge fallen raus');
   assert.equal(res.data.winnersCount, 3);
 });
+
+// ── Aus einem Giveaway ───────────────────────────────────────────────────────
+
+const ROLE_A = '500000000000000001';
+const ROLE_B = '500000000000000002';
+
+/** Ein Giveaway direkt in der DB anlegen (ohne Discord). */
+async function seedGiveaway(extra = {}) {
+  const created = new Date(Date.now() - 3 * 60 * 60 * 1000); // vor 3 Stunden
+  return prisma.giveaway.create({
+    data: {
+      id: `T${Math.random().toString(36).slice(2, 7).toUpperCase()}`,
+      guildId,
+      channelId: '700000000000000001',
+      hostId: '400000000000000002',
+      title: 'Sommer-Giveaway',
+      description: 'Der Text von damals',
+      prizes: JSON.stringify(['Script A', 'Script B']),
+      prizeMode: 'INDIVIDUAL',
+      winnersCount: 2,
+      status: 'ENDED',
+      createdAt: created,
+      endAt: new Date(created.getTime() + 2 * 60 * 60 * 1000), // lief zwei Stunden
+      ...extra,
+    },
+  });
+}
+
+const from = (body) => call('/template/from', { method: 'POST', body: { guildId, ...body } });
+
+test('ein gelaufenes Giveaway wird zur Vorlage, samt Preisen und Dauer', { skip }, async () => {
+  const giveaway = await seedGiveaway();
+
+  const { status, json } = await from({ id: giveaway.id, name: 'sommer' });
+  assert.equal(status, 200);
+  assert.equal(json.overwritten, false);
+
+  const tpl = json.template;
+  assert.equal(tpl.title, 'Sommer-Giveaway');
+  assert.equal(tpl.description, 'Der Text von damals');
+  assert.deepEqual(tpl.prizes, ['Script A', 'Script B']);
+  assert.equal(tpl.prizeMode, 'INDIVIDUAL');
+  assert.equal(tpl.winnersCount, 2);
+  // Die Dauer ist die Spanne zwischen Erstellung und Ende, nicht der Rest.
+  assert.equal(tpl.duration, '2h');
+});
+
+test('ohne Namen trägt die Vorlage den Titel des Giveaways', { skip }, async () => {
+  const giveaway = await seedGiveaway();
+  const { json } = await from({ id: giveaway.id });
+  assert.equal(json.template.name, 'Sommer-Giveaway');
+});
+
+test('die Bedingungen des Giveaways reisen mit, geerbte bleiben geerbt', { skip }, async () => {
+  const eigene = await seedGiveaway({
+    blacklistRoles: JSON.stringify([ROLE_B]),
+    bonusRoles: JSON.stringify({ [ROLE_A]: 3 }),
+  });
+  const { json } = await from({ id: eigene.id, name: 'mit-bedingungen' });
+  assert.deepEqual(json.template.blacklistRoles, [ROLE_B]);
+  assert.deepEqual(json.template.bonusRoles, { [ROLE_A]: 3 });
+  // Das Giveaway hatte keine eigene Whitelist, es galt die serverweite. Die
+  // hier einzufrieren würde eine spätere Änderung daran aushebeln.
+  assert.equal(json.template.whitelistRoles, null, 'geerbt bleibt geerbt');
+});
+
+test('ein vorhandener Name wird überschrieben statt abgelehnt', { skip }, async () => {
+  await save({ ...BASE_TEMPLATE, name: 'sommer' });
+  const giveaway = await seedGiveaway();
+
+  const { status, json } = await from({ id: giveaway.id, name: 'sommer' });
+  assert.equal(status, 200);
+  assert.equal(json.overwritten, true);
+  assert.equal(json.template.title, 'Sommer-Giveaway', 'der Inhalt kommt jetzt aus dem Giveaway');
+  assert.equal((await list()).length, 1, 'und es ist keine zweite entstanden');
+});
+
+test('ein fremdes oder unbekanntes Giveaway ergibt keine Vorlage', { skip }, async () => {
+  assert.equal((await from({ id: 'ZZZZZZ' })).status, 404);
+  assert.equal((await from({ id: 'zu-kurz!' })).status, 400, 'unbrauchbare ID');
+
+  const giveaway = await seedGiveaway();
+  assert.equal((await call('/template/from', {
+    method: 'POST', body: { guildId: testSnowflake(), id: giveaway.id },
+  })).status, 403);
+  assert.equal((await list()).length, 0);
+});
+
+test('eine Vorlage gibt ihre Bedingungen an das neue Giveaway weiter', { skip }, async () => {
+  // templateEligibility ist das, was /gtemplate use und das Dashboard an
+  // postGiveaway durchreichen. null muss null bleiben, sonst bekäme das neue
+  // Giveaway eine leere Liste und damit gar keine Bedingung.
+  const { json } = await save({
+    ...BASE_TEMPLATE, blacklistRoles: [ROLE_B], bonusRoles: { [ROLE_A]: 2 },
+  });
+  const row = await templates.getTemplateById(guildId, json.template.id);
+
+  assert.deepEqual(templates.templateEligibility(row), {
+    blacklistRoles: [ROLE_B],
+    whitelistRoles: null,
+    bonusRoles: { [ROLE_A]: 2 },
+  });
+});

@@ -73,29 +73,66 @@ function parseRoleObject(value) {
 }
 
 /**
- * Verschmilzt die serverweiten Blacklist/Whitelist-Rollen und Bonus-Lose mit den
- * per-Giveaway gespeicherten Werten. Blacklist/Whitelist = Vereinigung;
- * Bonus-Lose werden je Rolle ADDIERT (giveaway-spezifisch zusätzlich zum globalen).
- * Gilt nur für dieses Giveaway.
+ * Löst die Bedingungen auf, die für EIN Giveaway gelten.
+ *
+ * Ein Giveaway darf die serverweiten Listen ersetzen, nicht ergänzen: was am
+ * Giveaway steht, gilt statt der Einstellung aus `GuildSettings`. Der leere Fall
+ * ist deshalb ein eigener Zustand und keine leere Liste — `null` (Spalte nicht
+ * gesetzt) heißt "hier steht nichts, nimm die serverweite", eine gesetzte leere
+ * Liste heißt "für dieses Giveaway gilt keine".
+ *
+ * Die drei Angaben sind unabhängig voneinander: ein Giveaway kann eine eigene
+ * Blacklist haben und die Bonus-Lose weiter vom Server erben.
+ *
+ * Bis v1.8.0 wurden beide Ebenen vereinigt und die Bonus-Lose addiert. Das war
+ * an dem Tag nicht mehr zu retten, an dem jemand eine serverweite Blacklist für
+ * ein einzelnes Giveaway aufheben wollte: additiv geht das nicht.
+ *
  * @returns ein settings-ähnliches Objekt für checkEligibility()/ticketWeight().
  */
-export function mergeGiveawayEligibility(settings, giveaway) {
-  const gBlack = parseRoleArray(giveaway?.blacklistRoles);
-  const gWhite = parseRoleArray(giveaway?.whitelistRoles);
-  const gBonus = parseRoleObject(giveaway?.bonusRoles);
-
-  const bonusRoles = { ...(settings.bonusRoles ?? {}) };
-  for (const [roleId, amount] of Object.entries(gBonus)) {
-    const n = Number(amount);
-    if (Number.isFinite(n) && n !== 0) bonusRoles[roleId] = (Number(bonusRoles[roleId]) || 0) + n;
-  }
-
+export function resolveGiveawayEligibility(settings, giveaway) {
   return {
     ...settings,
-    blacklist: [...new Set([...(settings.blacklist ?? []), ...gBlack])],
-    whitelist: [...new Set([...(settings.whitelist ?? []), ...gWhite])],
-    bonusRoles,
+    blacklist: overrides(giveaway?.blacklistRoles)
+      ? parseRoleArray(giveaway.blacklistRoles)
+      : (settings.blacklist ?? []),
+    whitelist: overrides(giveaway?.whitelistRoles)
+      ? parseRoleArray(giveaway.whitelistRoles)
+      : (settings.whitelist ?? []),
+    bonusRoles: overrides(giveaway?.bonusRoles)
+      ? parseRoleObject(giveaway.bonusRoles)
+      : (settings.bonusRoles ?? {}),
   };
+}
+
+/**
+ * Hat das Giveaway für dieses Feld einen eigenen Wert?
+ *
+ * `null` und `undefined` heißen nein. Der Leerstring wird mitgenommen, weil eine
+ * alte Zeile ihn tragen kann und er dasselbe meint wie NULL.
+ */
+export function overrides(raw) {
+  return raw !== null && raw !== undefined && raw !== '';
+}
+
+/**
+ * Der Stand, auf dem eine einzelne Änderung am Giveaway aufsetzt (Copy-on-Write).
+ *
+ * `/gsettings … giveaway_id` ändert immer nur eine Rolle. Hat das Giveaway noch
+ * nichts Eigenes, wird dafür die serverweite Liste kopiert und dann geändert.
+ * Ohne diese Kopie würde ein einzelnes `add` die Server-Liste ersetzen: der
+ * Aufrufer wollte eine Rolle ergänzen und hätte alle übrigen abgeschaltet.
+ *
+ * @param {string|null|undefined} raw Spaltenwert des Giveaways
+ * @param {string[]} serverList serverweite Liste
+ */
+export function listToEdit(raw, serverList) {
+  return overrides(raw) ? parseRoleArray(raw) : [...(serverList ?? [])];
+}
+
+/** Wie `listToEdit`, für die Bonus-Lose. */
+export function bonusToEdit(raw, serverBonus) {
+  return overrides(raw) ? parseRoleObject(raw) : { ...(serverBonus ?? {}) };
 }
 
 export default checkEligibility;

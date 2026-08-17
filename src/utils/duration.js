@@ -45,4 +45,36 @@ export function parseDuration(input) {
   return { ok: true, ms };
 }
 
+/**
+ * Millisekunden -> Dauer-String, den `parseDuration` wieder versteht.
+ *
+ * Gebraucht wird das, wenn aus einem gelaufenen Giveaway eine Vorlage wird: dort
+ * steht ein Zeitraum (Erstellung bis Ende), eine Vorlage speichert aber eine
+ * Dauer. Das Ergebnis wird auf denselben Bereich beschnitten, den `parseDuration`
+ * zulässt — eine Vorlage mit "0s" oder "400d" ließe sich sonst speichern und nie
+ * wieder benutzen.
+ *
+ * Sekunden tauchen nur auf, wenn sonst nichts übrig bleibt: "1d2h30m" ist die
+ * Angabe, die jemand von Hand eingetippt hätte, "1d2h30m12s" nicht.
+ *
+ * @param {number} ms
+ * @returns {string} z.B. "1d2h30m"
+ */
+export function formatDuration(ms) {
+  const clamped = Math.min(Math.max(Math.round(Number(ms) || 0), MIN_MS), MAX_MS);
+  let rest = Math.floor(clamped / 1000) * 1000;
+
+  const parts = [];
+  for (const unit of ['d', 'h', 'm']) {
+    const count = Math.floor(rest / UNIT_MS[unit]);
+    if (count > 0) {
+      parts.push(`${count}${unit}`);
+      rest -= count * UNIT_MS[unit];
+    }
+  }
+  const seconds = Math.floor(rest / UNIT_MS.s);
+  if (seconds > 0 && parts.length === 0) parts.push(`${seconds}s`);
+  return parts.join('') || '10s';
+}
+
 export default parseDuration;

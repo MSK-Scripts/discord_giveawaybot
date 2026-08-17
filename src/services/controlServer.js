@@ -28,7 +28,8 @@ import {
 import { verifySecret, listPackages } from './tebexService.js';
 import {
   listTemplates, getTemplate, getTemplateById, saveTemplate, updateTemplateById,
-  deleteTemplateById, countTemplates, normalizeTemplateInput, serializeTemplate, MAX_TEMPLATES,
+  deleteTemplateById, countTemplates, normalizeTemplateInput, serializeTemplate,
+  templateInputFromGiveaway, MAX_TEMPLATES,
 } from './templateService.js';
 import {
   normalizePrizeInput, normalizePrizeMode, parsePrizes, serializePrizes,
@@ -37,6 +38,7 @@ import {
 import {
   normalizeRoleArray, normalizeBonusRoles, serializeRoleArray, serializeBonusRoles,
 } from '../utils/roles.js';
+import { overrides } from '../utils/eligibility.js';
 import { encryptSecret, decryptSecret, secretHint, checkEncryptionKey } from '../utils/secretBox.js';
 import { parseDuration } from '../utils/duration.js';
 import { t } from '../utils/i18n.js';
@@ -140,9 +142,12 @@ function serializeGiveaway(g, extra = {}) {
     pausedAt: g.pausedAt ? new Date(g.pausedAt).toISOString() : null,
     createdAt: g.createdAt ? new Date(g.createdAt).toISOString() : null,
     endedAt: g.endedAt ? new Date(g.endedAt).toISOString() : null,
-    blacklistRoles: arr(g.blacklistRoles),
-    whitelistRoles: arr(g.whitelistRoles),
-    bonusRoles: obj(g.bonusRoles),
+    // null heißt: das Giveaway hat nichts Eigenes, es gilt die serverweite
+    // Einstellung. Das Dashboard braucht den Unterschied zu einer leeren Liste,
+    // sonst kann es "erbt" nicht von "hier gilt bewusst keine" unterscheiden.
+    blacklistRoles: overrides(g.blacklistRoles) ? arr(g.blacklistRoles) : null,
+    whitelistRoles: overrides(g.whitelistRoles) ? arr(g.whitelistRoles) : null,
+    bonusRoles: overrides(g.bonusRoles) ? obj(g.bonusRoles) : null,
     couponPercent: g.couponPercent ?? null,
     couponPackages: arr(g.couponPackages),
     couponPackagesPerPrize: parseSlotNumbers(g.couponPackagesPerPrize),
@@ -157,13 +162,14 @@ function serializeGiveaway(g, extra = {}) {
 /**
  * Prüft die Bedingungs-Felder je Giveaway aus dem Dashboard.
  *
- * Dieselben drei Angaben gibt es serverweit in den Settings; hier kommen die
- * zusätzlichen dazu, die nur für dieses eine Giveaway gelten. Zusammengeführt
- * wird erst beim Prüfen und Anzeigen (mergeGiveawayEligibility).
+ * Dieselben drei Angaben gibt es serverweit in den Settings. Was hier ankommt,
+ * ERSETZT sie für dieses eine Giveaway (aufgelöst in resolveGiveawayEligibility).
+ * `null` ist deshalb ein eigener Fall und keine leere Liste: es heißt "nichts
+ * eigenes, nimm die serverweite Einstellung".
  *
- * Rückgabe sind die geprüften Werte als Array/Objekt, nicht als JSON-Text:
- * `postGiveaway` braucht sie so, und `serializeEligibility` macht daraus die
- * Spaltenwerte fürs Update.
+ * Rückgabe sind die geprüften Werte als Array/Objekt (oder null), nicht als
+ * JSON-Text: `postGiveaway` braucht sie so, und `serializeEligibility` macht
+ * daraus die Spaltenwerte fürs Update.
  * @returns {{ ok: true, values: object } | { ok: false, error: string }}
  */
 function parseEligibilityInput(body) {
@@ -171,26 +177,43 @@ function parseEligibilityInput(body) {
 
   for (const key of ['blacklistRoles', 'whitelistRoles']) {
     if (!Object.prototype.hasOwnProperty.call(body, key)) continue;
+    if (body[key] === null) { values[key] = null; continue; }
     const res = normalizeRoleArray(body[key]);
     if (!res.ok) return { ok: false, error: res.error };
     values[key] = res.roles;
   }
 
   if (Object.prototype.hasOwnProperty.call(body, 'bonusRoles')) {
-    const res = normalizeBonusRoles(body.bonusRoles);
-    if (!res.ok) return { ok: false, error: res.error };
-    values.bonusRoles = res.bonus;
+    if (body.bonusRoles === null) {
+      values.bonusRoles = null;
+    } else {
+      const res = normalizeBonusRoles(body.bonusRoles);
+      if (!res.ok) return { ok: false, error: res.error };
+      values.bonusRoles = res.bonus;
+    }
   }
 
   return { ok: true, values };
 }
 
-/** Geprüfte Bedingungs-Werte -> Spaltenwerte (JSON-Text). */
+/**
+ * Geprüfte Bedingungs-Werte -> Spaltenwerte (JSON-Text oder NULL).
+ *
+ * Geprüft wird auf `undefined`, nicht auf Wahrheitswert: `null` muss in die
+ * Spalte, sonst käme man vom Überschreiben nie wieder zurück zur
+ * Server-Einstellung.
+ */
 function serializeEligibility(values) {
   const data = {};
-  if (values.blacklistRoles) data.blacklistRoles = serializeRoleArray(values.blacklistRoles);
-  if (values.whitelistRoles) data.whitelistRoles = serializeRoleArray(values.whitelistRoles);
-  if (values.bonusRoles) data.bonusRoles = serializeBonusRoles(values.bonusRoles);
+  if (values.blacklistRoles !== undefined) {
+    data.blacklistRoles = values.blacklistRoles === null ? null : serializeRoleArray(values.blacklistRoles);
+  }
+  if (values.whitelistRoles !== undefined) {
+    data.whitelistRoles = values.whitelistRoles === null ? null : serializeRoleArray(values.whitelistRoles);
+  }
+  if (values.bonusRoles !== undefined) {
+    data.bonusRoles = values.bonusRoles === null ? null : serializeBonusRoles(values.bonusRoles);
+  }
   return data;
 }
 
@@ -465,6 +488,38 @@ async function saveTemplateEndpoint(client, guildId, body) {
   return { status: 200, body: { ok: true, template: serializeTemplate(created) } };
 }
 
+/**
+ * Ein bestehendes Giveaway als Vorlage sichern.
+ *
+ * Eigener Endpunkt statt eines Flags an `/template/save`: hier kommt nur eine
+ * Giveaway-ID und ein Name herein, alles andere stammt aus dem Datensatz. Das
+ * Dashboard soll die Felder nicht selbst zusammensuchen und dabei etwas
+ * auslassen können.
+ *
+ * Ein vorhandener Name wird überschrieben (wie bei `/gtemplate from`), sonst
+ * bliebe nur der Umweg über Löschen und neu anlegen.
+ */
+async function templateFromGiveawayEndpoint(client, guildId, body) {
+  const id = String(body?.id ?? '').trim().toUpperCase();
+  if (!ID_RE.test(id)) return { status: 400, body: { error: 'invalid_id' } };
+  const giveaway = await getGiveaway(id, guildId);
+  if (!giveaway) return { status: 404, body: { error: 'not_found' } };
+
+  const name = String(body?.name ?? giveaway.title ?? '').trim();
+  const input = normalizeTemplateInput(templateInputFromGiveaway(giveaway, name));
+  if (!input.ok) return { status: 400, body: { error: input.error } };
+
+  const existing = await getTemplate(guildId, input.data.name);
+  if (!existing && (await countTemplates(guildId)) >= MAX_TEMPLATES) {
+    return { status: 409, body: { error: 'template_limit', max: MAX_TEMPLATES } };
+  }
+
+  const saved = await saveTemplate(guildId, input.data);
+  const settings = await getSettings(guildId);
+  await sendGuildLog(client, settings, t(guildId, 'log.template_from', { name: saved.name, id, user: ACTOR }));
+  return { status: 200, body: { ok: true, overwritten: Boolean(existing), template: serializeTemplate(saved) } };
+}
+
 async function deleteTemplateEndpoint(client, guildId, body) {
   const tpl = await getTemplateById(guildId, body?.id);
   if (!tpl) return { status: 404, body: { error: 'not_found' } };
@@ -723,6 +778,9 @@ async function handle(client, req, res) {
     }
     if (method === 'POST' && path === '/template/save') {
       const r = await saveTemplateEndpoint(client, guildId, body); return send(res, r.status, r.body);
+    }
+    if (method === 'POST' && path === '/template/from') {
+      const r = await templateFromGiveawayEndpoint(client, guildId, body); return send(res, r.status, r.body);
     }
     if (method === 'POST' && path === '/template/delete') {
       const r = await deleteTemplateEndpoint(client, guildId, body); return send(res, r.status, r.body);

@@ -107,7 +107,7 @@ test('ohne Bonus-Rollen gibt es das Feld gar nicht', () => {
   assert.equal(fieldNamed(embed, 'Bonus entries'), null);
 });
 
-test('serverweite und giveaway-eigene Bonus-Lose stehen zusammengezählt im Embed', () => {
+test('eigene Bonus-Lose ersetzen die serverweiten im Embed', () => {
   const embed = buildGiveawayEmbed(
     giveawayWith({ bonusRoles: JSON.stringify({ [ROLE_A]: 3, [ROLE_C]: 1 }) }),
     { bonusRoles: { [ROLE_A]: 2, [ROLE_B]: 5 } },
@@ -115,12 +115,32 @@ test('serverweite und giveaway-eigene Bonus-Lose stehen zusammengezählt im Embe
   );
   const value = fieldNamed(embed, 'Bonus entries').value;
 
-  assert.match(value, new RegExp(`<@&${ROLE_A}> \\+5`), 'serverweit 2 plus 3 für dieses Giveaway');
-  assert.match(value, new RegExp(`<@&${ROLE_B}> \\+5`));
+  assert.match(value, new RegExp(`<@&${ROLE_A}> \\+3`), 'die 3 dieses Giveaways, nicht 2+3');
   assert.match(value, new RegExp(`<@&${ROLE_C}> \\+1`));
+  assert.doesNotMatch(value, new RegExp(`<@&${ROLE_B}>`), 'die serverweite Rolle gilt hier nicht');
 
   // Der größte Bonus zuerst, sonst entscheidet die Einfügereihenfolge.
   assert.ok(value.indexOf(ROLE_C) > value.indexOf(ROLE_A), 'nach Anzahl sortiert');
+});
+
+test('ohne eigene Bonus-Lose stehen die serverweiten im Embed', () => {
+  const embed = buildGiveawayEmbed(
+    giveawayWith({ bonusRoles: null }),
+    { bonusRoles: { [ROLE_B]: 5 } },
+    { entryCount: 0 },
+  );
+  assert.match(fieldNamed(embed, 'Bonus entries').value, new RegExp(`<@&${ROLE_B}> \\+5`));
+});
+
+test('eine leere eigene Liste blendet die serverweite Bedingung aus', () => {
+  // Der Fall, für den es die Unterscheidung überhaupt gibt: dieses eine
+  // Giveaway soll ohne die serverweite Blacklist laufen.
+  const embed = buildGiveawayEmbed(
+    giveawayWith({ blacklistRoles: '[]' }),
+    { blacklist: [ROLE_B] },
+    { entryCount: 0 },
+  );
+  assert.equal(fieldNamed(embed, 'Requirements'), null, 'keine Bedingung im Embed');
 });
 
 test('die Bedingungen bleiben ein eigenes Feld neben den Bonus-Losen', () => {

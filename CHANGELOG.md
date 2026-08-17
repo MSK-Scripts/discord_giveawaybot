@@ -2,6 +2,29 @@
 
 All notable changes to the **MSK Giveaway Bot**. Format based on [Keep a Changelog](https://keepachangelog.com).
 
+## [1.9.0]
+
+### Added
+- **An existing giveaway can be saved as a template.** Repeating a giveaway meant typing its title, description, prizes and duration into a template by hand, next to the giveaway that already had all of it. Every giveaway in the dashboard now has a **Save as template** button, and the bot has `/gtemplate from giveaway_id:<ID> [name:<name>]`.
+
+  Taken over: title, description, prizes, distribution mode, number of winners and the entry conditions. The duration is the span between creation and planned end, turned back into `1d2h30m`, because a giveaway stores a point in time and a template a duration. Channel and end date stay out, they are decided when the giveaway is created, and so do coupons, which hang on package IDs of one specific store. Running giveaways can be saved too, not only ended ones. An existing name is overwritten rather than refused, otherwise updating a template would mean deleting it first.
+
+  New control endpoint `POST /template/from`, taking only a giveaway ID and a name — the bot builds the template from its own record, so the dashboard cannot leave a field out.
+- **A template carries the entry conditions.** New columns `blacklistRoles`, `whitelistRoles` and `bonusRoles` on `GiveawayTemplate` (migration `20260817101500_eligibility_override`), all nullable with the same meaning of NULL as on the giveaway. In the template form they sit behind an **Own entry conditions** switch that is off by default: a template is kept for months, and freezing today's server settings into it would cut every giveaway made from it off from later changes to them.
+- **`/gsettings remove conditions giveaway_id:<ID>`** drops a giveaway's own conditions so the server settings apply to it again. Clearing the lists by hand would not do it — an empty list is a condition of its own ("none applies here").
+
+### Changed
+- **Conditions set on a giveaway now replace the server-wide ones instead of adding to them.** Blacklist, whitelist and bonus entries used to be merged (lists unioned, bonus entries summed), which made one thing impossible: letting a single giveaway run *without* a server-wide rule. Each of the three now stands on its own — a giveaway can bring its own blacklist and still inherit the bonus entries.
+
+  The distinction between "nothing of its own" and "deliberately none" is carried by the column being NULL, so the three columns on `Giveaway` became nullable. The migration turns the old empty defaults into NULL, and for giveaways that are still running it merges the server-wide values into their own once, so nothing changes underneath a giveaway that is already posted.
+
+  In the dashboard the condition fields are prefilled with the server settings, in the create form and when editing. What the form shows is what will apply, so changing nothing changes nothing, and taking a role out of the list lifts it for this one giveaway. There is a **Back to the server settings** button next to the fields.
+
+  `/gsettings … giveaway_id` keeps working the way it reads: changing one role on a giveaway that has no conditions of its own copies the server list first and then applies the change, instead of replacing the whole list with a single role.
+
+### Fixed
+- **`/gsettings … giveaway_id` refreshed the message with the state from before the change.** The giveaway record was read before saving and handed to the embed builder afterwards, so the role that was just added was missing from the message until something else touched it.
+
 ## [1.8.0]
 
 ### Added

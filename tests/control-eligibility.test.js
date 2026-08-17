@@ -146,7 +146,7 @@ test('die Bedingungen stehen in der Form im JSON, die das Dashboard erwartet', {
   const detail = await call(`/giveaway?guildId=${guildId}&id=${json.id}`);
   assert.equal(detail.status, 200);
   assert.deepEqual(detail.json.giveaway.blacklistRoles, [ROLE_B], 'Array, nicht JSON-Text');
-  assert.deepEqual(detail.json.giveaway.whitelistRoles, []);
+  assert.equal(detail.json.giveaway.whitelistRoles, null, 'nichts gesetzt -> null, nicht leere Liste');
   assert.deepEqual(detail.json.giveaway.bonusRoles, { [ROLE_A]: 2 }, 'Objekt, nicht JSON-Text');
 
   const list = await call(`/giveaways?guildId=${guildId}`);
@@ -154,12 +154,49 @@ test('die Bedingungen stehen in der Form im JSON, die das Dashboard erwartet', {
   assert.deepEqual(inList.bonusRoles, { [ROLE_A]: 2 }, 'auch in der Liste, nicht nur im Detail');
 });
 
-test('ohne Angabe bleibt alles leer, wie bisher', { skip }, async () => {
+test('ohne Angabe erbt das Giveaway die serverweiten Bedingungen', { skip }, async () => {
+  // NULL statt leerer Liste: eine leere Liste wäre ein eigener Wert und würde
+  // die serverweite Einstellung für dieses Giveaway abschalten.
   const { json } = await createGiveaway();
   const row = await prisma.giveaway.findUnique({ where: { id: json.id } });
-  assert.deepEqual(JSON.parse(row.bonusRoles), {});
-  assert.deepEqual(JSON.parse(row.blacklistRoles), []);
+  assert.equal(row.bonusRoles, null);
+  assert.equal(row.blacklistRoles, null);
+  assert.equal(row.whitelistRoles, null);
   assert.equal(field(sent[0], 'Bonus entries'), null);
+});
+
+test('eine leere Liste hebt die serverweite Bedingung für dieses Giveaway auf', { skip }, async () => {
+  await settingsService.updateSettings(guildId, { blacklist: [ROLE_B] });
+  settingsService.evict(guildId);
+  try {
+    const geerbt = await createGiveaway();
+    const mitEigener = await createGiveaway({ blacklistRoles: [] });
+
+    const geerbtRow = await prisma.giveaway.findUnique({ where: { id: geerbt.json.id } });
+    assert.equal(geerbtRow.blacklistRoles, null, 'erbt weiter');
+
+    const eigeneRow = await prisma.giveaway.findUnique({ where: { id: mitEigener.json.id } });
+    assert.equal(eigeneRow.blacklistRoles, '[]', 'die leere Liste steht wirklich in der Spalte');
+
+    const detail = await call(`/giveaway?guildId=${guildId}&id=${mitEigener.json.id}`);
+    assert.deepEqual(detail.json.giveaway.blacklistRoles, [], 'und kommt als leere Liste zurück, nicht als null');
+  } finally {
+    await settingsService.updateSettings(guildId, { blacklist: [] });
+    settingsService.evict(guildId);
+  }
+});
+
+test('null setzt ein Giveaway zurück auf die serverweite Einstellung', { skip }, async () => {
+  const { json } = await createGiveaway({ blacklistRoles: [ROLE_B] });
+
+  const res = await call('/giveaway/edit', {
+    method: 'POST',
+    body: { guildId, id: json.id, blacklistRoles: null },
+  });
+  assert.equal(res.status, 200);
+
+  const row = await prisma.giveaway.findUnique({ where: { id: json.id } });
+  assert.equal(row.blacklistRoles, null, 'zurück auf erben, nicht auf leere Liste');
 });
 
 test('eine unbrauchbare Eingabe wird abgelehnt, statt ein halbes Giveaway anzulegen', { skip }, async () => {
