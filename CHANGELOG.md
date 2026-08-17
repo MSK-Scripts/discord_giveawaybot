@@ -2,6 +2,13 @@
 
 All notable changes to the **MSK Giveaway Bot**. Format based on [Keep a Changelog](https://keepachangelog.com).
 
+## [Unreleased]
+
+### Changed
+- **Prisma 5 → 6** (`prisma` and `@prisma/client` on 6.19.3). Nothing in the code had to change: the breaking changes of that major are about Node.js below 18.18, TypeScript, PostgreSQL, `Bytes` fields, `NotFoundError` and full-text search, and this project uses none of them.
+
+  Prisma 7 is deliberately skipped for now. It replaces the generator, moves the generated client out of `node_modules`, makes a driver adapter mandatory and stops loading `.env` on its own — an amount of rebuilding that buys nothing here — and the MariaDB adapter still has an open bug where `DateTime` values are written as UTC ([prisma#29728](https://github.com/prisma/prisma/issues/29728)), which is exactly the kind of thing a scheduler comparing `endAt` to the current time would suffer from. With Prisma 8 already in release candidates, the adapter work is better done once.
+
 ## [1.9.0]
 
 ### Added

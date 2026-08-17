@@ -22,13 +22,13 @@
   "author": "Moritz Kohm (MSK Scripts)",
   "license": "UNLICENSED",
   "dependencies": {
-    "@prisma/client": "^5.20.0",
+    "@prisma/client": "^6.19.3",
     "discord.js": "^14.27.0",
     "dotenv": "^17.4.2",
     "nanoid": "^6.0.1"
   },
   "devDependencies": {
-    "prisma": "^5.20.0"
+    "prisma": "^6.19.3"
   },
   "overrides": {
     "undici": "^6.28.0"
