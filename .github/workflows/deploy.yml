@@ -9,11 +9,16 @@ on:
     branches: [main]
     # Reine Doku-/Markdown- und Meta-Änderungen lösen KEINEN Prod-Redeploy aus.
     # (LICENSE.md & alle *.md sind durch '**.md' abgedeckt.)
+    #
+    # graphify-out/ ist genau dasselbe: der Codebase-Graph ist versioniert, aber
+    # er läuft nirgends. Ohne diese Zeile startete ein `graphify update` den
+    # produktiven Bot neu — passiert am 17.08.2026, Lauf 32071516868.
     paths-ignore:
       - '**.md'
       - '.github/**'
       - '.gitignore'
       - 'ANNOUNCEMENT.md'
+      - 'graphify-out/**'
   workflow_dispatch:
 
 concurrency:
