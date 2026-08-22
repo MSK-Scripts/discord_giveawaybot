@@ -2,6 +2,8 @@
 
 Multilingual, per-guild configurable giveaway bot built on **discord.js v14**, persisted via **MariaDB** (Prisma). Restart-safe poll scheduler, button entry, eligibility rules, weighted bonus entries, templates, pause/resume, edit & extend, "ending soon" reminders, winner DMs, reroll and automatic Tebex coupons for winners.
 
+**[Free Discord giveaway bot: overview, features and dashboard](https://www.msk-scripts.de/giveaway)** · [auf Deutsch](https://www.msk-scripts.de/de/giveaway)
+
 ## ➕ Add to your server
 
 > [**Invite the bot →**](https://discord.com/oauth2/authorize?client_id=1512465732179329065&scope=bot+applications.commands&permissions=478208)
@@ -11,7 +13,7 @@ This is the easiest way to use the bot — just invite the official instance. (Y
 ## 📚 Documentation
 
 Full guide — getting started, the complete command reference and per-server configuration:
-**[docu.msk-scripts.de → Giveaway Bot](https://docu.msk-scripts.de/discord/discord_giveaway/getting-started)**
+**[docu.msk-scripts.de → Giveaway Bot](https://docu.msk-scripts.de/discord/discord_giveaway/getting-started/)**
 
 ## Requirements
 - Node.js **22.x**
@@ -118,7 +120,7 @@ npm run test:db             # applies the migrations to it
 
 "Manager" = **Manage Server** OR the configured `manager` role.
 
-`set`/`remove blacklist`, `whitelist` and `bonus` accept an optional `giveaway_id` to scope a role to a single giveaway. See the **[documentation](https://docu.msk-scripts.de/discord/discord_giveaway/configuration)** for the full command and configuration reference.
+`set`/`remove blacklist`, `whitelist` and `bonus` accept an optional `giveaway_id` to scope a role to a single giveaway. See the **[documentation](https://docu.msk-scripts.de/discord/discord_giveaway/configuration/)** for the full command and configuration reference.
 
 ## Entry conditions and bonus entries
 
