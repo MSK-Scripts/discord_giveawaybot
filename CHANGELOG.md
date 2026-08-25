@@ -2,7 +2,7 @@
 
 All notable changes to the **MSK Giveaway Bot**. Format based on [Keep a Changelog](https://keepachangelog.com).
 
-## [Unreleased]
+## [1.10.0]
 
 ### Added
 - **Three more languages: Hungarian, Polish and Portuguese.** `hu.json`, `pl.json` and `pt.json` carry all 205 keys, so the bot now ships in seven languages. They can be picked with `/gsettings set lang` and in the dashboard like the existing four.
