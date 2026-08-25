@@ -241,6 +241,20 @@ test('serverweite Bonus-Lose werden geprüft, bevor sie in die Spalte gehen', { 
   assert.deepEqual(ok.json.settings.bonusRoles, { [ROLE_A]: 4 });
 });
 
+test('eine unbekannte Sprache wird abgelehnt statt gespeichert', { skip }, async () => {
+  // Sie würde beim Rendern still auf Englisch zurückfallen: im Dashboard stünde
+  // sie als gespeichert, im Discord käme sie nie an.
+  const bad = await call('/settings', { method: 'POST', body: { guildId, lang: 'kl' } });
+  assert.equal(bad.status, 400);
+  assert.equal(bad.json.error, 'invalid_lang');
+
+  const ok = await call('/settings', { method: 'POST', body: { guildId, lang: 'hu' } });
+  assert.equal(ok.status, 200);
+  assert.equal(ok.json.settings.lang, 'hu');
+
+  await call('/settings', { method: 'POST', body: { guildId, lang: 'en' } });
+});
+
 test('eine serverweite Änderung zieht die laufenden Giveaways nach', { skip }, async () => {
   await call('/settings', { method: 'POST', body: { guildId, bonusRoles: {} } });
   const { json } = await createGiveaway();

@@ -71,7 +71,7 @@ npm start                   # or npm run dev (node --watch)
 npx prisma validate
 npm run prisma:generate
 npm run smoke               # load smoke test (exports + builder constraints)
-npm run i18n:check          # locale completeness + placeholder parity en/de/fr/es
+npm run i18n:check          # locale completeness + placeholder parity across all locales
 ```
 
 ## Tests

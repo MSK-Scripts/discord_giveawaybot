@@ -4,7 +4,15 @@ All notable changes to the **MSK Giveaway Bot**. Format based on [Keep a Changel
 
 ## [Unreleased]
 
+### Added
+- **Three more languages: Hungarian, Polish and Portuguese.** `hu.json`, `pl.json` and `pt.json` carry all 205 keys, so the bot now ships in seven languages. They can be picked with `/gsettings set lang` and in the dashboard like the existing four.
+
+  Portuguese is written in the Brazilian variant, because that is the only Portuguese Discord itself offers and where most of the servers are.
+
+  The command choices and the language list come from `SUPPORTED_LANGS` in `src/utils/i18n.js`, so adding the files and that one entry was enough on the bot side. `npm run i18n:check` reads the locale directory and picked the three up on its own.
+
 ### Changed
+- **The control endpoint rejects an unknown language instead of storing it.** `POST /settings` wrote whatever came in into the `lang` column, and `t()` then quietly fell back to English. The dashboard would have shown the language as saved while Discord never showed it — the same silent-failure shape the role fields are already checked against. It now answers `400 invalid_lang`.
 - **Prisma 5 → 6** (`prisma` and `@prisma/client` on 6.19.3). Nothing in the code had to change: the breaking changes of that major are about Node.js below 18.18, TypeScript, PostgreSQL, `Bytes` fields, `NotFoundError` and full-text search, and this project uses none of them.
 
   Prisma 7 is deliberately skipped for now. It replaces the generator, moves the generated client out of `node_modules`, makes a driver adapter mandatory and stops loading `.env` on its own — an amount of rebuilding that buys nothing here — and the MariaDB adapter still has an open bug where `DateTime` values are written as UTC ([prisma#29728](https://github.com/prisma/prisma/issues/29728)), which is exactly the kind of thing a scheduler comparing `endAt` to the current time would suffer from. With Prisma 8 already in release candidates, the adapter work is better done once.

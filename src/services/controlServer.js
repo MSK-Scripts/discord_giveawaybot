@@ -41,7 +41,7 @@ import {
 import { overrides } from '../utils/eligibility.js';
 import { encryptSecret, decryptSecret, secretHint, checkEncryptionKey } from '../utils/secretBox.js';
 import { parseDuration } from '../utils/duration.js';
-import { t } from '../utils/i18n.js';
+import { t, SUPPORTED_LANGS } from '../utils/i18n.js';
 
 let server = null;
 const GUILD_RE = /^\d{17,20}$/;
@@ -591,6 +591,13 @@ async function updateSettingsEndpoint(client, guildId, body) {
     const res = normalizeBonusRoles(partial.bonusRoles);
     if (!res.ok) return { status: 400, body: { error: res.error } };
     partial.bonusRoles = res.bonus;
+  }
+
+  // Eine unbekannte Sprache fällt beim Rendern still auf Englisch zurück. Im
+  // Dashboard stünde sie als gespeichert, im Discord käme sie nie an — also
+  // hier ablehnen statt sie in die Spalte zu schreiben.
+  if (Object.prototype.hasOwnProperty.call(partial, 'lang') && !SUPPORTED_LANGS.includes(partial.lang)) {
+    return { status: 400, body: { error: 'invalid_lang' } };
   }
   const updated = await updateSettings(guildId, partial);
 

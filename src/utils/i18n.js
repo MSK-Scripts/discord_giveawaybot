@@ -9,7 +9,7 @@ import { getLang } from '../services/settingsService.js';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const LOCALES_DIR = join(__dirname, '..', 'locales');
 
-export const SUPPORTED_LANGS = ['en', 'de', 'fr', 'es'];
+export const SUPPORTED_LANGS = ['en', 'de', 'fr', 'es', 'hu', 'pl', 'pt'];
 export const DEFAULT_LANG = 'en';
 
 /** @type {Map<string, Record<string,string>>} */
