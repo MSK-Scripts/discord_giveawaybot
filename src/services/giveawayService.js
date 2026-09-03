@@ -7,6 +7,7 @@ import { buildGiveawayEmbed, buildEndedEmbed, buildCancelledEmbed, buildButtonRo
 import { checkEligibility, ticketWeight, resolveGiveawayEligibility } from '../utils/eligibility.js';
 import { giveawayPrizes, prizesForWinner, assignPrizes, serializePrizes, normalizePrizeMode, inlinePrizes, bulletList } from '../utils/prizes.js';
 import { serializeRoleArray, serializeBonusRoles } from '../utils/roles.js';
+import { normalizeWinnerMode, isFirstClick } from '../utils/winnerMode.js';
 import { generateGiveawayId } from '../utils/id.js';
 import { publishResult } from './resultPublisher.js';
 import { issueCoupons, revokeCoupons, manualCodeForWinner } from './tebexService.js';
@@ -93,11 +94,17 @@ export async function getWinnerIds(giveawayId, { onlyActive = false } = {}) {
  * decides, not the error code. The collision arrives as P2002 for the insert
  * and as a code-less error carrying MySQL 1020 for the delete.
  *
- * @returns {'added'|'removed'}
+ * `toggle: false` makes the entry final: a second click no longer withdraws it.
+ * That is what FIRST_CLICK needs — somebody who already won the prize must not
+ * be able to give it away again with a stray click.
+ *
+ * @returns {'added'|'removed'|'already'}
  */
-export async function addOrRemoveEntry(giveawayId, userId) {
+export async function addOrRemoveEntry(giveawayId, userId, { toggle = true } = {}) {
   const where = { giveawayId_userId: { giveawayId, userId } };
   const existing = await prisma.entry.findUnique({ where });
+
+  if (existing && !toggle) return 'already';
 
   if (existing) {
     // deleteMany, not delete: a concurrent delete makes delete fail, while
@@ -132,6 +139,37 @@ function shuffle(arr) {
 }
 
 /**
+ * Resolves a list of user IDs to guild members.
+ *
+ * One bulk fetch (a single REST call) with a per-user fallback. Anybody who has
+ * left the guild is missing from the map — not an error but the normal case for
+ * a giveaway running over several days. Without the GuildMembers intent there
+ * is no cache that could answer this more cheaply.
+ */
+async function fetchMembers(guild, userIds) {
+  let bulk = null;
+  try {
+    bulk = await guild.members.fetch({ user: userIds });
+  } catch {
+    bulk = null;
+  }
+
+  const members = new Map();
+  for (const id of userIds) {
+    let member = bulk?.get(id) ?? null;
+    if (!member) {
+      try {
+        member = await guild.members.fetch(id);
+      } catch {
+        continue; // 10007 Unknown Member -> gone from the guild -> skip
+      }
+    }
+    members.set(id, member);
+  }
+  return members;
+}
+
+/**
  * Zieht Gewinner. Prüft nachträglich Teilnahmebedingungen (Blacklist/Whitelist/
  * Account-Alter/Server-Zugehörigkeit), berücksichtigt Bonus-Lose (gewichtete
  * Ziehung) und überspringt Mitglieder, die nicht mehr in der Guild sind.
@@ -143,13 +181,7 @@ export async function drawWinners(giveaway, guild, settings, { exclude = [] } = 
   let pool = entries.map((e) => e.userId).filter((id) => !exclude.includes(id));
   if (pool.length === 0) return [];
 
-  // Bulk-Fetch (ein REST-Call) mit Einzel-Fallback.
-  let membersMap = null;
-  try {
-    membersMap = await guild.members.fetch({ user: pool });
-  } catch {
-    membersMap = null;
-  }
+  const membersMap = await fetchMembers(guild, pool);
 
   // Eigene Bedingungen des Giveaways gehen vor, sonst gelten die serverweiten.
   const effective = resolveGiveawayEligibility(settings, giveaway);
@@ -157,14 +189,8 @@ export async function drawWinners(giveaway, guild, settings, { exclude = [] } = 
   // Gültige Teilnehmer mit Gewicht (1 + Bonus-Lose) sammeln.
   const tickets = []; // userId pro Los (gewichtet)
   for (const id of pool) {
-    let member = membersMap?.get(id) ?? null;
-    if (!member) {
-      try {
-        member = await guild.members.fetch(id);
-      } catch {
-        continue; // 10007 Unknown Member -> nicht mehr in Guild -> überspringen
-      }
-    }
+    const member = membersMap.get(id);
+    if (!member) continue;
     if (!checkEligibility(member, effective).ok) continue;
     const weight = ticketWeight(member, effective);
     for (let i = 0; i < weight; i++) tickets.push(id);
@@ -183,6 +209,87 @@ export async function drawWinners(giveaway, guild, settings, { exclude = [] } = 
     if (winners.length >= giveaway.winnersCount) break;
   }
   return winners;
+}
+
+/**
+ * FIRST_CLICK: the first `winnersCount` valid entries, in click order.
+ *
+ * The counterpart to `drawWinners`, with the same second pass over the entry
+ * conditions and the same handling of people who left — only without the random
+ * part and without weighting. If somebody at the front drops out (blacklisted
+ * in the meantime, gone from the server) the next one moves up, exactly as in
+ * the draw, and that is why checking at the button alone is not enough.
+ *
+ * **Sorted by `joinedAt`, ties broken by `userId`.** The column is DATETIME(3),
+ * so two clicks in the same millisecond are possible. The second key at least
+ * makes the outcome deterministic instead of dependent on the row order of the
+ * database: on equal timestamps the smaller user ID happens to win. A real
+ * tie-break (an auto_increment per entry) would be worth its own column the day
+ * somebody insists — for human clicks a millisecond already separates reliably.
+ *
+ * Members are fetched for the whole field, not just the front of it: how many
+ * of the first clicks are valid is not known beforehand, and a bulk fetch is
+ * one call either way.
+ *
+ * @returns {Promise<string[]>} winner userIds, in click order
+ */
+export async function pickFirstEntries(giveaway, guild, settings, { exclude = [] } = {}) {
+  const entries = await prisma.entry.findMany({
+    where: { giveawayId: giveaway.id },
+    orderBy: [{ joinedAt: 'asc' }, { userId: 'asc' }],
+    select: { userId: true },
+  });
+  const pool = entries.map((e) => e.userId).filter((id) => !exclude.includes(id));
+  if (pool.length === 0) return [];
+
+  const membersMap = await fetchMembers(guild, pool);
+  const effective = resolveGiveawayEligibility(settings, giveaway);
+
+  const winners = [];
+  for (const id of pool) {
+    const member = membersMap.get(id);
+    if (!member) continue;
+    if (!checkEligibility(member, effective).ok) continue;
+    winners.push(id);
+    if (winners.length >= giveaway.winnersCount) break;
+  }
+  return winners;
+}
+
+/**
+ * Determines the winners according to the giveaway's mode.
+ *
+ * One place for the distinction, so that ending, rerolling all and replacing a
+ * single winner do not each have to remember it. Bonus entries exist only in
+ * the RANDOM branch; in FIRST_CLICK the order alone decides.
+ */
+export async function selectWinners(giveaway, guild, settings, opts = {}) {
+  return isFirstClick(giveaway)
+    ? pickFirstEntries(giveaway, guild, settings, opts)
+    : drawWinners(giveaway, guild, settings, opts);
+}
+
+/**
+ * FIRST_CLICK: ends the giveaway as soon as there are enough entries.
+ *
+ * Called from the participate button **after** the user has been answered and
+ * without `await`: `endGiveaway` draws, posts, sends DMs and issues coupons,
+ * which takes seconds — the interaction has three. Same line as
+ * `refreshActiveEmbeds` in `/gsettings`.
+ *
+ * Being the first to count enough entries does not grant the right to end the
+ * giveaway; that is still decided by the atomic ACTIVE -> ENDED claim inside
+ * `endGiveaway`. Ten people clicking at the same moment produce ten calls here,
+ * nine of which come away with nothing. Who gets the prizes hangs on the order
+ * of the entries alone, not on whose call arrived first.
+ *
+ * @returns {Promise<string[]|null>} like endGiveaway, or null when not due
+ */
+export async function endIfFirstClickComplete(client, giveaway) {
+  if (!isFirstClick(giveaway)) return null;
+  const count = await countEntries(giveaway.id);
+  if (count < giveaway.winnersCount) return null;
+  return endGiveaway(giveaway, client);
 }
 
 // ── Live-Update der Teilnehmerzahl im aktiven Embed (gedrosselt) ──────────────
@@ -381,7 +488,7 @@ export async function endGiveaway(giveaway, client) {
     const guild = await client.guilds.fetch(fresh.guildId).catch(() => null);
 
     let winnerIds = [];
-    if (guild) winnerIds = await drawWinners(fresh, guild, settings, {});
+    if (guild) winnerIds = await selectWinners(fresh, guild, settings, {});
 
     // Ziehungsreihenfolge = Preisreihenfolge: der erste Gezogene bekommt Preis 1.
     const winners = assignPrizes(winnerIds, fresh.prizeMode);
@@ -436,12 +543,12 @@ export async function sendGuildLog(client, settings, content) {
  * @returns {Promise<string>} die Giveaway-ID
  */
 export async function postGiveaway(client, channel, settings, {
-  guildId, hostId, title, description, prizes = [], prizeMode = 'ALL', winnersCount, endAt,
-  blacklistRoles, whitelistRoles, bonusRoles,
+  guildId, hostId, title, description, prizes = [], prizeMode = 'ALL', winnerMode = 'RANDOM',
+  winnersCount, endAt, blacklistRoles, whitelistRoles, bonusRoles,
 }) {
   const id = await generateGiveawayId();
-  // Im INDIVIDUAL-Modus ist die Gewinnerzahl die Anzahl der Preise, nicht die
-  // Eingabe. Hier zentral aufgelöst, damit keine Aufrufstelle es vergessen kann.
+  // In INDIVIDUAL mode the number of winners is the number of prizes, not the
+  // input. Resolved centrally here so no call site can forget it.
   const mode = normalizePrizeMode(prizeMode);
   const prizeList = Array.isArray(prizes) ? prizes : [];
   const winners = mode === 'INDIVIDUAL' && prizeList.length ? prizeList.length : winnersCount;
@@ -461,6 +568,7 @@ export async function postGiveaway(client, channel, settings, {
   const giveaway = await createGiveaway({
     id, guildId, channelId: channel.id, hostId, title, description,
     prizes: serializePrizes(prizeList), prizeMode: mode,
+    winnerMode: normalizeWinnerMode(winnerMode),
     winnersCount: winners, endAt, status: 'ACTIVE', reminderAt,
     blacklistRoles: blacklistRoles == null ? null : serializeRoleArray(blacklistRoles),
     whitelistRoles: whitelistRoles == null ? null : serializeRoleArray(whitelistRoles),
@@ -570,7 +678,7 @@ export async function resumeGiveaway(client, giveaway, settings) {
  */
 export async function replaceWinner(giveaway, guild, settings, oldUserId) {
   const current = await getWinners(giveaway.id); // alle bisherigen Gewinner ausschließen
-  const drawn = await drawWinners(giveaway, guild, settings, { exclude: current.map((w) => w.userId) });
+  const drawn = await selectWinners(giveaway, guild, settings, { exclude: current.map((w) => w.userId) });
   const newWinner = drawn[0] ?? null;
 
   // Kein gültiger Ersatz -> alten Gewinner NICHT verändern (sonst Dateninkonsistenz).
@@ -642,7 +750,7 @@ async function warnAboutManualCodes(client, giveaway, settings, winners) {
 export async function rerollAll(client, giveaway, settings, { actor } = {}) {
   const guild = await client.guilds.fetch(giveaway.guildId).catch(() => null);
   const previousWinners = await getWinnerIds(giveaway.id);
-  const newWinnerIds = guild ? await drawWinners(giveaway, guild, settings, { exclude: previousWinners }) : [];
+  const newWinnerIds = guild ? await selectWinners(giveaway, guild, settings, { exclude: previousWinners }) : [];
   if (newWinnerIds.length === 0) return [];
 
   // Alle Gewinner sind neu, also werden auch die Preis-Slots neu vergeben.

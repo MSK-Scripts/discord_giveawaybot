@@ -65,7 +65,7 @@
   "info.none": "—",
 
   "help.title": "🎉 Giveaway Bot — Commands",
-  "help.gcreate": "Öffnet ein Modal und erstellt ein Giveaway im aktuellen Channel (Option `mode` für einen Preis pro Gewinner).",
+  "help.gcreate": "Öffnet ein Modal und erstellt ein Giveaway im aktuellen Channel (Option `mode` für einen Preis pro Gewinner, `draw` für: wer zuerst klickt, gewinnt).",
   "help.gcancel": "Bricht ein aktives Giveaway ab (kein Gewinner).",
   "help.gend": "Beendet ein aktives Giveaway sofort und zieht Gewinner.",
   "help.greroll": "Zieht neue Gewinner für ein beendetes Giveaway.",
@@ -166,7 +166,7 @@
   "help.gpause": "Pausiert ein aktives Giveaway (friert den Timer ein).",
   "help.gresume": "Setzt ein pausiertes Giveaway fort.",
   "help.gtemplate": "Vorlagen speichern, auflisten, löschen oder verwenden, oder ein bestehendes Giveaway als Vorlage sichern.",
-  "help.gedit": "Laufendes Giveaway bearbeiten (Titel, Beschreibung, Gewinner, Preise).",
+  "help.gedit": "Bearbeitet ein laufendes Giveaway (Titel, Beschreibung, Gewinner, Preise, Gewinner-Ermittlung).",
   "help.gextend": "Endzeit eines laufenden Giveaways verlängern.",
   "help.gstats": "Giveaway-Statistik dieses Servers anzeigen.",
 
@@ -230,5 +230,21 @@
   "stats.total": "Giveaways gesamt",
   "stats.entries": "Teilnahmen gesamt",
   "stats.winners": "Gewinner gesamt",
-  "stats.winrate": "Gewinnquote"
+  "stats.winrate": "Gewinnquote",
+
+  "giveaway.button_fast": "⚡ Jetzt schnappen",
+  "giveaway.field.deadline": "Frist",
+  "giveaway.field.fast_winners": "Schnellste gewinnen",
+  "giveaway.field.mode": "Modus",
+  "winner.mode.first_click": "⚡ Wer zuerst klickt, gewinnt",
+  "winner.mode.first_click_hint": "⚡ **Wer zuerst klickt, gewinnt.** Es wird nicht gezogen: Der Schnellste bekommt den Preis, und das Giveaway ist damit sofort vorbei.",
+  "info.field.winnermode": "Gewinner-Ermittlung",
+  "error.too_late": "⚡ Zu spät, da war jemand schneller. Dieses Giveaway ist schon vorbei.",
+  "join.already": "✅ Du bist schon dabei. In diesem Giveaway lässt sich die Teilnahme nicht zurücknehmen.",
+  "modal.title_fast": "Schnelles Giveaway erstellen",
+  "modal.field.deadline": "Frist (z. B. 1d, 2h30m, 45m)",
+  "modal.field.fast_winners": "Wie viele Schnellste gewinnen",
+  "create.first_click_note": "⚡ Wer zuerst klickt, gewinnt: Das Giveaway endet, sobald genug Leute geklickt haben.",
+  "edit.first_click_note": "⚡ Ab jetzt gewinnt, wer zuerst klickt. Vorhandene Teilnahmen behalten ihre Reihenfolge, es gewinnt also die früheste. Beendet wird erst beim nächsten Klick oder zur Frist.",
+  "end.winners_fast": "⚡ Am schnellsten am Knopf: {winners}. Der Preis bei **{title}** ist damit vergeben!"
 }

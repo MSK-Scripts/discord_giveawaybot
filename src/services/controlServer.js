@@ -35,6 +35,7 @@ import {
   normalizePrizeInput, normalizePrizeMode, parsePrizes, serializePrizes,
   parseSlotNumbers, serializeSlotNumbers, parseSlotStrings, serializeSlotStrings, MAX_PRIZES,
 } from '../utils/prizes.js';
+import { normalizeWinnerMode, WINNER_MODES } from '../utils/winnerMode.js';
 import {
   normalizeRoleArray, normalizeBonusRoles, serializeRoleArray, serializeBonusRoles,
 } from '../utils/roles.js';
@@ -136,6 +137,7 @@ function serializeGiveaway(g, extra = {}) {
     description: g.description,
     prizes: parsePrizes(g.prizes),
     prizeMode: normalizePrizeMode(g.prizeMode),
+    winnerMode: normalizeWinnerMode(g.winnerMode),
     winnersCount: g.winnersCount,
     status: g.status,
     endAt: g.endAt ? new Date(g.endAt).toISOString() : null,
@@ -323,6 +325,23 @@ async function getGiveawayDetail(guildId, id) {
   return serializeGiveaway(g, { entryCount, winners });
 }
 
+/**
+ * The winner selection coming from the dashboard.
+ *
+ * Validated rather than quietly normalised to RANDOM: a typo would otherwise be
+ * acknowledged as "saved" while the giveaway ran in the wrong mode, and that is
+ * not cosmetic here — it decides when the prize is gone. Same line as
+ * `invalid_lang` and `utils/roles.js`.
+ *
+ * @returns {{ok: true, mode: string|undefined} | {ok: false, error: string}}
+ */
+function parseWinnerModeInput(body, key = 'winnerMode') {
+  if (!Object.prototype.hasOwnProperty.call(body ?? {}, key) || body[key] == null) return { ok: true, mode: undefined };
+  const value = String(body[key]).trim().toUpperCase();
+  if (!WINNER_MODES.includes(value)) return { ok: false, error: 'invalid_winner_mode' };
+  return { ok: true, mode: value };
+}
+
 async function createGiveawayEndpoint(client, guildId, body) {
   const { channelId, title, description, prizes, prizeMode, winnersCount, duration } = body || {};
   if (!GUILD_RE.test(String(channelId ?? ''))) return { status: 400, body: { error: 'invalid_channel' } };
@@ -349,6 +368,9 @@ async function createGiveawayEndpoint(client, guildId, body) {
   const elig = parseEligibilityInput(body || {});
   if (!elig.ok) return { status: 400, body: { error: elig.error } };
 
+  const draw = parseWinnerModeInput(body || {});
+  if (!draw.ok) return { status: 400, body: { error: draw.error } };
+
   const settings = await getSettings(guildId);
   const endAt = new Date(Date.now() + dur.ms);
   const id = await postGiveaway(client, channel, settings, {
@@ -358,6 +380,7 @@ async function createGiveawayEndpoint(client, guildId, body) {
     description: String(description).slice(0, 2000),
     prizes: prizeInput.prizes,
     prizeMode: prizeInput.mode,
+    winnerMode: draw.mode ?? 'RANDOM',
     winnersCount: prizeInput.winnersCount,
     endAt,
     ...elig.values, // stehen im Embed, müssen also vor dem Posten im Datensatz sein
@@ -404,6 +427,13 @@ async function editGiveawayEndpoint(client, guildId, body) {
     // Ein Preis pro Gewinner: die Zahl folgt der Preisliste, nicht der Eingabe.
     return { status: 400, body: { error: 'winners_locked' } };
   }
+
+  // Switching while the giveaway runs is allowed but ends nothing: entries that
+  // already exist keep their order, and ending waits for the next click or the
+  // deadline. An edit must not hand out prizes.
+  const draw = parseWinnerModeInput(body);
+  if (!draw.ok) return { status: 400, body: { error: draw.error } };
+  if (draw.mode) data.winnerMode = draw.mode;
 
   const coupon = parseCouponInput(body);
   if (!coupon.ok) return { status: 400, body: { error: coupon.error } };

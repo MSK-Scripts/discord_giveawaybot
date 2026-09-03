@@ -10,6 +10,7 @@ import { isManager } from '../utils/permissions.js';
 import { parseDuration } from '../utils/duration.js';
 import { resolveColor } from '../utils/embeds.js';
 import { parsePrizes, inlinePrizes, PRIZE_MODES, MAX_PRIZES } from '../utils/prizes.js';
+import { normalizeWinnerMode } from '../utils/winnerMode.js';
 import { t } from '../utils/i18n.js';
 import { logger } from '../utils/logger.js';
 
@@ -34,6 +35,15 @@ export default {
         .addStringOption((o) => o.setName('duration').setDescription('e.g. 1d2h30m').setRequired(true))
         .addIntegerOption((o) => o.setName('winners').setDescription('Number of winners (1-100)').setMinValue(1).setMaxValue(100))
         .addStringOption((o) => o.setName('prizes').setDescription('Prizes, separated by | (e.g. Script A | Script B)'))
+        .addStringOption((o) =>
+          o
+            .setName('draw')
+            .setDescription('How winners are determined (default: random draw when the giveaway ends)')
+            .addChoices(
+              { name: 'Random draw when it ends', value: 'RANDOM' },
+              { name: 'First click wins (ends instantly)', value: 'FIRST_CLICK' },
+            ),
+        )
         .addStringOption((o) =>
           o
             .setName('mode')
@@ -82,6 +92,7 @@ export default {
         winnersCount: interaction.options.getInteger('winners') ?? 1,
         prizes: interaction.options.getString('prizes') ?? '',
         prizeMode: interaction.options.getString('mode') ?? PRIZE_MODES[0],
+        winnerMode: interaction.options.getString('draw') ?? 'RANDOM',
       });
       if (!input.ok) {
         if (input.error === 'invalid_duration') return reply(t(guildId, 'create.invalid_duration'));
@@ -145,6 +156,11 @@ export default {
               // Die Preise stehen in einer zweiten Zeile: sie können lang werden
               // und würden die Übersicht sonst unlesbar machen.
               if (prizes.length) line += `\n   ${t(guildId, 'template.prizes')}: ${inlinePrizes(prizes)}`;
+              // The mode is only printed when it differs from the normal case:
+              // a "draw at the end" line on every template would be noise.
+              if (normalizeWinnerMode(tpl.winnerMode) === 'FIRST_CLICK') {
+                line += `\n   ${t(guildId, 'winner.mode.first_click')}`;
+              }
               // Nur der Hinweis, dass die Vorlage eigene Bedingungen mitbringt.
               // Welche das sind, steht im Dashboard — hier wären es drei weitere
               // Zeilen voller Rollen-Erwähnungen je Vorlage.
@@ -194,11 +210,15 @@ export default {
           description: tpl.description,
           prizes: parsePrizes(tpl.prizes),
           prizeMode: tpl.prizeMode,
+          winnerMode: tpl.winnerMode,
           winnersCount: tpl.winnersCount,
           endAt: new Date(Date.now() + dur.ms),
           ...templateEligibility(tpl),
         });
-        return reply(t(guildId, 'create.success', { id }));
+        let content = t(guildId, 'create.success', { id });
+        if (normalizeWinnerMode(tpl.winnerMode) === 'FIRST_CLICK') content += `
+${t(guildId, 'create.first_click_note')}`;
+        return reply(content);
       } catch (err) {
         logger.error('gtemplate use postGiveaway:', err);
         return reply(t(guildId, 'error.generic'));

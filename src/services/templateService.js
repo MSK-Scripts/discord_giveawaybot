@@ -1,24 +1,25 @@
 /**
- * Giveaway-Vorlagen pro Guild (CRUD).
+ * Giveaway templates per guild (CRUD).
  *
- * Eine Vorlage ist ein vorbereitetes Giveaway ohne Kanal und ohne Endzeitpunkt:
- * Titel, Beschreibung, Dauer, Gewinnerzahl, seit v1.7.0 die Preisliste samt
- * Verteilmodus und seit v1.9.0 die Teilnahmebedingungen. Ohne die Preise könnte
- * sie seit v1.5.0 nicht mehr abbilden, was ein Giveaway ausmacht — `/gtemplate
- * use` legte bis dahin eines ganz ohne Preise an, obwohl beim Speichern welche
- * gemeint waren.
+ * A template is a prepared giveaway without a channel and without an end date:
+ * title, description, duration, number of winners, since v1.7.0 the prize list
+ * with its distribution mode, since v1.9.0 the entry conditions and since
+ * v1.11.0 the way the winners are determined. Without the prizes it could not
+ * describe what a giveaway is any more from v1.5.0 on: until then `/gtemplate
+ * use` created one with no prizes at all, even though prizes had been meant
+ * when the template was saved.
  *
- * Eine Vorlage entsteht von Hand oder aus einem gelaufenen Giveaway
- * (`templateInputFromGiveaway`). Der zweite Weg ist der übliche: was einmal gut
- * lief, soll sich wiederholen lassen, ohne alles abzuschreiben.
+ * A template is written by hand or built from a giveaway that already ran
+ * (`templateInputFromGiveaway`). The second way is the usual one: whatever
+ * worked once should be repeatable without typing it out again.
  *
- * Angelegt wird über den Namen (eindeutig je Guild), geändert und gelöscht
- * zusätzlich über die id: nur so lässt sich eine Vorlage umbenennen, ohne dass
- * dabei eine zweite entsteht.
+ * Creating goes through the name (unique per guild), changing and deleting also
+ * through the id: that is the only way to rename a template without ending up
+ * with a second one.
  *
- * Coupons gehören bewusst NICHT dazu. Sie hängen an Paket-IDs eines konkreten
- * Stores, die eine Vorlage über Monate mitschleppen würde, und wären beim
- * Anlegen still veraltet.
+ * Coupons deliberately stay out. They hang on package IDs of one specific
+ * store, which a template would drag along for months, and they would be
+ * quietly out of date by the time it is used.
  */
 import { prisma } from '../database/prisma.js';
 import { parseDuration, formatDuration } from '../utils/duration.js';
@@ -28,20 +29,21 @@ import {
   serializeRoleArray, serializeBonusRoles,
 } from '../utils/roles.js';
 import { overrides } from '../utils/eligibility.js';
+import { normalizeWinnerMode, WINNER_MODES } from '../utils/winnerMode.js';
 
 export const MAX_TEMPLATE_NAME = 64;
 export const MAX_TEMPLATES = 50;
 
 /**
- * Prüft und normalisiert eine Vorlagen-Eingabe.
+ * Validates and normalises a template input.
  *
- * Zentral, damit Slash-Command und Dashboard nicht getrennt voneinander
- * entscheiden, was eine gültige Vorlage ist. Gleiche Bauart wie
- * `normalizePrizeInput`: ein Ergebnisobjekt statt einer Ausnahme.
+ * Central, so that the slash command and the dashboard do not each decide on
+ * their own what a valid template is. Same shape as `normalizePrizeInput`: a
+ * result object instead of an exception.
  *
- * @param {object} input roher Eingabe-Body
- * @param {boolean} partial true = nur die gesetzten Felder prüfen (Bearbeiten)
- * @param {object} current bestehende Vorlage, für die fehlenden Felder
+ * @param {object} input raw input body
+ * @param {boolean} partial true = only validate the fields that were sent (editing)
+ * @param {object} current the existing template, for the missing fields
  * @returns {{ok: true, data: object} | {ok: false, error: string}}
  */
 export function normalizeTemplateInput(input = {}, { partial = false, current = null } = {}) {
@@ -72,9 +74,9 @@ export function normalizeTemplateInput(input = {}, { partial = false, current = 
     data.duration = duration;
   }
 
-  // Preise, Modus und Gewinnerzahl hängen zusammen: im INDIVIDUAL-Modus ist die
-  // Gewinnerzahl die Länge der Liste. Deshalb werden sie immer gemeinsam
-  // aufgelöst, auch wenn beim Bearbeiten nur eines davon geschickt wurde.
+  // Prizes, mode and number of winners belong together: in INDIVIDUAL mode the
+  // number of winners is the length of the list. They are therefore always
+  // resolved together, even when an edit only sent one of them.
   const touchesPrizes = !partial || has('prizes') || has('prizeMode') || has('winnersCount');
   if (touchesPrizes) {
     const resolved = normalizePrizeInput({
@@ -84,8 +86,8 @@ export function normalizeTemplateInput(input = {}, { partial = false, current = 
     });
     if (!resolved.ok) return { ok: false, error: resolved.error };
 
-    // Eine Gewinnerzahl, die der Preisliste widerspricht, wird nicht still
-    // überschrieben, sondern abgelehnt — dieselbe Linie wie bei /gedit.
+    // A number of winners that contradicts the prize list is not silently
+    // overwritten but refused, the same line as in /gedit.
     if (has('winnersCount') && resolved.mode === 'INDIVIDUAL' && resolved.prizes.length) {
       const wanted = Number(input.winnersCount);
       if (Number.isInteger(wanted) && wanted !== resolved.winnersCount) {
@@ -98,9 +100,24 @@ export function normalizeTemplateInput(input = {}, { partial = false, current = 
     data.winnersCount = resolved.winnersCount;
   }
 
-  // Teilnahmebedingungen: `null` heißt "die Vorlage sagt nichts dazu", das
-  // daraus erzeugte Giveaway erbt dann die serverweite Einstellung. Eine
-  // gesetzte (auch leere) Liste bringt die Vorlage selbst mit.
+  // The winner selection is not an inherit-or-not like the conditions, it is
+  // always set: a template for a quick giveaway is not one without it.
+  //
+  // Validated rather than quietly normalised: an unknown value from the
+  // dashboard would otherwise be acknowledged as saved while the template ran
+  // in the wrong mode. With the field absent the existing value applies (or
+  // RANDOM).
+  if (has('winnerMode') && input.winnerMode != null) {
+    const wanted = String(input.winnerMode).trim().toUpperCase();
+    if (!WINNER_MODES.includes(wanted)) return { ok: false, error: 'invalid_winner_mode' };
+    data.winnerMode = wanted;
+  } else if (!partial) {
+    data.winnerMode = normalizeWinnerMode(current?.winnerMode);
+  }
+
+  // Entry conditions: `null` means "the template says nothing about this", and
+  // the giveaway made from it inherits the server-wide setting. A list that is
+  // set (an empty one included) is the template's own.
   for (const key of ['blacklistRoles', 'whitelistRoles']) {
     if (!has(key)) continue;
     if (input[key] === null) { data[key] = null; continue; }
@@ -123,20 +140,20 @@ export function normalizeTemplateInput(input = {}, { partial = false, current = 
 }
 
 /**
- * Baut die Vorlagen-Eingabe aus einem bestehenden Giveaway.
+ * Builds the template input from an existing giveaway.
  *
- * Übernommen wird alles, was eine Vorlage ausmacht: Titel, Beschreibung,
- * Preise, Verteilmodus, Gewinnerzahl und die Bedingungen. Die Dauer entsteht aus
- * der Spanne zwischen Erstellung und geplantem Ende — ein Giveaway speichert
- * einen Zeitpunkt, eine Vorlage eine Dauer.
+ * Everything that makes up a template is taken over: title, description,
+ * prizes, distribution mode, number of winners, the winner selection and the
+ * conditions. The duration comes from the span between creation and planned
+ * end, because a giveaway stores a point in time and a template a duration.
  *
- * Nicht übernommen: Kanal und Endzeitpunkt (werden beim Anlegen entschieden) und
- * die Coupon-Konfiguration (hängt an Paket-IDs eines konkreten Stores, siehe
- * Kopf dieser Datei).
+ * Not taken over: channel and end date (both decided when the giveaway is
+ * created) and the coupon configuration (it hangs on package IDs of one
+ * specific store, see the head of this file).
  *
- * @param {object} giveaway DB-Zeile
- * @param {string} name Name der Vorlage
- * @returns {object} Eingabe für normalizeTemplateInput
+ * @param {object} giveaway database row
+ * @param {string} name name of the template
+ * @returns {object} input for normalizeTemplateInput
  */
 export function templateInputFromGiveaway(giveaway, name) {
   const created = giveaway.createdAt ? new Date(giveaway.createdAt).getTime() : Date.now();
@@ -149,16 +166,17 @@ export function templateInputFromGiveaway(giveaway, name) {
     winnersCount: giveaway.winnersCount,
     prizes: parsePrizes(giveaway.prizes),
     prizeMode: normalizePrizeMode(giveaway.prizeMode),
-    // Was das Giveaway geerbt hat, erbt auch die Vorlage: die serverweite
-    // Einstellung hier einzufrieren würde eine spätere Änderung daran für jedes
-    // Giveaway aus dieser Vorlage aushebeln.
+    winnerMode: normalizeWinnerMode(giveaway.winnerMode),
+    // What the giveaway inherited, the template inherits too: freezing the
+    // server-wide setting in here would cut every giveaway made from this
+    // template off from later changes to it.
     blacklistRoles: overrides(giveaway.blacklistRoles) ? parseRoleArray(giveaway.blacklistRoles) : null,
     whitelistRoles: overrides(giveaway.whitelistRoles) ? parseRoleArray(giveaway.whitelistRoles) : null,
     bonusRoles: overrides(giveaway.bonusRoles) ? parseBonusRoles(giveaway.bonusRoles) : null,
   };
 }
 
-/** Bedingungen einer Vorlage -> Parameter für postGiveaway (null = erben). */
+/** A template's conditions -> parameters for postGiveaway (null = inherit). */
 export function templateEligibility(tpl) {
   return {
     blacklistRoles: overrides(tpl.blacklistRoles) ? parseRoleArray(tpl.blacklistRoles) : null,
@@ -167,7 +185,7 @@ export function templateEligibility(tpl) {
   };
 }
 
-/** Vorlage -> Objekt fürs Dashboard (JSON-Spalte als Array). */
+/** Template -> object for the dashboard (JSON column as an array). */
 export function serializeTemplate(tpl) {
   return {
     id: tpl.id,
@@ -178,9 +196,10 @@ export function serializeTemplate(tpl) {
     winnersCount: tpl.winnersCount,
     prizes: parsePrizes(tpl.prizes),
     prizeMode: normalizePrizeMode(tpl.prizeMode),
-    // null = die Vorlage bringt dazu nichts mit, das Giveaway erbt die
-    // serverweite Einstellung. Das Dashboard braucht den Unterschied zur leeren
-    // Liste, sonst zeigt es "keine Bedingung" für beides.
+    winnerMode: normalizeWinnerMode(tpl.winnerMode),
+    // null = the template brings nothing of its own and the giveaway inherits
+    // the server-wide setting. The dashboard needs the difference from an empty
+    // list, otherwise it shows "no condition" for both.
     ...templateEligibility(tpl),
     createdAt: tpl.createdAt ? new Date(tpl.createdAt).toISOString() : null,
     updatedAt: tpl.updatedAt ? new Date(tpl.updatedAt).toISOString() : null,
@@ -204,7 +223,7 @@ export async function getTemplateById(guildId, id) {
   return tpl && tpl.guildId === guildId ? tpl : null;
 }
 
-/** Anlegen oder überschreiben, Schlüssel ist der Name. */
+/** Create or overwrite, keyed by the name. */
 export async function saveTemplate(guildId, data) {
   const { name, ...rest } = data;
   return prisma.giveawayTemplate.upsert({
@@ -215,12 +234,11 @@ export async function saveTemplate(guildId, data) {
 }
 
 /**
- * Ändern über die id, Umbenennen eingeschlossen.
+ * Change by id, renaming included.
  *
- * Der Namenskonflikt wird nicht vorab geprüft, sondern am Fehler erkannt: zwei
- * gleichzeitige Umbenennungen kämen sonst beide an der Prüfung vorbei. Nach dem
- * fehlgeschlagenen Schreibvorgang entscheidet der Zustand, wie überall sonst in
- * diesem Projekt.
+ * The name conflict is not checked beforehand but recognised from the error:
+ * two concurrent renames would otherwise both slip past the check. After a
+ * failed write the state decides, as everywhere else in this project.
  */
 export async function updateTemplateById(guildId, id, data) {
   const existing = await getTemplateById(guildId, id);
@@ -229,7 +247,7 @@ export async function updateTemplateById(guildId, id, data) {
     const updated = await prisma.giveawayTemplate.update({ where: { id: existing.id }, data });
     return { ok: true, template: updated };
   } catch {
-    // Einziger erwarteter Grund: der neue Name ist schon vergeben.
+    // The only expected reason: the new name is already taken.
     const clash = data.name ? await getTemplate(guildId, data.name) : null;
     if (clash && clash.id !== existing.id) return { ok: false, error: 'name_taken' };
     throw new Error('template update failed');

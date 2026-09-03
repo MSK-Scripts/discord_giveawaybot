@@ -2,6 +2,25 @@
 
 All notable changes to the **MSK Giveaway Bot**. Format based on [Keep a Changelog](https://keepachangelog.com).
 
+## [1.11.0]
+
+### Added
+- **"First click wins" as a second way to pick the winners.** Suggested by a user for the small, quick giveaways — a crate key, an event reward, something that should be gone in seconds rather than sit around for a day. `/gcreate draw:FIRST_CLICK` (also on `/gedit`, `/gtemplate save` and in the dashboard) turns the button itself into the draw: the first valid entry takes the prize and the giveaway ends right there.
+
+  New column `winnerMode` on `Giveaway` and `GiveawayTemplate` (migration `20260903120000_first_click_mode`), defaulting to `RANDOM`, so nothing that exists behaves differently. The duration stays required and becomes a **deadline**: if nobody clicks, the scheduler ends the giveaway at that time and whoever did click wins.
+
+  `winners > 1` means the fastest *n* win, in click order. Together with `mode: INDIVIDUAL` that reads as "fastest gets prize 1, second fastest prize 2", and a reroll takes the next fastest instead of drawing.
+
+  Three things follow from the mode and are handled rather than left to surprise people:
+
+  - **The button label and a new Mode field in the message say what is going on.** Pressing a button in the belief that a draw follows, and finding out afterwards that half a second decided it, would read as a bug in the bot.
+  - **Bonus entries are hidden in this mode**, because they do nothing. They raise a weight, and a weight only exists in a draw. Showing them would promise an advantage that is never applied.
+  - **An entry can no longer be withdrawn.** A second click on the button would otherwise hand back a prize that was already won.
+
+  The entry conditions are still checked twice, at the button and again when the winners are settled, so somebody blacklisted or gone from the server in the meantime lets the next-fastest move up. Ending stays behind the same atomic `ACTIVE -> ENDED` claim as before: ten people clicking at the same moment produce ten attempts to end the giveaway, exactly one goes through, and who gets the prize hangs on the order of the entries rather than on which attempt won that race.
+- **`POST /giveaway/{create,edit}` and `POST /template/save` take a `winnerMode`.** An unknown value is answered with `400 invalid_winner_mode` instead of being stored and quietly falling back to `RANDOM` — the same line as `invalid_lang`.
+- **New index `Entry(giveawayId, joinedAt)`.** The mode reads the entries in click order, which without it would be a filesort over every entry of the giveaway, at the exact moment the mode promises to be fast.
+
 ## [1.10.0]
 
 ### Added

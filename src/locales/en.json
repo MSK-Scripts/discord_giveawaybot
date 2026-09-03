@@ -65,7 +65,7 @@
   "info.none": "—",
 
   "help.title": "🎉 Giveaway Bot — Commands",
-  "help.gcreate": "Open a modal and create a giveaway in this channel (option `mode` for one prize per winner).",
+  "help.gcreate": "Open a modal and create a giveaway in this channel (option `mode` for one prize per winner, `draw` for first click wins).",
   "help.gcancel": "Cancel an active giveaway (no winner).",
   "help.gend": "End an active giveaway immediately and draw winners.",
   "help.greroll": "Draw new winners for an ended giveaway.",
@@ -166,7 +166,7 @@
   "help.gpause": "Pause an active giveaway (freezes the timer).",
   "help.gresume": "Resume a paused giveaway.",
   "help.gtemplate": "Save, list, delete or use giveaway templates, or turn an existing giveaway into one.",
-  "help.gedit": "Edit a running giveaway (title, description, winners, prizes).",
+  "help.gedit": "Edit a running giveaway (title, description, winners, prizes, winner selection).",
   "help.gextend": "Extend the end time of a running giveaway.",
   "help.gstats": "Show this server's giveaway statistics.",
 
@@ -230,5 +230,21 @@
   "stats.total": "Total giveaways",
   "stats.entries": "Total entries",
   "stats.winners": "Total winners",
-  "stats.winrate": "Win rate"
+  "stats.winrate": "Win rate",
+
+  "giveaway.button_fast": "⚡ Claim it now",
+  "giveaway.field.deadline": "Deadline",
+  "giveaway.field.fast_winners": "Fastest win",
+  "giveaway.field.mode": "Mode",
+  "winner.mode.first_click": "⚡ First click wins",
+  "winner.mode.first_click_hint": "⚡ **First click wins.** There is no draw: the fastest takes the prize, and the giveaway is over right there.",
+  "info.field.winnermode": "Winner selection",
+  "error.too_late": "⚡ Too late, somebody was faster. This giveaway is already over.",
+  "join.already": "✅ You're already in. In this giveaway an entry cannot be withdrawn.",
+  "modal.title_fast": "Create fast giveaway",
+  "modal.field.deadline": "Deadline (e.g. 1d, 2h30m, 45m)",
+  "modal.field.fast_winners": "How many of the fastest win",
+  "create.first_click_note": "⚡ First click wins: the giveaway ends as soon as enough people have clicked.",
+  "edit.first_click_note": "⚡ From now on the first click wins. Entries that already exist keep their order, so the earliest one wins. Nothing ends before the next click or the deadline.",
+  "end.winners_fast": "⚡ Fastest on the button: {winners}. The prize for **{title}** is gone!"
 }

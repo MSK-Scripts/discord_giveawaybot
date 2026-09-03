@@ -65,7 +65,7 @@
   "info.none": "—",
 
   "help.title": "🎉 Giveaway Bot — parancsok",
-  "help.gcreate": "Megnyit egy űrlapot, és nyereményjátékot hoz létre ebben a csatornában (a `mode` opcióval nyertesenként egy nyeremény).",
+  "help.gcreate": "Megnyit egy űrlapot, és nyereményjátékot hoz létre ebben a csatornában (a `mode` opcióval nyertesenként egy nyeremény, a `draw` opcióval az első kattintás nyer).",
   "help.gcancel": "Aktív nyereményjáték törlése (nyertes nélkül).",
   "help.gend": "Aktív nyereményjáték azonnali lezárása és a nyertesek kisorsolása.",
   "help.greroll": "Új nyertesek sorsolása egy lezárult nyereményjátékhoz.",
@@ -166,7 +166,7 @@
   "help.gpause": "Aktív nyereményjáték szüneteltetése (megállítja az időzítőt).",
   "help.gresume": "Szüneteltetett nyereményjáték folytatása.",
   "help.gtemplate": "Sablonok mentése, listázása, törlése vagy használata, illetve meglévő nyereményjáték sablonná alakítása.",
-  "help.gedit": "Futó nyereményjáték szerkesztése (cím, leírás, nyertesek, nyeremények).",
+  "help.gedit": "Szerkeszt egy futó nyereményjátékot (cím, leírás, nyertesek, nyeremények, nyertesek kiválasztása).",
   "help.gextend": "Futó nyereményjáték végének kitolása.",
   "help.gstats": "A szerver nyereményjáték-statisztikáinak megjelenítése.",
 
@@ -230,5 +230,21 @@
   "stats.total": "Összes nyereményjáték",
   "stats.entries": "Összes jelentkezés",
   "stats.winners": "Összes nyertes",
-  "stats.winrate": "Nyerési arány"
+  "stats.winrate": "Nyerési arány",
+
+  "giveaway.button_fast": "⚡ Most lecsapok",
+  "giveaway.field.deadline": "Határidő",
+  "giveaway.field.fast_winners": "A leggyorsabbak nyernek",
+  "giveaway.field.mode": "Mód",
+  "winner.mode.first_click": "⚡ Az első kattintás nyer",
+  "winner.mode.first_click_hint": "⚡ **Az első kattintás nyer.** Nincs sorsolás: a leggyorsabb viszi a nyereményt, és a nyereményjáték azonnal véget ér.",
+  "info.field.winnermode": "Nyertesek kiválasztása",
+  "error.too_late": "⚡ Túl késő, valaki gyorsabb volt. Ez a nyereményjáték már véget ért.",
+  "join.already": "✅ Már benne vagy. Ebben a nyereményjátékban a jelentkezés nem vonható vissza.",
+  "modal.title_fast": "Gyors nyereményjáték létrehozása",
+  "modal.field.deadline": "Határidő (pl. 1d, 2h30m, 45m)",
+  "modal.field.fast_winners": "Hány leggyorsabb nyer",
+  "create.first_click_note": "⚡ Az első kattintás nyer: a nyereményjáték véget ér, amint elegen kattintottak.",
+  "edit.first_click_note": "⚡ Mostantól az első kattintás nyer. A meglévő jelentkezések megtartják a sorrendjüket, tehát a legkorábbi nyer. Semmi nem zárul le a következő kattintásig vagy a határidőig.",
+  "end.winners_fast": "⚡ A leggyorsabbak a gombon: {winners}. A(z) **{title}** nyereménye elkelt!"
 }

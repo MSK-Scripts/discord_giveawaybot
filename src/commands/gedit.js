@@ -4,6 +4,7 @@ import { getGiveaway, editActiveMessage, sendGuildLog } from '../services/giveaw
 import { isManager } from '../utils/permissions.js';
 import { prisma } from '../database/prisma.js';
 import { giveawayPrizes, normalizePrizeInput, serializePrizes, normalizePrizeMode, MAX_PRIZES } from '../utils/prizes.js';
+import { normalizeWinnerMode } from '../utils/winnerMode.js';
 import { t } from '../utils/i18n.js';
 
 export default {
@@ -25,6 +26,16 @@ export default {
         .addChoices(
           { name: 'Everyone gets all prizes', value: 'ALL' },
           { name: 'One prize per winner', value: 'INDIVIDUAL' },
+        ),
+    )
+    .addStringOption((o) =>
+      o
+        .setName('draw')
+        .setDescription('How winners are determined')
+        .setRequired(false)
+        .addChoices(
+          { name: 'Random draw when it ends', value: 'RANDOM' },
+          { name: 'First click wins (ends instantly)', value: 'FIRST_CLICK' },
         ),
     ),
 
@@ -50,9 +61,16 @@ export default {
     const winners = interaction.options.getInteger('winners', false);
     const prizes = interaction.options.getString('prizes', false);
     const mode = interaction.options.getString('mode', false);
+    const draw = interaction.options.getString('draw', false);
     if (title != null) data.title = title.trim();
     if (description != null) data.description = description.trim();
     if (winners != null) data.winnersCount = winners;
+    // The mode can be switched while the giveaway runs, but switching ends
+    // nothing. Entries that already exist keep their order: if the fastest wins
+    // from now on, that is whoever clicked first, even if that was hours ago.
+    // Ending therefore waits for the next click or the deadline, because an
+    // edit must not hand out prizes.
+    if (draw != null) data.winnerMode = normalizeWinnerMode(draw);
 
     // Preise und Modus hängen zusammen: wer nur eines von beiden ändert, bekommt
     // den bestehenden Wert des anderen dazu, sonst stimmt die Gewinnerzahl nicht mehr.
@@ -87,6 +105,9 @@ export default {
       paused: updated.status === 'PAUSED',
     });
     await sendGuildLog(client, settings, t(guildId, 'log.edited', { id, title: updated.title, user: `<@${interaction.user.id}>` }));
-    return interaction.reply({ content: t(guildId, 'edit.success', { id }), flags: MessageFlags.Ephemeral });
+    let content = t(guildId, 'edit.success', { id });
+    if (data.winnerMode === 'FIRST_CLICK') content += `
+${t(guildId, 'edit.first_click_note')}`;
+    return interaction.reply({ content, flags: MessageFlags.Ephemeral });
   },
 };

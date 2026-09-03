@@ -8,6 +8,7 @@ import {
 import { t } from './i18n.js';
 import { parseEmoji } from './emoji.js';
 import { resolveGiveawayEligibility } from './eligibility.js';
+import { isFirstClick } from './winnerMode.js';
 import {
   giveawayPrizes,
   normalizePrizeMode,
@@ -114,18 +115,26 @@ function winnerPrizeLines(g, giveaway, winners) {
 /** Aktives Giveaway-Embed. */
 export function buildGiveawayEmbed(giveaway, settings, { entryCount = 0 } = {}) {
   const g = giveaway.guildId;
+  const fast = isFirstClick(giveaway);
   const embed = new EmbedBuilder()
     .setColor(resolveColor(settings.embedColor))
     .setTitle(giveaway.title)
     .setDescription(giveaway.description)
     .addFields(
-      { name: t(g, 'giveaway.field.ends'), value: rel(giveaway.endAt), inline: true },
-      { name: t(g, 'giveaway.field.winners'), value: String(giveaway.winnersCount), inline: true },
+      // In first-click mode the timestamp is no longer a draw but the deadline
+      // by which somebody has to have clicked.
+      { name: t(g, fast ? 'giveaway.field.deadline' : 'giveaway.field.ends'), value: rel(giveaway.endAt), inline: true },
+      { name: t(g, fast ? 'giveaway.field.fast_winners' : 'giveaway.field.winners'), value: String(giveaway.winnersCount), inline: true },
       { name: t(g, 'giveaway.field.host'), value: `<@${giveaway.hostId}>`, inline: true },
       { name: t(g, 'giveaway.field.entries'), value: String(entryCount), inline: true },
     )
     .setFooter({ text: t(g, 'giveaway.footer', { id: giveaway.id }) })
     .setTimestamp(giveaway.endAt instanceof Date ? giveaway.endAt : new Date(giveaway.endAt));
+
+  // The mode belongs in the embed where it can be seen: it changes what the
+  // button means. Somebody expecting "the draw happens later" who instead lost
+  // instantly will read that as a bug in the bot.
+  if (fast) embed.addFields({ name: t(g, 'giveaway.field.mode'), value: t(g, 'winner.mode.first_click_hint'), inline: false });
 
   for (const field of prizeFields(g, giveaway)) embed.addFields(field);
 
@@ -137,7 +146,10 @@ export function buildGiveawayEmbed(giveaway, settings, { entryCount = 0 } = {}) 
   const req = requirementsValue(g, eff);
   if (req) embed.addFields({ name: t(g, 'giveaway.field.requirements'), value: req.slice(0, 1024), inline: false });
 
-  const bonus = bonusValue(g, eff);
+  // Bonus entries raise a weight, and a weight only exists in a draw. They do
+  // nothing in first-click mode, so showing them here would be a promise the
+  // bot does not keep.
+  const bonus = fast ? null : bonusValue(g, eff);
   if (bonus) embed.addFields({ name: t(g, 'giveaway.field.bonus'), value: bonus.slice(0, 1024), inline: false });
 
   return embed;
@@ -191,7 +203,7 @@ export function buildButtonRow(giveaway, settings, { disabled = false } = {}) {
   const style = STYLE_MAP[settings.buttonStyle] ?? ButtonStyle.Primary;
   const button = new ButtonBuilder()
     .setCustomId(`gw:join:${giveaway.id}`)
-    .setLabel(t(giveaway.guildId, 'giveaway.button'))
+    .setLabel(t(giveaway.guildId, isFirstClick(giveaway) ? 'giveaway.button_fast' : 'giveaway.button'))
     .setStyle(style)
     .setDisabled(disabled);
 
@@ -222,7 +234,10 @@ export function buildResultContent(giveaway, winners, entryCount = 0) {
     return t(g, 'end.winners_individual', { title: giveaway.title, lines: winnerPrizeLines(g, giveaway, winners) });
   }
   const mentions = winners.map((w) => `<@${w.userId}>`).join(', ');
-  return t(g, 'end.winners', { winners: mentions, title: giveaway.title });
+  // In first-click mode nobody got lucky, somebody clicked fast. Congratulating
+  // on a draw that never happened reads wrong — and the difference is exactly
+  // what makes this mode fun.
+  return t(g, isFirstClick(giveaway) ? 'end.winners_fast' : 'end.winners', { winners: mentions, title: giveaway.title });
 }
 
 /** Reroll-Nachricht (Text) — gleiche Logik wie die Ergebnis-Nachricht. */
@@ -330,6 +345,9 @@ export function buildInfoEmbed(guildId, giveaway, { entryCount = 0, winnerIds = 
   const prizes = giveawayPrizes(giveaway);
   if (prizes.length > 1) {
     embed.addFields({ name: t(g, 'info.field.prizemode'), value: t(g, `prize.mode.${normalizePrizeMode(giveaway.prizeMode).toLowerCase()}`), inline: true });
+  }
+  if (isFirstClick(giveaway)) {
+    embed.addFields({ name: t(g, 'info.field.winnermode'), value: t(g, 'winner.mode.first_click'), inline: true });
   }
   for (const field of prizeFields(g, giveaway)) embed.addFields(field);
 

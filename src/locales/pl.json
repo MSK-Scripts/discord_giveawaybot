@@ -65,7 +65,7 @@
   "info.none": "—",
 
   "help.title": "🎉 Giveaway Bot — komendy",
-  "help.gcreate": "Otwiera okno i tworzy konkurs na tym kanale (opcja `mode` dla jednej nagrody na zwycięzcę).",
+  "help.gcreate": "Otwiera okno i tworzy konkurs na tym kanale (opcja `mode` dla jednej nagrody na zwycięzcę, `draw` dla wygranej za pierwsze kliknięcie).",
   "help.gcancel": "Anuluje aktywny konkurs (bez zwycięzcy).",
   "help.gend": "Natychmiast kończy aktywny konkurs i losuje zwycięzców.",
   "help.greroll": "Losuje nowych zwycięzców zakończonego konkursu.",
@@ -166,7 +166,7 @@
   "help.gpause": "Wstrzymuje aktywny konkurs (zatrzymuje odliczanie).",
   "help.gresume": "Wznawia wstrzymany konkurs.",
   "help.gtemplate": "Zapisuje, wyświetla, usuwa lub używa szablonów konkursów albo zamienia istniejący konkurs w szablon.",
-  "help.gedit": "Edytuje trwający konkurs (tytuł, opis, zwycięzcy, nagrody).",
+  "help.gedit": "Edytuje trwający konkurs (tytuł, opis, zwycięzcy, nagrody, sposób wyłaniania zwycięzców).",
   "help.gextend": "Przedłuża czas zakończenia trwającego konkursu.",
   "help.gstats": "Pokazuje statystyki konkursów tego serwera.",
 
@@ -230,5 +230,21 @@
   "stats.total": "Wszystkie konkursy",
   "stats.entries": "Wszystkie zgłoszenia",
   "stats.winners": "Wszyscy zwycięzcy",
-  "stats.winrate": "Wskaźnik wygranych"
+  "stats.winrate": "Wskaźnik wygranych",
+
+  "giveaway.button_fast": "⚡ Biorę teraz",
+  "giveaway.field.deadline": "Termin",
+  "giveaway.field.fast_winners": "Wygrywają najszybsi",
+  "giveaway.field.mode": "Tryb",
+  "winner.mode.first_click": "⚡ Wygrywa pierwsze kliknięcie",
+  "winner.mode.first_click_hint": "⚡ **Wygrywa pierwsze kliknięcie.** Nie ma losowania: najszybsza osoba zgarnia nagrodę, a konkurs od razu się kończy.",
+  "info.field.winnermode": "Wyłanianie zwycięzców",
+  "error.too_late": "⚡ Za późno, ktoś był szybszy. Ten konkurs już się zakończył.",
+  "join.already": "✅ Już bierzesz udział. W tym konkursie zgłoszenia nie da się wycofać.",
+  "modal.title_fast": "Utwórz szybki konkurs",
+  "modal.field.deadline": "Termin (np. 1d, 2h30m, 45m)",
+  "modal.field.fast_winners": "Ilu najszybszych wygrywa",
+  "create.first_click_note": "⚡ Wygrywa pierwsze kliknięcie: konkurs kończy się, gdy tylko kliknie wystarczająco dużo osób.",
+  "edit.first_click_note": "⚡ Od teraz wygrywa pierwsze kliknięcie. Dotychczasowe zgłoszenia zachowują swoją kolejność, więc wygrywa najwcześniejsze. Nic nie kończy się przed kolejnym kliknięciem albo terminem.",
+  "end.winners_fast": "⚡ Najszybsi przy przycisku: {winners}. Nagroda w **{title}** znalazła właściciela!"
 }

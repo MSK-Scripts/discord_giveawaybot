@@ -4,6 +4,7 @@ import { parseDuration } from '../../utils/duration.js';
 import { getSettings } from '../../services/settingsService.js';
 import { postGiveaway } from '../../services/giveawayService.js';
 import { normalizePrizeInput, MAX_PRIZES } from '../../utils/prizes.js';
+import { normalizeWinnerMode } from '../../utils/winnerMode.js';
 import { t } from '../../utils/i18n.js';
 import { logger } from '../../utils/logger.js';
 
@@ -14,13 +15,18 @@ const REQUIRED_PERMS = [
 ];
 
 export default {
-  // Prefix statt exaktem Match: der Verteilmodus reist in der customId mit, weil
-  // er als Slash-Option an /gcreate gesetzt wird und das Modal keine Rückfrage kennt.
+  // A prefix instead of an exact match: the prize distribution and the winner
+  // selection travel along in the customId, because both are set as a slash
+  // option on /gcreate and the modal cannot ask back.
   prefix: 'gw:create',
   async execute(client, interaction) {
     const guildId = interaction.guildId;
     const settings = await getSettings(guildId);
-    const mode = interaction.customId.split(':')[2] ?? 'ALL';
+    const parts = interaction.customId.split(':');
+    const mode = parts[2] ?? 'ALL';
+    // A missing fourth part means the customId comes from before the first-click
+    // change. RANDOM is the right behaviour there.
+    const winnerMode = normalizeWinnerMode(parts[3]);
 
     // getTextInputValue wirft für nicht gesendete Felder — im INDIVIDUAL-Modus
     // enthält das Modal kein Gewinner-Feld, dort bestimmt die Preisliste die Zahl.
@@ -88,6 +94,7 @@ export default {
         description,
         prizes: prizeInput.prizes,
         prizeMode: prizeInput.mode,
+        winnerMode,
         winnersCount: prizeInput.winnersCount,
         endAt,
       });
@@ -97,9 +104,13 @@ export default {
     }
 
     // Im INDIVIDUAL-Modus die abgeleitete Gewinnerzahl nennen, damit sie nicht überrascht.
-    const content = prizeInput.mode === 'INDIVIDUAL'
+    let content = prizeInput.mode === 'INDIVIDUAL'
       ? t(guildId, 'create.success_individual', { id, count: prizeInput.winnersCount })
       : t(guildId, 'create.success', { id });
+    // The mode changes what the button does. Somebody who set it by accident
+    // should find out here and not once the prize is gone.
+    if (winnerMode === 'FIRST_CLICK') content += `
+${t(guildId, 'create.first_click_note')}`;
     return interaction.reply({ content, flags: MessageFlags.Ephemeral });
   },
 };

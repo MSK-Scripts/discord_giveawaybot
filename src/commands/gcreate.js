@@ -9,6 +9,7 @@ import {
 import { getSettings } from '../services/settingsService.js';
 import { isManager } from '../utils/permissions.js';
 import { normalizePrizeMode } from '../utils/prizes.js';
+import { normalizeWinnerMode } from '../utils/winnerMode.js';
 import { t } from '../utils/i18n.js';
 
 export default {
@@ -29,6 +30,19 @@ export default {
           { name: 'Everyone gets all prizes', value: 'ALL' },
           { name: 'One prize per winner', value: 'INDIVIDUAL' },
         ),
+    )
+    // How the winners are determined. On the command rather than in the modal
+    // as well: the five modal fields are taken, and a choice between two fixed
+    // values does not belong in a free-text field anyway.
+    .addStringOption((o) =>
+      o
+        .setName('draw')
+        .setDescription('How winners are determined (default: random draw when the giveaway ends)')
+        .setRequired(false)
+        .addChoices(
+          { name: 'Random draw when it ends', value: 'RANDOM' },
+          { name: 'First click wins (ends instantly)', value: 'FIRST_CLICK' },
+        ),
     ),
 
   async execute(client, interaction) {
@@ -44,8 +58,13 @@ export default {
     // der Preisliste, das Gewinner-Feld entfällt und macht Platz für die Preise.
     const mode = normalizePrizeMode(interaction.options.getString('mode', false));
     const individual = mode === 'INDIVIDUAL';
+    // Both modes travel along in the customId: a modal cannot ask back, and
+    // between showModal and submit there is no state the bot holds.
+    const winnerMode = normalizeWinnerMode(interaction.options.getString('draw', false));
 
-    const modal = new ModalBuilder().setCustomId(`gw:create:${mode}`).setTitle(t(guildId, 'modal.title'));
+    const modal = new ModalBuilder()
+      .setCustomId(`gw:create:${mode}:${winnerMode}`)
+      .setTitle(t(guildId, winnerMode === 'FIRST_CLICK' ? 'modal.title_fast' : 'modal.title'));
 
     const titleInput = new TextInputBuilder()
       .setCustomId('title')
@@ -63,7 +82,9 @@ export default {
 
     const durationInput = new TextInputBuilder()
       .setCustomId('duration')
-      .setLabel(t(guildId, 'modal.field.duration'))
+      // In first-click mode the duration is the deadline, not the runtime until
+      // a draw: if nobody clicks, the giveaway still ends.
+      .setLabel(t(guildId, winnerMode === 'FIRST_CLICK' ? 'modal.field.deadline' : 'modal.field.duration'))
       .setStyle(TextInputStyle.Short)
       .setPlaceholder('1d2h30m')
       .setMaxLength(32)
@@ -71,7 +92,7 @@ export default {
 
     const winnersInput = new TextInputBuilder()
       .setCustomId('winners')
-      .setLabel(t(guildId, 'modal.field.winners'))
+      .setLabel(t(guildId, winnerMode === 'FIRST_CLICK' ? 'modal.field.fast_winners' : 'modal.field.winners'))
       .setStyle(TextInputStyle.Short)
       .setValue('1')
       .setMaxLength(3)

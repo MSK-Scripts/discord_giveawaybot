@@ -55,6 +55,10 @@ model GiveawayTemplate {
   // ausmacht, und /gtemplate use legte eines ganz ohne Preise an.
   prizes       String   @default("[]") @db.Text
   prizeMode    String   @default("ALL")
+  // How the winners are determined, see Giveaway.winnerMode. It belongs in the
+  // template because the quick giveaways (crate keys, event prizes) are exactly
+  // the ones people repeat, and the mode is what makes them that.
+  winnerMode   String   @default("RANDOM")
   // Teilnahmebedingungen wie beim Giveaway, mit derselben Bedeutung von NULL:
   // NULL = die Vorlage sagt nichts dazu, das daraus erzeugte Giveaway übernimmt
   // die serverweite Einstellung. Gesetzt = die Vorlage bringt ihre eigene mit.
@@ -83,6 +87,14 @@ model Giveaway {
   //                immer die Anzahl der Preise (siehe utils/prizes.js).
   prizes       String    @default("[]") @db.Text // JSON-Array von Preis-Texten
   prizeMode    String    @default("ALL") // ALL | INDIVIDUAL
+  // ── How the winners are determined ─────────────────────────────────────────
+  //   RANDOM      = a draw at the end (Fisher-Yates, with bonus entries)
+  //   FIRST_CLICK = whoever clicks first wins. The first `winnersCount` valid
+  //                 entries win and the giveaway ends immediately. `endAt` is
+  //                 then only the deadline for the case that nobody clicks.
+  // Bonus entries have no effect in FIRST_CLICK: the order decides there, not
+  // the weight. That is why the embed hides them in this mode.
+  winnerMode   String    @default("RANDOM") // RANDOM | FIRST_CLICK
   winnersCount Int       @default(1)
   endAt        DateTime
   status       String    @default("ACTIVE") // ACTIVE | PAUSED | ENDED | CANCELLED
@@ -156,6 +168,10 @@ model Entry {
   giveaway   Giveaway @relation(fields: [giveawayId], references: [id], onDelete: Cascade)
 
   @@id([giveawayId, userId])
+  // FIRST_CLICK reads the entries in click order. Without this index that is a
+  // filesort over every entry of the giveaway, at the exact moment the mode
+  // promises to be fast.
+  @@index([giveawayId, joinedAt])
 }
 
 model Winner {

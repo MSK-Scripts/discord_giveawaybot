@@ -101,8 +101,8 @@ npm run test:db             # applies the migrations to it
 
 | Command | Permissions | Description |
 |---|---|---|
-| `/gcreate [mode]` | Manager | Modal → giveaway in the current channel. `mode` picks how the prizes are handed out (see below) |
-| `/gedit <id>` | Manager | Edit a running giveaway (title, description, winners, prizes, mode) |
+| `/gcreate [mode] [draw]` | Manager | Modal → giveaway in the current channel. `mode` picks how the prizes are handed out, `draw` how the winners are found (both below) |
+| `/gedit <id>` | Manager | Edit a running giveaway (title, description, winners, prizes, mode, draw) |
 | `/gextend <id> <duration>` | Manager | Extend a running giveaway's end time |
 | `/gcancel <id>` | Manager | Cancel an active giveaway |
 | `/gend <id>` | Manager | End immediately + draw winners |
@@ -116,7 +116,7 @@ npm run test:db             # applies the migrations to it
 | `/gsettings set …` | ManageGuild | Set/add a setting: lang, color, emoji, button, blacklist, whitelist, bonus, minaccount, minmember, manager, notify, log, reminder, claim |
 | `/gsettings remove …` | ManageGuild | Remove/clear a setting: blacklist, whitelist, bonus, manager, notify, claim, conditions |
 | `/gpause` `/gresume` | Manager | Pause / resume a giveaway |
-| `/gtemplate save\|from\|list\|delete\|use` | Manager | Giveaway templates, including prizes and entry conditions |
+| `/gtemplate save\|from\|list\|delete\|use` | Manager | Giveaway templates, including prizes, entry conditions and the draw mode |
 
 "Manager" = **Manage Server** OR the configured `manager` role.
 
@@ -137,6 +137,25 @@ A giveaway that sets nothing follows the server settings, including later change
 All three can be set with `/gsettings` (optionally with `giveaway_id`) and in the **web dashboard**: server-wide in the settings tab, per giveaway in the create form and when editing a running one. The per-giveaway fields are prefilled with the server settings, so what the form shows is what will apply. Changing a role through `/gsettings … giveaway_id` starts from the server list as well, rather than replacing it with that one role.
 
 Bonus entries appear in the giveaway message as their own **Bonus entries** field, so the extra chance is visible to everyone instead of only showing up in the draw. It is kept apart from the requirements field on purpose: a bonus forbids nothing, it only improves the odds. Changing any of this later updates the messages of running giveaways.
+
+## How the winners are found
+
+The `draw` option of `/gcreate` (and `/gedit`, `/gtemplate save`) decides whether there is a draw at all:
+
+| `draw` | Behaviour |
+|---|---|
+| `RANDOM` (default) | The winners are drawn when the giveaway ends, weighted by bonus entries |
+| `FIRST_CLICK` | Whoever presses the button first wins. The giveaway ends the moment enough people have clicked |
+
+`FIRST_CLICK` is meant for the small, quick giveaways — a crate key, an event reward, something that is gone in seconds. The duration stays a required field, but it is a **deadline** rather than a runtime: if nobody clicks, the giveaway ends at that time and whoever did click wins.
+
+Three things follow from the mode, and they are visible in the message:
+
+- **The button label and an extra field say so.** Nobody should press a button expecting a draw and find out afterwards that they lost by half a second.
+- **Bonus entries do nothing** and are therefore hidden. They raise a weight, and a weight only exists in a draw.
+- **An entry cannot be withdrawn.** A second click would otherwise hand a prize that was already won back to the pool.
+
+Everything else works as usual. The entry conditions are checked at the button **and** again when the winners are settled, so somebody who was blacklisted or left the server in the meantime lets the next-fastest move up. `winners > 1` means the fastest *n* win, in click order, which combines with `mode: INDIVIDUAL` to "fastest gets prize 1, second fastest prize 2". A reroll takes the next fastest rather than drawing.
 
 ## Prizes
 

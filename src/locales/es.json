@@ -65,7 +65,7 @@
   "info.none": "—",
 
   "help.title": "🎉 Giveaway Bot — Comandos",
-  "help.gcreate": "Abre un modal y crea un sorteo en este canal (opción `mode` para un premio por ganador).",
+  "help.gcreate": "Abre un modal y crea un sorteo en este canal (opción `mode` para un premio por ganador, `draw` para que gane el primer clic).",
   "help.gcancel": "Cancela un sorteo activo (sin ganador).",
   "help.gend": "Finaliza un sorteo activo de inmediato y elige ganadores.",
   "help.greroll": "Elige nuevos ganadores para un sorteo finalizado.",
@@ -166,7 +166,7 @@
   "help.gpause": "Pausa un sorteo activo (congela el temporizador).",
   "help.gresume": "Reanuda un sorteo pausado.",
   "help.gtemplate": "Guardar, listar, eliminar o usar plantillas de sorteo, o convertir un sorteo existente en plantilla.",
-  "help.gedit": "Editar un sorteo en curso (título, descripción, ganadores, premios).",
+  "help.gedit": "Edita un sorteo en curso (título, descripción, ganadores, premios, elección de ganadores).",
   "help.gextend": "Ampliar la hora de finalización de un sorteo en curso.",
   "help.gstats": "Mostrar las estadísticas de sorteos de este servidor.",
 
@@ -230,5 +230,21 @@
   "stats.total": "Sorteos totales",
   "stats.entries": "Participaciones totales",
   "stats.winners": "Ganadores totales",
-  "stats.winrate": "Tasa de victorias"
+  "stats.winrate": "Tasa de victorias",
+
+  "giveaway.button_fast": "⚡ Lo quiero ya",
+  "giveaway.field.deadline": "Fecha límite",
+  "giveaway.field.fast_winners": "Ganan los más rápidos",
+  "giveaway.field.mode": "Modo",
+  "winner.mode.first_click": "⚡ Gana el primer clic",
+  "winner.mode.first_click_hint": "⚡ **Gana el primer clic.** No hay sorteo: el más rápido se lleva el premio y el sorteo termina en ese momento.",
+  "info.field.winnermode": "Elección de ganadores",
+  "error.too_late": "⚡ Demasiado tarde, alguien fue más rápido. Este sorteo ya terminó.",
+  "join.already": "✅ Ya estás dentro. En este sorteo la participación no se puede retirar.",
+  "modal.title_fast": "Crear sorteo rápido",
+  "modal.field.deadline": "Fecha límite (p. ej. 1d, 2h30m, 45m)",
+  "modal.field.fast_winners": "Cuántos de los más rápidos ganan",
+  "create.first_click_note": "⚡ Gana el primer clic: el sorteo termina en cuanto hayan participado suficientes personas.",
+  "edit.first_click_note": "⚡ A partir de ahora gana el primer clic. Las participaciones existentes mantienen su orden, así que gana la más antigua. No termina nada hasta el siguiente clic o la fecha límite.",
+  "end.winners_fast": "⚡ Los más rápidos con el botón: {winners}. ¡El premio de **{title}** ya tiene dueño!"
 }
