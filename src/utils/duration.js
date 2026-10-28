@@ -13,6 +13,9 @@ const TOKEN_RE = /(\d+)\s*(d|h|m|s)/gi;
 const MIN_MS = 10 * 1000;
 const MAX_MS = 365 * UNIT_MS.d;
 
+/** The bounds of parseDuration, for code that checks a duration given in ms. */
+export const DURATION_LIMITS = Object.freeze({ minMs: MIN_MS, maxMs: MAX_MS });
+
 /**
  * Parst einen Dauer-String in Millisekunden.
  * @param {string} input

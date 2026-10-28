@@ -144,8 +144,9 @@ export function normalizeTemplateInput(input = {}, { partial = false, current = 
  *
  * Everything that makes up a template is taken over: title, description,
  * prizes, distribution mode, number of winners, the winner selection and the
- * conditions. The duration comes from the span between creation and planned
- * end, because a giveaway stores a point in time and a template a duration.
+ * conditions. The duration comes from the span between the start (creation, or
+ * `startAt` for a scheduled giveaway) and the planned end, because a giveaway
+ * stores a point in time and a template a duration.
  *
  * Not taken over: channel and end date (both decided when the giveaway is
  * created) and the coupon configuration (it hangs on package IDs of one
@@ -156,7 +157,10 @@ export function normalizeTemplateInput(input = {}, { partial = false, current = 
  * @returns {object} input for normalizeTemplateInput
  */
 export function templateInputFromGiveaway(giveaway, name) {
-  const created = giveaway.createdAt ? new Date(giveaway.createdAt).getTime() : Date.now();
+  // A scheduled giveaway runs from its start, not from when it was created: its
+  // duration is endAt - startAt. Taking createdAt would add the waiting time.
+  const startedFrom = giveaway.startAt ?? giveaway.createdAt;
+  const created = startedFrom ? new Date(startedFrom).getTime() : Date.now();
   const ends = giveaway.endAt ? new Date(giveaway.endAt).getTime() : created;
   return {
     name,

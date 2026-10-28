@@ -11,6 +11,7 @@
   "giveaway.status.paused": "Szüneteltetve",
   "giveaway.status.ended": "Lezárult",
   "giveaway.status.cancelled": "Törölve",
+  "giveaway.status.scheduled": "Ütemezett",
 
   "join.success": "✅ A jelentkezésedet rögzítettük.",
   "join.removed": "↩️ A jelentkezésedet visszavontuk.",
@@ -18,6 +19,7 @@
 
   "error.not_found": "❌ Nincs nyereményjáték ezzel az azonosítóval.",
   "error.not_active": "⚠️ Ez a nyereményjáték nem aktív (már lezárult vagy törölve lett).",
+  "error.scheduled": "⏳ Ez a nyereményjáték még nem kezdődött el. Kezdés: {starts}.",
   "error.not_ended": "⚠️ Újrasorsolni csak lezárult nyereményjátékot lehet.",
   "error.no_permission": "⛔ Ehhez nincs jogosultságod.",
   "error.generic": "❌ Hiba történt. Kérlek, próbáld újra.",
@@ -35,8 +37,10 @@
   "modal.placeholder.prizes": "Soronként egy nyeremény",
 
   "create.invalid_duration": "❌ Érvénytelen időtartam. Például: `1d`, `2h30m`, `45m` (min. 10 mp, max. 1 év).",
+  "create.invalid_start": "❌ Érvénytelen kezdés. Például: `2h`, `1d`, `1d12h` (min. 10 mp, max. 1 év).",
   "create.invalid_winners": "❌ A nyertesek számának 1 és 100 közötti egész számnak kell lennie.",
   "create.success": "✅ Nyereményjáték létrehozva! Azonosító: `{id}`",
+  "create.scheduled": "🗓️ Nyereményjáték ütemezve! Azonosító: `{id}`. Kezdés: {starts}, az üzenet akkor jelenik meg.",
 
   "end.winners": "🎉 Gratulálunk, {winners}! A nyeremény: **{title}**.",
   "end.no_entries": "🎉 A(z) **{title}** nyereményjáték véget ért — senki nem vett részt.",
@@ -52,6 +56,8 @@
   "list.title": "🎉 Aktív nyereményjátékok",
   "list.empty": "Jelenleg nincs aktív nyereményjáték.",
   "list.entry": "`{id}` — **{title}** itt: <#{channel}> · vége {ends} · nyertesek: {winners}",
+  "list.scheduled_title": "⏳ Ütemezett",
+  "list.entry_scheduled": "`{id}` · **{title}** itt: <#{channel}> · kezdés {starts} · nyertesek: {winners}",
 
   "info.title": "Nyereményjáték {id}",
   "info.field.status": "Állapot",
@@ -59,13 +65,14 @@
   "info.field.channel": "Csatorna",
   "info.field.created": "Létrehozva",
   "info.field.ends": "Vége",
+  "info.field.starts": "Kezdés",
   "info.field.ended": "Lezárult",
   "info.field.entries": "Résztvevők",
   "info.field.winners": "Nyertesek",
   "info.none": "—",
 
   "help.title": "🎉 Giveaway Bot — parancsok",
-  "help.gcreate": "Megnyit egy űrlapot, és nyereményjátékot hoz létre ebben a csatornában (a `mode` opcióval nyertesenként egy nyeremény, a `draw` opcióval az első kattintás nyer).",
+  "help.gcreate": "Megnyit egy űrlapot, és nyereményjátékot hoz létre ebben a csatornában (a `mode` opcióval nyertesenként egy nyeremény, a `draw` opcióval az első kattintás nyer, a `start_in` opcióval később indul, pl. `2h`).",
   "help.gcancel": "Aktív nyereményjáték törlése (nyertes nélkül).",
   "help.gend": "Aktív nyereményjáték azonnali lezárása és a nyertesek kisorsolása.",
   "help.greroll": "Új nyertesek sorsolása egy lezárult nyereményjátékhoz.",
@@ -113,8 +120,12 @@
   "resume.success": "▶️ A(z) `{id}` nyereményjáték folytatódik.",
 
   "log.created": "🟢 A(z) `{id}` **{title}** nyereményjátékot létrehozta: {user}.",
+  "log.scheduled": "🗓️ A(z) `{id}` **{title}** nyereményjátékot ütemezte: {user}, kezdés: {starts}.",
+  "log.started": "🟢 Az ütemezett `{id}` **{title}** nyereményjáték elindult.",
+  "log.start_failed": "⚠️ Az ütemezett `{id}` **{title}** nyereményjátékot nem sikerült közzétenni, ezért törölve lett: {reason}",
   "log.ended": "🏁 A(z) `{id}` **{title}** nyereményjáték lezárult ({count} nyertes).",
   "log.cancelled": "🚫 A(z) `{id}` **{title}** nyereményjátékot törölte: {user}.",
+  "log.deleted": "🗑️ A(z) `{id}` **{title}** nyereményjátékot véglegesen törölte: {user}.",
   "log.rerolled": "🔁 A(z) `{id}` **{title}** nyereményjátékot újrasorsolta: {user}.",
   "log.paused": "⏸️ A(z) `{id}` **{title}** nyereményjáték szüneteltetve.",
   "log.resumed": "▶️ A(z) `{id}` **{title}** nyereményjáték folytatódik.",

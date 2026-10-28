@@ -1,8 +1,9 @@
-// Modal-Submit-Handler für /gcreate (customId "gw:create:<PRIZE_MODE>").
+// Modal-Submit-Handler für /gcreate (customId "gw:create:<PRIZE_MODE>:<WINNER_MODE>[:<START_OFFSET_MS>]").
 import { MessageFlags, PermissionFlagsBits } from 'discord.js';
 import { parseDuration } from '../../utils/duration.js';
 import { getSettings } from '../../services/settingsService.js';
-import { postGiveaway } from '../../services/giveawayService.js';
+import { postGiveaway, scheduleGiveaway } from '../../services/giveawayService.js';
+import { parseStartOffset, startsLabel } from '../../utils/schedule.js';
 import { normalizePrizeInput, MAX_PRIZES } from '../../utils/prizes.js';
 import { normalizeWinnerMode } from '../../utils/winnerMode.js';
 import { t } from '../../utils/i18n.js';
@@ -27,6 +28,12 @@ export default {
     // A missing fourth part means the customId comes from before the first-click
     // change. RANDOM is the right behaviour there.
     const winnerMode = normalizeWinnerMode(parts[3]);
+    // Optional fifth part: start offset in ms from the start_in option. Checked
+    // again here, because a customId comes back from the client.
+    const startOffset = parseStartOffset(parts[4]);
+    if (startOffset === false) {
+      return interaction.reply({ content: t(guildId, 'create.invalid_start'), flags: MessageFlags.Ephemeral });
+    }
 
     // getTextInputValue wirft für nicht gesendete Felder — im INDIVIDUAL-Modus
     // enthält das Modal kein Gewinner-Feld, dort bestimmt die Preisliste die Zahl.
@@ -82,31 +89,39 @@ export default {
       });
     }
 
-    const endAt = new Date(Date.now() + dur.ms);
+    // With a start offset the duration counts from the start, not from now.
+    const startAt = startOffset ? new Date(Date.now() + startOffset) : null;
+    const endAt = new Date((startAt ? startAt.getTime() : Date.now()) + dur.ms);
+    const input = {
+      guildId,
+      hostId: interaction.user.id,
+      title,
+      description,
+      prizes: prizeInput.prizes,
+      prizeMode: prizeInput.mode,
+      winnerMode,
+      winnersCount: prizeInput.winnersCount,
+      startAt,
+      endAt,
+    };
 
     // Giveaway anlegen + posten (gemeinsame Logik, mit Rollback bei Sende-Fehler).
+    // Scheduled: only stored now, the scheduler posts it at startAt.
     let id;
     try {
-      id = await postGiveaway(client, channel, settings, {
-        guildId,
-        hostId: interaction.user.id,
-        title,
-        description,
-        prizes: prizeInput.prizes,
-        prizeMode: prizeInput.mode,
-        winnerMode,
-        winnersCount: prizeInput.winnersCount,
-        endAt,
-      });
+      id = startAt
+        ? await scheduleGiveaway(client, channel, settings, input)
+        : await postGiveaway(client, channel, settings, input);
     } catch (err) {
       logger.error('gcreateModal postGiveaway:', err);
       return interaction.reply({ content: t(guildId, 'error.generic'), flags: MessageFlags.Ephemeral });
     }
 
     // Im INDIVIDUAL-Modus die abgeleitete Gewinnerzahl nennen, damit sie nicht überrascht.
-    let content = prizeInput.mode === 'INDIVIDUAL'
-      ? t(guildId, 'create.success_individual', { id, count: prizeInput.winnersCount })
-      : t(guildId, 'create.success', { id });
+    let content;
+    if (startAt) content = t(guildId, 'create.scheduled', { id, starts: startsLabel({ startAt }) });
+    else if (prizeInput.mode === 'INDIVIDUAL') content = t(guildId, 'create.success_individual', { id, count: prizeInput.winnersCount });
+    else content = t(guildId, 'create.success', { id });
     // The mode changes what the button does. Somebody who set it by accident
     // should find out here and not once the prize is gone.
     if (winnerMode === 'FIRST_CLICK') content += `

@@ -2,6 +2,25 @@
 
 All notable changes to the **MSK Giveaway Bot**. Format based on [Keep a Changelog](https://keepachangelog.com).
 
+## [Unreleased]
+
+### Added
+- **Scheduled giveaways.** A giveaway can be created now and posted later: `/gcreate start_in:2h` (same format as the duration) or a `startAt` on `POST /giveaway/create` (ISO 8601 with offset, or epoch milliseconds; in the future and at most 365 days ahead). It is stored with the new status `SCHEDULED` and no Discord message, and the duration counts from the start. New column `Giveaway.startAt` with an index on `(status, startAt)` (migration `20261028110000_scheduled_start`); existing giveaways keep `NULL`.
+
+  The scheduler starts due giveaways first in every tick, behind an atomic `SCHEDULED -> ACTIVE` claim like the one for ending, so the message goes out once even when ticks overlap. If posting fails (channel deleted, permissions missing) the giveaway is cancelled and the log channel says why; it is never deleted. A start more than a minute late, because the bot was offline, keeps the full duration. A scheduled giveaway can be edited (in the dashboard including start and duration) and cancelled; ending, pausing, extending and rerolling answer that it has not started yet. `/glist` shows scheduled giveaways in their own field, `/ginfo` and `/gstats` know the status, and a template saved from one takes its duration from the start.
+- **Winner names for the dashboard.** The draw stores each winner's display name (server nickname first) and avatar from the member it fetched anyway, in every draw path: ending, rerolling all and replacing one. New nullable columns `Winner.displayName` and `Winner.avatarUrl` (migration `20261028100000_winner_profile`). `GET /giveaways` and `GET /giveaway` return them; for winners from before, the detail endpoint looks up to 25 names per request from the user without storing them.
+- **`GET /guild`** answers the server's name, icon and member count from the bot's cache, without a REST call.
+- **`POST /giveaway/delete`** removes an ended, cancelled or scheduled giveaway with its message, entries, winners and coupon records. A running one answers `409 still_running`. Issued coupon codes are not revoked in the store; the answer and `GET /giveaway` report them as `couponsIssued`, so the dashboard can warn first.
+- **`GET /history?days=N`** (1 to 365, default 90) returns created giveaways, ended giveaways and entries per UTC day, every day present. Withdrawn entries, deleted giveaways and guilds the bot left are not in it.
+- **`POST /giveaway/preview`** returns the embed and button a create with the same body would post, built by the same code, without writing anything or calling Discord. The guild's language applies unless `lang` names another supported one.
+- **[docs/control-api.md](docs/control-api.md)** describes these endpoints with their request and response shapes.
+
+### Changed
+- **`POST /giveaway/create` answers with `status`, `startAt` and `endAt`** next to the `id`, and every serialized giveaway carries `startAt`.
+- **`POST /giveaway/edit` refuses `startAt` and `duration` for a giveaway that is not scheduled** (`409 not_scheduled`) instead of ignoring them. A running giveaway's end moves with `/giveaway/extend`, as before.
+- **`GET /giveaway` refuses a malformed ID** with `400 invalid_id` before any lookup, like the POST endpoints already did.
+- **Cancelling edits the message of the giveaway as it is now**, not of the copy the caller read, so a scheduled giveaway posted in between is marked cancelled as well.
+
 ## [1.11.0]
 
 ### Added

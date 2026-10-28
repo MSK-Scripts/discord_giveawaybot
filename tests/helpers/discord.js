@@ -7,10 +7,13 @@
  */
 
 /** A GuildMember as `checkEligibility` and `ticketWeight` see it. */
-export function fakeMember(id, { roles = [], accountAgeDays = 365, memberAgeDays = 365 } = {}) {
+export function fakeMember(id, { roles = [], accountAgeDays = 365, memberAgeDays = 365, displayName } = {}) {
   const set = new Set(roles);
   return {
     id,
+    // The server nickname, the way GuildMember#displayName resolves it.
+    displayName: displayName ?? `nick${id.slice(-4)}`,
+    displayAvatarURL: ({ size } = {}) => `https://cdn.discordapp.com/guilds/g/users/${id}/avatars/m.png?size=${size}`,
     user: { id, username: `user${id.slice(-4)}`, createdTimestamp: Date.now() - accountAgeDays * 86_400_000 },
     joinedTimestamp: Date.now() - memberAgeDays * 86_400_000,
     roles: {

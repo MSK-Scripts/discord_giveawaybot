@@ -11,6 +11,7 @@
   "giveaway.status.paused": "En pause",
   "giveaway.status.ended": "Terminé",
   "giveaway.status.cancelled": "Annulé",
+  "giveaway.status.scheduled": "Planifié",
 
   "join.success": "✅ Ta participation a été confirmée.",
   "join.removed": "↩️ Ta participation a été retirée.",
@@ -18,6 +19,7 @@
 
   "error.not_found": "❌ Aucun giveaway trouvé avec cet identifiant.",
   "error.not_active": "⚠️ Ce giveaway n'est pas actif (déjà terminé ou annulé).",
+  "error.scheduled": "⏳ Ce giveaway n'a pas encore commencé. Il commence {starts}.",
   "error.not_ended": "⚠️ Le reroll n'est possible que pour les giveaways terminés.",
   "error.no_permission": "⛔ Tu n'as pas la permission de faire cela.",
   "error.generic": "❌ Une erreur s'est produite. Réessaie.",
@@ -35,8 +37,10 @@
   "modal.placeholder.prizes": "Un lot par ligne",
 
   "create.invalid_duration": "❌ Durée invalide. Exemples : `1d`, `2h30m`, `45m` (min 10s, max 1 an).",
+  "create.invalid_start": "❌ Début invalide. Exemples : `2h`, `1d`, `1d12h` (min 10s, max 1 an).",
   "create.invalid_winners": "❌ Le nombre de gagnants doit être un entier entre 1 et 100.",
   "create.success": "✅ Giveaway créé ! ID : `{id}`",
+  "create.scheduled": "🗓️ Giveaway planifié ! ID : `{id}`. Il commence {starts}, le message sera publié à ce moment-là.",
 
   "end.winners": "🎉 Félicitations {winners} ! Tu as gagné **{title}**.",
   "end.no_entries": "🎉 Giveaway **{title}** terminé — personne n'a participé.",
@@ -52,6 +56,8 @@
   "list.title": "🎉 Giveaways actifs",
   "list.empty": "Il n'y a aucun giveaway actif.",
   "list.entry": "`{id}` — **{title}** dans <#{channel}> · se termine {ends} · gagnants : {winners}",
+  "list.scheduled_title": "⏳ Planifiés",
+  "list.entry_scheduled": "`{id}` · **{title}** dans <#{channel}> · commence {starts} · gagnants : {winners}",
 
   "info.title": "Giveaway {id}",
   "info.field.status": "Statut",
@@ -59,13 +65,14 @@
   "info.field.channel": "Salon",
   "info.field.created": "Créé",
   "info.field.ends": "Se termine",
+  "info.field.starts": "Commence",
   "info.field.ended": "Terminé",
   "info.field.entries": "Participants",
   "info.field.winners": "Gagnants",
   "info.none": "—",
 
   "help.title": "🎉 Giveaway Bot — Commandes",
-  "help.gcreate": "Ouvre un modal et crée un giveaway dans ce salon (option `mode` pour un lot par gagnant, `draw` pour le premier clic gagne).",
+  "help.gcreate": "Ouvre un modal et crée un giveaway dans ce salon (option `mode` pour un lot par gagnant, `draw` pour le premier clic gagne, `start_in` pour le lancer plus tard, p. ex. `2h`).",
   "help.gcancel": "Annule un giveaway actif (aucun gagnant).",
   "help.gend": "Termine immédiatement un giveaway actif et tire les gagnants.",
   "help.greroll": "Tire de nouveaux gagnants pour un giveaway terminé.",
@@ -113,8 +120,12 @@
   "resume.success": "▶️ Giveaway `{id}` repris.",
 
   "log.created": "🟢 Giveaway `{id}` **{title}** créé par {user}.",
+  "log.scheduled": "🗓️ Giveaway `{id}` **{title}** planifié par {user}, début {starts}.",
+  "log.started": "🟢 Giveaway planifié `{id}` **{title}** démarré.",
+  "log.start_failed": "⚠️ Le giveaway planifié `{id}` **{title}** n'a pas pu être publié et a été annulé : {reason}",
   "log.ended": "🏁 Giveaway `{id}` **{title}** terminé ({count} gagnant(s)).",
   "log.cancelled": "🚫 Giveaway `{id}` **{title}** annulé par {user}.",
+  "log.deleted": "🗑️ Giveaway `{id}` **{title}** supprimé par {user}.",
   "log.rerolled": "🔁 Giveaway `{id}` **{title}** relancé par {user}.",
   "log.paused": "⏸️ Giveaway `{id}` **{title}** mis en pause.",
   "log.resumed": "▶️ Giveaway `{id}` **{title}** repris.",

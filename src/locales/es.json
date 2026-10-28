@@ -11,6 +11,7 @@
   "giveaway.status.paused": "Pausado",
   "giveaway.status.ended": "Finalizado",
   "giveaway.status.cancelled": "Cancelado",
+  "giveaway.status.scheduled": "Programado",
 
   "join.success": "✅ Tu participación ha sido confirmada.",
   "join.removed": "↩️ Tu participación ha sido retirada.",
@@ -18,6 +19,7 @@
 
   "error.not_found": "❌ No se encontró ningún sorteo con esta ID.",
   "error.not_active": "⚠️ Este sorteo no está activo (ya finalizado o cancelado).",
+  "error.scheduled": "⏳ Este sorteo aún no ha empezado. Empieza {starts}.",
   "error.not_ended": "⚠️ El reroll solo es posible para sorteos finalizados.",
   "error.no_permission": "⛔ No tienes permiso para hacer eso.",
   "error.generic": "❌ Ocurrió un error. Inténtalo de nuevo.",
@@ -35,8 +37,10 @@
   "modal.placeholder.prizes": "Un premio por línea",
 
   "create.invalid_duration": "❌ Duración no válida. Ejemplos: `1d`, `2h30m`, `45m` (mín 10s, máx 1 año).",
+  "create.invalid_start": "❌ Inicio no válido. Ejemplos: `2h`, `1d`, `1d12h` (mín 10s, máx 1 año).",
   "create.invalid_winners": "❌ El número de ganadores debe ser un entero entre 1 y 100.",
   "create.success": "✅ ¡Sorteo creado! ID: `{id}`",
+  "create.scheduled": "🗓️ ¡Sorteo programado! ID: `{id}`. Empieza {starts}, el mensaje se publica entonces.",
 
   "end.winners": "🎉 ¡Felicidades {winners}! Has ganado **{title}**.",
   "end.no_entries": "🎉 Sorteo **{title}** finalizado — nadie participó.",
@@ -52,6 +56,8 @@
   "list.title": "🎉 Sorteos activos",
   "list.empty": "No hay sorteos activos.",
   "list.entry": "`{id}` — **{title}** en <#{channel}> · termina {ends} · ganadores: {winners}",
+  "list.scheduled_title": "⏳ Programados",
+  "list.entry_scheduled": "`{id}` · **{title}** en <#{channel}> · empieza {starts} · ganadores: {winners}",
 
   "info.title": "Sorteo {id}",
   "info.field.status": "Estado",
@@ -59,13 +65,14 @@
   "info.field.channel": "Canal",
   "info.field.created": "Creado",
   "info.field.ends": "Termina",
+  "info.field.starts": "Empieza",
   "info.field.ended": "Finalizado",
   "info.field.entries": "Participantes",
   "info.field.winners": "Ganadores",
   "info.none": "—",
 
   "help.title": "🎉 Giveaway Bot — Comandos",
-  "help.gcreate": "Abre un modal y crea un sorteo en este canal (opción `mode` para un premio por ganador, `draw` para que gane el primer clic).",
+  "help.gcreate": "Abre un modal y crea un sorteo en este canal (opción `mode` para un premio por ganador, `draw` para que gane el primer clic, `start_in` para empezarlo más tarde, p. ej. `2h`).",
   "help.gcancel": "Cancela un sorteo activo (sin ganador).",
   "help.gend": "Finaliza un sorteo activo de inmediato y elige ganadores.",
   "help.greroll": "Elige nuevos ganadores para un sorteo finalizado.",
@@ -113,8 +120,12 @@
   "resume.success": "▶️ Sorteo `{id}` reanudado.",
 
   "log.created": "🟢 Sorteo `{id}` **{title}** creado por {user}.",
+  "log.scheduled": "🗓️ Sorteo `{id}` **{title}** programado por {user}, empieza {starts}.",
+  "log.started": "🟢 Sorteo programado `{id}` **{title}** iniciado.",
+  "log.start_failed": "⚠️ El sorteo programado `{id}` **{title}** no se pudo publicar y se canceló: {reason}",
   "log.ended": "🏁 Sorteo `{id}` **{title}** finalizado ({count} ganador(es)).",
   "log.cancelled": "🚫 Sorteo `{id}` **{title}** cancelado por {user}.",
+  "log.deleted": "🗑️ Sorteo `{id}` **{title}** eliminado por {user}.",
   "log.rerolled": "🔁 Sorteo `{id}` **{title}** vuelto a sortear por {user}.",
   "log.paused": "⏸️ Sorteo `{id}` **{title}** pausado.",
   "log.resumed": "▶️ Sorteo `{id}` **{title}** reanudado.",

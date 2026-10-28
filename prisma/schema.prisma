@@ -97,7 +97,12 @@ model Giveaway {
   winnerMode   String    @default("RANDOM") // RANDOM | FIRST_CLICK
   winnersCount Int       @default(1)
   endAt        DateTime
-  status       String    @default("ACTIVE") // ACTIVE | PAUSED | ENDED | CANCELLED
+  /// Planned start of a scheduled giveaway, null for one posted right away.
+  /// While the status is SCHEDULED there is no Discord message yet; the
+  /// scheduler claims SCHEDULED -> ACTIVE at this time and posts it then.
+  /// endAt is startAt plus the duration (shifted when the start came late).
+  startAt      DateTime?
+  status       String    @default("ACTIVE") // SCHEDULED | ACTIVE | PAUSED | ENDED | CANCELLED
   pausedAt     DateTime? // Zeitpunkt der Pausierung (zum Verlängern von endAt beim Resume)
   reminderAt   DateTime? // Zeitpunkt für den "Ending soon"-Reminder (null = kein Reminder)
   reminderSent Boolean   @default(false) // ob der Reminder schon gepostet wurde
@@ -141,6 +146,7 @@ model Giveaway {
 
   @@index([guildId, status])
   @@index([status, endAt])
+  @@index([status, startAt])
 }
 
 /// Ein ausgestellter Tebex-Coupon, ein Datensatz pro Gewinner.
@@ -182,6 +188,12 @@ model Winner {
   /// null = der Gewinner bekommt alle Preise. Beim Reroll erbt der Ersatz den
   /// Slot des Ersetzten, damit sich die Zuordnung nicht verschiebt.
   prizeIndex Int?
+  /// Name and avatar as shown on the server when the winner was drawn
+  /// (nickname first), taken from the member the draw fetched anyway. Null for
+  /// winners drawn before the columns existed; GET /giveaway fills those in
+  /// lazily from the user, without writing them back.
+  displayName String?
+  avatarUrl   String?  @db.VarChar(512)
   pickedAt   DateTime @default(now())
   giveaway   Giveaway @relation(fields: [giveawayId], references: [id], onDelete: Cascade)
 

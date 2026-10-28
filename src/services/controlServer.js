@@ -10,10 +10,13 @@ import { createServer } from 'node:http';
 import { timingSafeEqual } from 'node:crypto';
 import { prisma } from '../database/prisma.js';
 import { logger } from '../utils/logger.js';
-import { getSettings, updateSettings, evict } from './settingsService.js';
+import { getSettings, peekSettings, updateSettings, evict } from './settingsService.js';
+import { buildGiveawayEmbed, buildButtonRow } from '../utils/embeds.js';
 import {
   getGiveaway,
   postGiveaway,
+  scheduleGiveaway,
+  giveawayRecord,
   editActiveMessage,
   endGiveaway,
   cancelAndFinalize,
@@ -23,6 +26,12 @@ import {
   rerollSingle,
   sendGuildLog,
   refreshActiveEmbeds,
+  deleteGiveaway,
+  countIssuedCoupons,
+  getGuildHistory,
+  DELETABLE_STATUSES,
+  HISTORY_DEFAULT_DAYS,
+  HISTORY_MAX_DAYS,
   EMBED_SETTINGS_KEYS,
 } from './giveawayService.js';
 import { verifySecret, listPackages } from './tebexService.js';
@@ -42,7 +51,9 @@ import {
 import { overrides } from '../utils/eligibility.js';
 import { encryptSecret, decryptSecret, secretHint, checkEncryptionKey } from '../utils/secretBox.js';
 import { parseDuration } from '../utils/duration.js';
-import { t, SUPPORTED_LANGS } from '../utils/i18n.js';
+import { userProfile } from '../utils/profile.js';
+import { parseStartAt } from '../utils/schedule.js';
+import { t, SUPPORTED_LANGS, DEFAULT_LANG } from '../utils/i18n.js';
 
 let server = null;
 const GUILD_RE = /^\d{17,20}$/;
@@ -140,6 +151,8 @@ function serializeGiveaway(g, extra = {}) {
     winnerMode: normalizeWinnerMode(g.winnerMode),
     winnersCount: g.winnersCount,
     status: g.status,
+    // Planned start of a SCHEDULED giveaway (null for one posted right away).
+    startAt: g.startAt ? new Date(g.startAt).toISOString() : null,
     endAt: g.endAt ? new Date(g.endAt).toISOString() : null,
     pausedAt: g.pausedAt ? new Date(g.pausedAt).toISOString() : null,
     createdAt: g.createdAt ? new Date(g.createdAt).toISOString() : null,
@@ -300,10 +313,13 @@ async function listGiveaways(guildId) {
   const out = [];
   for (const g of rows) {
     const entryCount = await prisma.entry.count({ where: { giveawayId: g.id } });
+    // Names come only from the database here. The list never asks Discord: a
+    // hundred giveaways times their winners would be a burst of REST calls on
+    // every page load. Winners from before the names were stored show null.
     const winners = g.status === 'ENDED'
       ? await prisma.winner.findMany({
         where: { giveawayId: g.id, rerolled: false },
-        select: { userId: true, prizeIndex: true },
+        select: { userId: true, prizeIndex: true, displayName: true, avatarUrl: true },
         orderBy: [{ prizeIndex: 'asc' }, { pickedAt: 'asc' }],
       })
       : [];
@@ -313,16 +329,76 @@ async function listGiveaways(guildId) {
   return out;
 }
 
-async function getGiveawayDetail(guildId, id) {
+// At most this many user lookups per detail request, for winners drawn before
+// the names were stored. Above that the rest stays null; the shop shows the ID.
+const MAX_NAME_LOOKUPS = 25;
+
+/**
+ * Fills in missing winner names from the user (not the member) for display.
+ *
+ * Read-only on purpose: nothing is written back. A name looked up today is the
+ * global name of today, not the server nickname of the day the person won, and
+ * storing it would pass it off as the latter. `client.users.fetch` answers from
+ * the discord.js cache when it can, so repeated views of the same giveaway stay
+ * cheap. A failed lookup (deleted account) leaves the name null.
+ */
+async function fillMissingNames(client, winners) {
+  const missing = winners.filter((w) => !w.displayName).slice(0, MAX_NAME_LOOKUPS);
+  await Promise.all(missing.map(async (w) => {
+    try {
+      const profile = userProfile(await client.users.fetch(w.userId));
+      if (profile.displayName) w.displayName = profile.displayName;
+      if (!w.avatarUrl && profile.avatarUrl) w.avatarUrl = profile.avatarUrl;
+    } catch {
+      // unknown or deleted user -> stays null
+    }
+  }));
+  return winners;
+}
+
+async function getGiveawayDetail(client, guildId, id) {
   const g = await getGiveaway(id, guildId);
   if (!g) return null;
   const entryCount = await prisma.entry.count({ where: { giveawayId: id } });
   const winners = await prisma.winner.findMany({
     where: { giveawayId: id },
-    select: { userId: true, rerolled: true, prizeIndex: true },
+    select: { userId: true, rerolled: true, prizeIndex: true, displayName: true, avatarUrl: true },
     orderBy: [{ prizeIndex: 'asc' }, { pickedAt: 'asc' }],
   });
-  return serializeGiveaway(g, { entryCount, winners });
+  await fillMissingNames(client, winners);
+  // Codes handed out and not revoked. They stay valid in the store when the
+  // giveaway is deleted, which is what the dashboard warns about.
+  const couponsIssued = await countIssuedCoupons(id);
+  return serializeGiveaway(g, { entryCount, winners, couponsIssued });
+}
+
+/**
+ * `days` of GET /history: a whole number 1..365, default 90 when absent.
+ * Anything else is refused rather than clamped, so a typo in the shop shows up.
+ */
+function parseHistoryDays(raw) {
+  if (raw === null || raw === '') return { ok: true, days: HISTORY_DEFAULT_DAYS };
+  if (!/^\d{1,3}$/.test(raw)) return { ok: false };
+  const days = Number(raw);
+  return days >= 1 && days <= HISTORY_MAX_DAYS ? { ok: true, days } : { ok: false };
+}
+
+/**
+ * POST /giveaway/delete: only for ENDED, CANCELLED and SCHEDULED giveaways.
+ * A running one answers 409 still_running and has to be ended or cancelled
+ * first. Answers with the number of coupon codes that were handed out.
+ */
+async function deleteGiveawayEndpoint(client, guildId, body) {
+  const id = String(body?.id ?? '').trim().toUpperCase();
+  if (!ID_RE.test(id)) return { status: 400, body: { error: 'invalid_id' } };
+  const giveaway = await getGiveaway(id, guildId);
+  if (!giveaway) return { status: 404, body: { error: 'not_found' } };
+  if (!DELETABLE_STATUSES.includes(giveaway.status)) return { status: 409, body: { error: 'still_running' } };
+
+  const settings = await getSettings(guildId);
+  const res = await deleteGiveaway(client, giveaway, settings, { actor: ACTOR });
+  if (!res.ok) return { status: res.error === 'not_found' ? 404 : 409, body: { error: res.error } };
+  return { status: 200, body: { ok: true, couponsIssued: res.couponsIssued, message: res.message } };
 }
 
 /**
@@ -342,56 +418,186 @@ function parseWinnerModeInput(body, key = 'winnerMode') {
   return { ok: true, mode: value };
 }
 
-async function createGiveawayEndpoint(client, guildId, body) {
-  const { channelId, title, description, prizes, prizeMode, winnersCount, duration } = body || {};
-  if (!GUILD_RE.test(String(channelId ?? ''))) return { status: 400, body: { error: 'invalid_channel' } };
-  if (!title || !description) return { status: 400, body: { error: 'missing_fields' } };
+/**
+ * Validates the body of POST /giveaway/create.
+ *
+ * Pure: no database and no Discord, which is what lets the preview take the
+ * same body through the same checks without writing or posting anything. The
+ * channel is only checked for its shape here; whether it exists is the
+ * caller's business (create fetches it, the preview does not need one).
+ *
+ * @param {object} body
+ * @param {{requireChannel?: boolean}} opts the preview may leave the channel out
+ * @returns {{ok: true, channelId: string|null, input: object, coupon: object} | {ok: false, error: string}}
+ */
+function parseCreateBody(body, { requireChannel = true } = {}) {
+  const b = body || {};
+  const { channelId, title, description, prizes, prizeMode, winnersCount, duration } = b;
+  if (requireChannel || channelId != null) {
+    if (!GUILD_RE.test(String(channelId ?? ''))) return { ok: false, error: 'invalid_channel' };
+  }
+  if (!title || !description) return { ok: false, error: 'missing_fields' };
 
   const dur = parseDuration(String(duration ?? ''));
-  if (!dur.ok) return { status: 400, body: { error: 'invalid_duration' } };
+  if (!dur.ok) return { ok: false, error: 'invalid_duration' };
 
   const winners = Number(winnersCount);
-  if (!Number.isInteger(winners) || winners < 1 || winners > 100) return { status: 400, body: { error: 'invalid_winners' } };
+  if (!Number.isInteger(winners) || winners < 1 || winners > 100) return { ok: false, error: 'invalid_winners' };
 
   // Preise + Modus; im INDIVIDUAL-Modus ersetzt die Preisanzahl die Gewinnerzahl.
   const prizeInput = normalizePrizeInput({ prizes, mode: prizeMode, winnersCount: winners });
-  if (!prizeInput.ok) return { status: 400, body: { error: prizeInput.error } };
+  if (!prizeInput.ok) return { ok: false, error: prizeInput.error };
 
-  const channel = await client.channels.fetch(String(channelId)).catch(() => null);
+  const coupon = parseCouponInput(b);
+  if (!coupon.ok) return { ok: false, error: coupon.error };
+
+  const elig = parseEligibilityInput(b);
+  if (!elig.ok) return { ok: false, error: elig.error };
+
+  const draw = parseWinnerModeInput(b);
+  if (!draw.ok) return { ok: false, error: draw.error };
+
+  // Optional start time. With one the giveaway is SCHEDULED and the duration
+  // counts from the start, not from now.
+  const start = parseStartAt(b.startAt);
+  if (!start.ok) return { ok: false, error: start.error };
+  const from = start.startAt ? start.startAt.getTime() : Date.now();
+
+  return {
+    ok: true,
+    channelId: channelId == null ? null : String(channelId),
+    coupon: coupon.data,
+    input: {
+      title: String(title).slice(0, 256),
+      description: String(description).slice(0, 2000),
+      prizes: prizeInput.prizes,
+      prizeMode: prizeInput.mode,
+      winnerMode: draw.mode ?? 'RANDOM',
+      winnersCount: prizeInput.winnersCount,
+      startAt: start.startAt,
+      endAt: new Date(from + dur.ms),
+      ...elig.values, // stehen im Embed, müssen also vor dem Posten im Datensatz sein
+    },
+  };
+}
+
+// Stand-in ID of a preview. Matches the shape of a real one, so the footer and
+// the button look as they will; it never reaches the database.
+const PREVIEW_ID = 'PREVIEW';
+
+/**
+ * POST /giveaway/preview: the message a create with this body would post.
+ *
+ * Same body and same validation as /giveaway/create (parseCreateBody), the
+ * same row builder (giveawayRecord) and the real embed builders, so the preview
+ * cannot drift from what is posted. No database write and no Discord call: the
+ * settings are only read (peekSettings never inserts), the channel is not
+ * fetched and may be left out.
+ *
+ * The builders translate through `giveaway.guildId`; t() takes a language code
+ * in that place as well, which is how `lang` reaches them. Without one the
+ * guild's language applies.
+ */
+async function previewGiveawayEndpoint(client, guildId, body) {
+  const parsed = parseCreateBody(body, { requireChannel: false });
+  if (!parsed.ok) return { status: 400, body: { error: parsed.error } };
+
+  const wanted = body?.lang;
+  if (wanted != null && wanted !== '' && !SUPPORTED_LANGS.includes(wanted)) {
+    return { status: 400, body: { error: 'invalid_lang' } };
+  }
+
+  const settings = await peekSettings(guildId);
+  const lang = wanted || (SUPPORTED_LANGS.includes(settings.lang) ? settings.lang : DEFAULT_LANG);
+  const giveaway = giveawayRecord(settings, {
+    ...parsed.input,
+    id: PREVIEW_ID,
+    guildId: lang,
+    channelId: parsed.channelId,
+    hostId: client.user.id,
+  });
+
+  return {
+    status: 200,
+    body: {
+      embed: buildGiveawayEmbed(giveaway, settings, { entryCount: 0 }).toJSON(),
+      components: [buildButtonRow(giveaway, settings, { disabled: false }).toJSON()],
+      lang,
+      status: giveaway.status,
+      startAt: giveaway.startAt ? giveaway.startAt.toISOString() : null,
+      endAt: giveaway.endAt.toISOString(),
+    },
+  };
+}
+
+async function createGiveawayEndpoint(client, guildId, body) {
+  const parsed = parseCreateBody(body);
+  if (!parsed.ok) return { status: 400, body: { error: parsed.error } };
+
+  const channel = await client.channels.fetch(parsed.channelId).catch(() => null);
   if (!channel || channel.guildId !== guildId || typeof channel.isTextBased !== 'function' || !channel.isTextBased()) {
     return { status: 400, body: { error: 'invalid_channel' } };
   }
 
-  const coupon = parseCouponInput(body || {});
-  if (!coupon.ok) return { status: 400, body: { error: coupon.error } };
-
-  const elig = parseEligibilityInput(body || {});
-  if (!elig.ok) return { status: 400, body: { error: elig.error } };
-
-  const draw = parseWinnerModeInput(body || {});
-  if (!draw.ok) return { status: 400, body: { error: draw.error } };
-
   const settings = await getSettings(guildId);
-  const endAt = new Date(Date.now() + dur.ms);
-  const id = await postGiveaway(client, channel, settings, {
-    guildId,
-    hostId: client.user.id,
-    title: String(title).slice(0, 256),
-    description: String(description).slice(0, 2000),
-    prizes: prizeInput.prizes,
-    prizeMode: prizeInput.mode,
-    winnerMode: draw.mode ?? 'RANDOM',
-    winnersCount: prizeInput.winnersCount,
-    endAt,
-    ...elig.values, // stehen im Embed, müssen also vor dem Posten im Datensatz sein
-  });
+  const input = { guildId, hostId: client.user.id, ...parsed.input };
+  // A start time means: store it now, post it then (the scheduler does that).
+  const id = input.startAt
+    ? await scheduleGiveaway(client, channel, settings, input)
+    : await postGiveaway(client, channel, settings, input);
 
   // Coupon-Konfiguration nachtragen: sie steht in keinem Embed, die Nachricht
   // muss dafür also nicht neu gebaut werden.
-  if (Object.keys(coupon.data).length) {
-    await prisma.giveaway.update({ where: { id }, data: coupon.data });
+  if (Object.keys(parsed.coupon).length) {
+    await prisma.giveaway.update({ where: { id }, data: parsed.coupon });
   }
-  return { status: 200, body: { id } };
+  return {
+    status: 200,
+    body: {
+      id,
+      status: input.startAt ? 'SCHEDULED' : 'ACTIVE',
+      startAt: input.startAt ? input.startAt.toISOString() : null,
+      endAt: input.endAt.toISOString(),
+    },
+  };
+}
+
+// Statuses in which a giveaway's content can still be edited. A SCHEDULED one
+// has no message yet, so editing it only changes the row it will be posted from.
+const EDITABLE_STATUSES = ['ACTIVE', 'PAUSED', 'SCHEDULED'];
+
+/**
+ * `startAt` and `duration` in an edit: only for a SCHEDULED giveaway.
+ *
+ * A new start keeps the duration (endAt moves with it), a new duration counts
+ * from the (new or existing) start. Sending either for a giveaway that already
+ * runs is refused with 409 not_scheduled instead of being ignored, so the
+ * dashboard cannot believe it moved something it did not.
+ *
+ * @returns {{ok: true, touched: boolean, data: object} | {ok: false, status: number, error: string}}
+ */
+function parseScheduleEdit(giveaway, body) {
+  const wantsStart = body?.startAt != null && body.startAt !== '';
+  const wantsDuration = body?.duration != null && body.duration !== '';
+  if (!wantsStart && !wantsDuration) return { ok: true, touched: false, data: {} };
+  if (giveaway.status !== 'SCHEDULED') return { ok: false, status: 409, error: 'not_scheduled' };
+
+  const currentStart = new Date(giveaway.startAt ?? giveaway.createdAt).getTime();
+  let startMs = currentStart;
+  if (wantsStart) {
+    const start = parseStartAt(body.startAt);
+    if (!start.ok) return { ok: false, status: 400, error: start.error };
+    startMs = start.startAt.getTime();
+  }
+
+  let durationMs = new Date(giveaway.endAt).getTime() - currentStart;
+  if (wantsDuration) {
+    const dur = parseDuration(String(body.duration));
+    if (!dur.ok) return { ok: false, status: 400, error: 'invalid_duration' };
+    durationMs = dur.ms;
+  }
+
+  return { ok: true, touched: true, data: { startAt: new Date(startMs), endAt: new Date(startMs + durationMs) } };
 }
 
 async function editGiveawayEndpoint(client, guildId, body) {
@@ -399,10 +605,17 @@ async function editGiveawayEndpoint(client, guildId, body) {
   if (!ID_RE.test(id)) return { status: 400, body: { error: 'invalid_id' } };
   const giveaway = await getGiveaway(id, guildId);
   if (!giveaway) return { status: 404, body: { error: 'not_found' } };
-  if (giveaway.status !== 'ACTIVE' && giveaway.status !== 'PAUSED') return { status: 409, body: { error: 'not_active' } };
+  if (!EDITABLE_STATUSES.includes(giveaway.status)) return { status: 409, body: { error: 'not_active' } };
 
   const settings = await getSettings(guildId);
   const data = {};
+
+  // Start time and duration can only move while the giveaway has not started.
+  // Once it runs, its end is changed with /giveaway/extend.
+  const timing = parseScheduleEdit(giveaway, body);
+  if (!timing.ok) return { status: timing.status, body: { error: timing.error } };
+  Object.assign(data, timing.data);
+
   if (body.title != null) data.title = String(body.title).trim().slice(0, 256);
   if (body.description != null) data.description = String(body.description).trim().slice(0, 2000);
   if (body.winnersCount != null) {
@@ -445,7 +658,17 @@ async function editGiveawayEndpoint(client, guildId, body) {
 
   if (Object.keys(data).length === 0) return { status: 400, body: { error: 'nothing' } };
 
-  const updated = await prisma.giveaway.update({ where: { id }, data });
+  // Moving the start is conditional on the giveaway still being SCHEDULED: the
+  // scheduler may have started it since the read above, and a running giveaway
+  // must not get its end time rewritten by a schedule edit.
+  let updated;
+  if (timing.touched) {
+    const res = await prisma.giveaway.updateMany({ where: { id, guildId, status: 'SCHEDULED' }, data });
+    if (res.count === 0) return { status: 409, body: { error: 'not_scheduled' } };
+    updated = await prisma.giveaway.findUnique({ where: { id } });
+  } else {
+    updated = await prisma.giveaway.update({ where: { id }, data });
+  }
   await editActiveMessage(client, updated, settings, {
     disabled: updated.status !== 'ACTIVE',
     paused: updated.status === 'PAUSED',
@@ -459,6 +682,8 @@ async function extendGiveawayEndpoint(client, guildId, body) {
   if (!ID_RE.test(id)) return { status: 400, body: { error: 'invalid_id' } };
   const giveaway = await getGiveaway(id, guildId);
   if (!giveaway) return { status: 404, body: { error: 'not_found' } };
+  // Not started yet: its end moves with a schedule edit (startAt/duration).
+  if (giveaway.status === 'SCHEDULED') return { status: 409, body: { error: 'not_started' } };
   if (giveaway.status !== 'ACTIVE' && giveaway.status !== 'PAUSED') return { status: 409, body: { error: 'not_active' } };
 
   const dur = parseDuration(String(body?.duration ?? ''));
@@ -566,6 +791,12 @@ async function lifecycleEndpoint(client, guildId, action, body) {
   if (!giveaway) return { status: 404, body: { error: 'not_found' } };
   const settings = await getSettings(guildId);
 
+  // A scheduled giveaway has no message, no entries and no winners yet. The
+  // only lifecycle action that makes sense for it is cancelling.
+  if (giveaway.status === 'SCHEDULED' && action !== 'cancel') {
+    return { status: 409, body: { error: 'not_started' } };
+  }
+
   switch (action) {
     case 'end': {
       if (giveaway.status !== 'ACTIVE') return { status: 409, body: { error: 'not_active' } };
@@ -574,7 +805,7 @@ async function lifecycleEndpoint(client, guildId, action, body) {
       return { status: 200, body: { ok: true, winners: result } };
     }
     case 'cancel':
-      if (giveaway.status !== 'ACTIVE') return { status: 409, body: { error: 'not_active' } };
+      if (giveaway.status !== 'ACTIVE' && giveaway.status !== 'SCHEDULED') return { status: 409, body: { error: 'not_active' } };
       await cancelAndFinalize(client, giveaway, settings, { actor: ACTOR });
       return { status: 200, body: { ok: true } };
     case 'pause':
@@ -711,6 +942,27 @@ async function setTebexStore(guildId, body) {
   return { status: 200, body: { ok: true } };
 }
 
+/**
+ * Name, icon and member count of the guild, straight from the client cache.
+ *
+ * No REST call: the gateway delivers all of it with GUILD_CREATE, and the guild
+ * check in front of every endpoint has already proved the guild is cached.
+ * Without the GuildMembers intent `memberCount` is the number Discord sent at
+ * that moment and is not kept up to date by join/leave events, so it is a
+ * display value, not a statistic.
+ */
+function guildInfo(client, guildId) {
+  const guild = client.guilds.cache.get(guildId);
+  if (!guild) return null;
+  const iconUrl = typeof guild.iconURL === 'function' ? guild.iconURL({ size: 128 }) : null;
+  return {
+    id: guild.id ?? guildId,
+    name: guild.name ?? null,
+    iconUrl: iconUrl ?? null,
+    memberCount: Number.isInteger(guild.memberCount) ? guild.memberCount : null,
+  };
+}
+
 function listRoles(client, guildId) {
   const guild = client.guilds.cache.get(guildId);
   if (!guild) return [];
@@ -753,8 +1005,18 @@ async function handle(client, req, res) {
     if (method === 'GET' && path === '/giveaways') return send(res, 200, { giveaways: await listGiveaways(guildId) });
     if (method === 'GET' && path === '/giveaway') {
       const id = String(url.searchParams.get('id') ?? '').trim().toUpperCase();
-      const detail = await getGiveawayDetail(guildId, id);
+      if (!ID_RE.test(id)) return send(res, 400, { error: 'invalid_id' });
+      const detail = await getGiveawayDetail(client, guildId, id);
       return detail ? send(res, 200, { giveaway: detail }) : send(res, 404, { error: 'not_found' });
+    }
+    if (method === 'GET' && path === '/history') {
+      const parsed = parseHistoryDays(url.searchParams.get('days'));
+      if (!parsed.ok) return send(res, 400, { error: 'invalid_days' });
+      return send(res, 200, { days: parsed.days, history: await getGuildHistory(guildId, parsed.days) });
+    }
+    if (method === 'GET' && path === '/guild') {
+      const info = guildInfo(client, guildId);
+      return info ? send(res, 200, { guild: info }) : send(res, 403, { error: 'bot_not_in_guild' });
     }
     if (method === 'GET' && path === '/settings') return send(res, 200, { settings: publicSettings(await getSettings(guildId)) });
     if (method === 'GET' && path === '/roles') return send(res, 200, { roles: listRoles(client, guildId) });
@@ -808,6 +1070,12 @@ async function handle(client, req, res) {
     }
     if (method === 'POST' && path === '/giveaway/extend') {
       const r = await extendGiveawayEndpoint(client, guildId, body); return send(res, r.status, r.body);
+    }
+    if (method === 'POST' && path === '/giveaway/preview') {
+      const r = await previewGiveawayEndpoint(client, guildId, body); return send(res, r.status, r.body);
+    }
+    if (method === 'POST' && path === '/giveaway/delete') {
+      const r = await deleteGiveawayEndpoint(client, guildId, body); return send(res, r.status, r.body);
     }
     if (method === 'POST' && ['/giveaway/end', '/giveaway/cancel', '/giveaway/pause', '/giveaway/resume', '/giveaway/reroll'].includes(path)) {
       const action = path.split('/').pop();

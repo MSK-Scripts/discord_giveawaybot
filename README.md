@@ -101,10 +101,10 @@ npm run test:db             # applies the migrations to it
 
 | Command | Permissions | Description |
 |---|---|---|
-| `/gcreate [mode] [draw]` | Manager | Modal → giveaway in the current channel. `mode` picks how the prizes are handed out, `draw` how the winners are found (both below) |
-| `/gedit <id>` | Manager | Edit a running giveaway (title, description, winners, prizes, mode, draw) |
+| `/gcreate [mode] [draw] [start_in]` | Manager | Modal → giveaway in the current channel. `mode` picks how the prizes are handed out, `draw` how the winners are found (both below), `start_in` posts it later ([scheduled giveaways](#scheduled-giveaways)) |
+| `/gedit <id>` | Manager | Edit a running or scheduled giveaway (title, description, winners, prizes, mode, draw) |
 | `/gextend <id> <duration>` | Manager | Extend a running giveaway's end time |
-| `/gcancel <id>` | Manager | Cancel an active giveaway |
+| `/gcancel <id>` | Manager | Cancel an active or scheduled giveaway |
 | `/gend <id>` | Manager | End immediately + draw winners |
 | `/greroll <id> [winner]` | Manager | New winners for an ended giveaway — or replace a single `winner` |
 | `/glist` | everyone | List active giveaways |
@@ -157,6 +157,10 @@ Three things follow from the mode, and they are visible in the message:
 
 Everything else works as usual. The entry conditions are checked at the button **and** again when the winners are settled, so somebody who was blacklisted or left the server in the meantime lets the next-fastest move up. `winners > 1` means the fastest *n* win, in click order, which combines with `mode: INDIVIDUAL` to "fastest gets prize 1, second fastest prize 2". A reroll takes the next fastest rather than drawing.
 
+## Scheduled giveaways
+
+`/gcreate start_in:2h` (same format as the duration) or a `startAt` from the dashboard creates the giveaway now and posts it later. Until then it has the status `SCHEDULED` and no Discord message; the duration counts from the start. The scheduler posts it at the start time behind the same kind of atomic claim that ends giveaways, so it goes out once even when ticks overlap. If posting fails (channel deleted, permissions missing) the giveaway is cancelled and the log channel says why. A scheduled giveaway can be edited (in the dashboard including its start and duration) and cancelled; ending, pausing, extending and rerolling wait until it runs. `/glist`, `/ginfo` and `/gstats` show scheduled giveaways separately.
+
 ## Prizes
 
 A giveaway can carry up to 20 prizes — one per line in the modal's prize field, or separated by `|` in `/gedit prizes:…`. The `mode` option decides how they are handed out:
@@ -176,8 +180,9 @@ ViewChannel, SendMessages, EmbedLinks, ReadMessageHistory, UseExternalEmojis, Me
 The official instance integrates with **msk-scripts.de**:
 - **Web dashboard** — `…/giveaway/dashboard` lets server admins (Discord login, Manage Server) create and fully manage giveaways and per-server settings from the browser. The shop proxies every action to a **localhost-only** HTTP control endpoint in the bot (`services/controlServer.js`, header `X-Control-Secret` = `CONTROL_SECRET`), so all Discord side-effects and the settings cache stay consistent. No public port is opened.
 - **Templates in the dashboard** — a **Templates** tab creates, edits and deletes them, and the create form has a **Use template** selector that fills every field (all of them stay editable). A template is a prepared giveaway without a channel and without an end date: title, description, duration, winners, the prize list with its mode and, optionally, its own entry conditions. It deliberately carries no coupon settings, because Tebex package IDs belong to one specific store and would silently go stale in a template kept for months. Up to 50 per guild.
-- **Save a giveaway as a template** — every giveaway in the dashboard has a **Save as template** button, `/gtemplate from giveaway_id:<ID>` does the same in Discord. Title, description, prizes, mode, winners and the entry conditions are taken over; the duration is the span between creation and planned end. Works for running giveaways too, and an existing name is overwritten.
+- **Save a giveaway as a template**: every giveaway in the dashboard has a **Save as template** button, `/gtemplate from giveaway_id:<ID>` does the same in Discord. Title, description, prizes, mode, winners and the entry conditions are taken over; the duration is the span between the start (creation, or the start time of a scheduled giveaway) and the planned end. Works for running giveaways too, and an existing name is overwritten.
 - **Entry conditions in the dashboard** — blacklist, whitelist and bonus entries per role, server-wide in the settings tab and per giveaway in the create and edit forms. See [Entry conditions and bonus entries](#entry-conditions-and-bonus-entries).
+- **Server name, winner names, scheduling, deleting, history and a live preview**: the control endpoint answers the server's name and icon, stores each winner's display name and avatar when they are drawn, takes a start time on create, deletes giveaways that are over or not started yet, counts activity per day and renders the message a create would post. Request and response shapes: [docs/control-api.md](docs/control-api.md).
 - **Public results page** — when a giveaway ends, the bot pushes the winners (username) and the anonymous participant count to the shop (`RESULT_PUBLISH_URL`, `Authorization: Bearer ${RESULT_PUBLISH_SECRET}`), which hosts a results page at `…/giveaway/g/<token>` and links it in the results message + winner DMs. The full participant list is never published.
 
 - **Tebex winner coupons** — see below.
