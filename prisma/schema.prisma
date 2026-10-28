@@ -182,6 +182,12 @@ model Winner {
   /// null = der Gewinner bekommt alle Preise. Beim Reroll erbt der Ersatz den
   /// Slot des Ersetzten, damit sich die Zuordnung nicht verschiebt.
   prizeIndex Int?
+  /// Name and avatar as shown on the server when the winner was drawn
+  /// (nickname first), taken from the member the draw fetched anyway. Null for
+  /// winners drawn before the columns existed; GET /giveaway fills those in
+  /// lazily from the user, without writing them back.
+  displayName String?
+  avatarUrl   String?  @db.VarChar(512)
   pickedAt   DateTime @default(now())
   giveaway   Giveaway @relation(fields: [giveawayId], references: [id], onDelete: Cascade)
 

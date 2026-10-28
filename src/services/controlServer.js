@@ -42,6 +42,7 @@ import {
 import { overrides } from '../utils/eligibility.js';
 import { encryptSecret, decryptSecret, secretHint, checkEncryptionKey } from '../utils/secretBox.js';
 import { parseDuration } from '../utils/duration.js';
+import { userProfile } from '../utils/profile.js';
 import { t, SUPPORTED_LANGS } from '../utils/i18n.js';
 
 let server = null;
@@ -300,10 +301,13 @@ async function listGiveaways(guildId) {
   const out = [];
   for (const g of rows) {
     const entryCount = await prisma.entry.count({ where: { giveawayId: g.id } });
+    // Names come only from the database here. The list never asks Discord: a
+    // hundred giveaways times their winners would be a burst of REST calls on
+    // every page load. Winners from before the names were stored show null.
     const winners = g.status === 'ENDED'
       ? await prisma.winner.findMany({
         where: { giveawayId: g.id, rerolled: false },
-        select: { userId: true, prizeIndex: true },
+        select: { userId: true, prizeIndex: true, displayName: true, avatarUrl: true },
         orderBy: [{ prizeIndex: 'asc' }, { pickedAt: 'asc' }],
       })
       : [];
@@ -313,15 +317,43 @@ async function listGiveaways(guildId) {
   return out;
 }
 
-async function getGiveawayDetail(guildId, id) {
+// At most this many user lookups per detail request, for winners drawn before
+// the names were stored. Above that the rest stays null; the shop shows the ID.
+const MAX_NAME_LOOKUPS = 25;
+
+/**
+ * Fills in missing winner names from the user (not the member) for display.
+ *
+ * Read-only on purpose: nothing is written back. A name looked up today is the
+ * global name of today, not the server nickname of the day the person won, and
+ * storing it would pass it off as the latter. `client.users.fetch` answers from
+ * the discord.js cache when it can, so repeated views of the same giveaway stay
+ * cheap. A failed lookup (deleted account) leaves the name null.
+ */
+async function fillMissingNames(client, winners) {
+  const missing = winners.filter((w) => !w.displayName).slice(0, MAX_NAME_LOOKUPS);
+  await Promise.all(missing.map(async (w) => {
+    try {
+      const profile = userProfile(await client.users.fetch(w.userId));
+      if (profile.displayName) w.displayName = profile.displayName;
+      if (!w.avatarUrl && profile.avatarUrl) w.avatarUrl = profile.avatarUrl;
+    } catch {
+      // unknown or deleted user -> stays null
+    }
+  }));
+  return winners;
+}
+
+async function getGiveawayDetail(client, guildId, id) {
   const g = await getGiveaway(id, guildId);
   if (!g) return null;
   const entryCount = await prisma.entry.count({ where: { giveawayId: id } });
   const winners = await prisma.winner.findMany({
     where: { giveawayId: id },
-    select: { userId: true, rerolled: true, prizeIndex: true },
+    select: { userId: true, rerolled: true, prizeIndex: true, displayName: true, avatarUrl: true },
     orderBy: [{ prizeIndex: 'asc' }, { pickedAt: 'asc' }],
   });
+  await fillMissingNames(client, winners);
   return serializeGiveaway(g, { entryCount, winners });
 }
 
@@ -774,7 +806,8 @@ async function handle(client, req, res) {
     if (method === 'GET' && path === '/giveaways') return send(res, 200, { giveaways: await listGiveaways(guildId) });
     if (method === 'GET' && path === '/giveaway') {
       const id = String(url.searchParams.get('id') ?? '').trim().toUpperCase();
-      const detail = await getGiveawayDetail(guildId, id);
+      if (!ID_RE.test(id)) return send(res, 400, { error: 'invalid_id' });
+      const detail = await getGiveawayDetail(client, guildId, id);
       return detail ? send(res, 200, { giveaway: detail }) : send(res, 404, { error: 'not_found' });
     }
     if (method === 'GET' && path === '/guild') {

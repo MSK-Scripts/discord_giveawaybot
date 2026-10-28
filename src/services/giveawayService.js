@@ -9,6 +9,7 @@ import { giveawayPrizes, prizesForWinner, assignPrizes, serializePrizes, normali
 import { serializeRoleArray, serializeBonusRoles } from '../utils/roles.js';
 import { normalizeWinnerMode, isFirstClick } from '../utils/winnerMode.js';
 import { generateGiveawayId } from '../utils/id.js';
+import { memberProfile } from '../utils/profile.js';
 import { publishResult } from './resultPublisher.js';
 import { issueCoupons, revokeCoupons, manualCodeForWinner } from './tebexService.js';
 import { t } from '../utils/i18n.js';
@@ -170,13 +171,37 @@ async function fetchMembers(guild, userIds) {
 }
 
 /**
+ * Hands the fetched GuildMember of every winner to the caller.
+ *
+ * The draw fetches each candidate anyway; this is how the winner's display name
+ * and avatar get stored without a second round of REST calls. `members` is the
+ * optional Map from the options of drawWinners/pickFirstEntries.
+ */
+function rememberMembers(target, winners, membersMap) {
+  if (!(target instanceof Map)) return;
+  for (const id of winners) {
+    const member = membersMap.get(id);
+    if (member) target.set(id, member);
+  }
+}
+
+/** Winner rows for createMany: slot plus the profile captured at draw time. */
+function winnerRows(giveawayId, winners, members) {
+  return winners.map(({ userId, prizeIndex }) => ({
+    giveawayId, userId, prizeIndex, ...memberProfile(members?.get(userId)),
+  }));
+}
+
+/**
  * Zieht Gewinner. Prüft nachträglich Teilnahmebedingungen (Blacklist/Whitelist/
  * Account-Alter/Server-Zugehörigkeit), berücksichtigt Bonus-Lose (gewichtete
  * Ziehung) und überspringt Mitglieder, die nicht mehr in der Guild sind.
  * Kein GuildMembers-Intent nötig.
+ *
+ * `members` (optional Map) receives the GuildMember of every winner.
  * @returns {Promise<string[]>} userIds der Gewinner
  */
-export async function drawWinners(giveaway, guild, settings, { exclude = [] } = {}) {
+export async function drawWinners(giveaway, guild, settings, { exclude = [], members = null } = {}) {
   const entries = await prisma.entry.findMany({ where: { giveawayId: giveaway.id } });
   let pool = entries.map((e) => e.userId).filter((id) => !exclude.includes(id));
   if (pool.length === 0) return [];
@@ -208,6 +233,7 @@ export async function drawWinners(giveaway, guild, settings, { exclude = [] } = 
     winners.push(id);
     if (winners.length >= giveaway.winnersCount) break;
   }
+  rememberMembers(members, winners, membersMap);
   return winners;
 }
 
@@ -233,7 +259,7 @@ export async function drawWinners(giveaway, guild, settings, { exclude = [] } = 
  *
  * @returns {Promise<string[]>} winner userIds, in click order
  */
-export async function pickFirstEntries(giveaway, guild, settings, { exclude = [] } = {}) {
+export async function pickFirstEntries(giveaway, guild, settings, { exclude = [], members = null } = {}) {
   const entries = await prisma.entry.findMany({
     where: { giveawayId: giveaway.id },
     orderBy: [{ joinedAt: 'asc' }, { userId: 'asc' }],
@@ -253,6 +279,7 @@ export async function pickFirstEntries(giveaway, guild, settings, { exclude = []
     winners.push(id);
     if (winners.length >= giveaway.winnersCount) break;
   }
+  rememberMembers(members, winners, membersMap);
   return winners;
 }
 
@@ -488,14 +515,15 @@ export async function endGiveaway(giveaway, client) {
     const guild = await client.guilds.fetch(fresh.guildId).catch(() => null);
 
     let winnerIds = [];
-    if (guild) winnerIds = await selectWinners(fresh, guild, settings, {});
+    const members = new Map();
+    if (guild) winnerIds = await selectWinners(fresh, guild, settings, { members });
 
     // Ziehungsreihenfolge = Preisreihenfolge: der erste Gezogene bekommt Preis 1.
     const winners = assignPrizes(winnerIds, fresh.prizeMode);
 
     if (winners.length) {
       await prisma.winner.createMany({
-        data: winners.map(({ userId, prizeIndex }) => ({ giveawayId: id, userId, prizeIndex })),
+        data: winnerRows(id, winners, members),
         skipDuplicates: true,
       });
     }
@@ -678,13 +706,15 @@ export async function resumeGiveaway(client, giveaway, settings) {
  */
 export async function replaceWinner(giveaway, guild, settings, oldUserId) {
   const current = await getWinners(giveaway.id); // alle bisherigen Gewinner ausschließen
-  const drawn = await selectWinners(giveaway, guild, settings, { exclude: current.map((w) => w.userId) });
+  const members = new Map();
+  const drawn = await selectWinners(giveaway, guild, settings, { exclude: current.map((w) => w.userId), members });
   const newWinner = drawn[0] ?? null;
 
   // Kein gültiger Ersatz -> alten Gewinner NICHT verändern (sonst Dateninkonsistenz).
   if (!newWinner) return null;
 
   const prizeIndex = current.find((w) => w.userId === oldUserId)?.prizeIndex ?? null;
+  const profile = memberProfile(members.get(newWinner));
 
   await prisma.winner.updateMany({
     where: { giveawayId: giveaway.id, userId: oldUserId },
@@ -692,8 +722,8 @@ export async function replaceWinner(giveaway, guild, settings, oldUserId) {
   });
   await prisma.winner.upsert({
     where: { giveawayId_userId: { giveawayId: giveaway.id, userId: newWinner } },
-    update: { rerolled: false, prizeIndex },
-    create: { giveawayId: giveaway.id, userId: newWinner, prizeIndex },
+    update: { rerolled: false, prizeIndex, ...profile },
+    create: { giveawayId: giveaway.id, userId: newWinner, prizeIndex, ...profile },
   });
   return { userId: newWinner, prizeIndex };
 }
@@ -750,7 +780,8 @@ async function warnAboutManualCodes(client, giveaway, settings, winners) {
 export async function rerollAll(client, giveaway, settings, { actor } = {}) {
   const guild = await client.guilds.fetch(giveaway.guildId).catch(() => null);
   const previousWinners = await getWinnerIds(giveaway.id);
-  const newWinnerIds = guild ? await selectWinners(giveaway, guild, settings, { exclude: previousWinners }) : [];
+  const members = new Map();
+  const newWinnerIds = guild ? await selectWinners(giveaway, guild, settings, { exclude: previousWinners, members }) : [];
   if (newWinnerIds.length === 0) return [];
 
   // Alle Gewinner sind neu, also werden auch die Preis-Slots neu vergeben.
@@ -758,7 +789,7 @@ export async function rerollAll(client, giveaway, settings, { actor } = {}) {
 
   await prisma.winner.updateMany({ where: { giveawayId: giveaway.id }, data: { rerolled: true } });
   await prisma.winner.createMany({
-    data: newWinners.map(({ userId, prizeIndex }) => ({ giveawayId: giveaway.id, userId, prizeIndex })),
+    data: winnerRows(giveaway.id, newWinners, members),
     skipDuplicates: true,
   });
 
