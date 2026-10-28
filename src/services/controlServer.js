@@ -14,6 +14,7 @@ import { getSettings, updateSettings, evict } from './settingsService.js';
 import {
   getGiveaway,
   postGiveaway,
+  scheduleGiveaway,
   editActiveMessage,
   endGiveaway,
   cancelAndFinalize,
@@ -43,6 +44,7 @@ import { overrides } from '../utils/eligibility.js';
 import { encryptSecret, decryptSecret, secretHint, checkEncryptionKey } from '../utils/secretBox.js';
 import { parseDuration } from '../utils/duration.js';
 import { userProfile } from '../utils/profile.js';
+import { parseStartAt } from '../utils/schedule.js';
 import { t, SUPPORTED_LANGS } from '../utils/i18n.js';
 
 let server = null;
@@ -141,6 +143,8 @@ function serializeGiveaway(g, extra = {}) {
     winnerMode: normalizeWinnerMode(g.winnerMode),
     winnersCount: g.winnersCount,
     status: g.status,
+    // Planned start of a SCHEDULED giveaway (null for one posted right away).
+    startAt: g.startAt ? new Date(g.startAt).toISOString() : null,
     endAt: g.endAt ? new Date(g.endAt).toISOString() : null,
     pausedAt: g.pausedAt ? new Date(g.pausedAt).toISOString() : null,
     createdAt: g.createdAt ? new Date(g.createdAt).toISOString() : null,
@@ -374,56 +378,137 @@ function parseWinnerModeInput(body, key = 'winnerMode') {
   return { ok: true, mode: value };
 }
 
-async function createGiveawayEndpoint(client, guildId, body) {
-  const { channelId, title, description, prizes, prizeMode, winnersCount, duration } = body || {};
-  if (!GUILD_RE.test(String(channelId ?? ''))) return { status: 400, body: { error: 'invalid_channel' } };
-  if (!title || !description) return { status: 400, body: { error: 'missing_fields' } };
+/**
+ * Validates the body of POST /giveaway/create.
+ *
+ * Pure: no database and no Discord, which is what lets the preview take the
+ * same body through the same checks without writing or posting anything. The
+ * channel is only checked for its shape here; whether it exists is the
+ * caller's business (create fetches it, the preview does not need one).
+ *
+ * @param {object} body
+ * @param {{requireChannel?: boolean}} opts the preview may leave the channel out
+ * @returns {{ok: true, channelId: string|null, input: object, coupon: object} | {ok: false, error: string}}
+ */
+function parseCreateBody(body, { requireChannel = true } = {}) {
+  const b = body || {};
+  const { channelId, title, description, prizes, prizeMode, winnersCount, duration } = b;
+  if (requireChannel || channelId != null) {
+    if (!GUILD_RE.test(String(channelId ?? ''))) return { ok: false, error: 'invalid_channel' };
+  }
+  if (!title || !description) return { ok: false, error: 'missing_fields' };
 
   const dur = parseDuration(String(duration ?? ''));
-  if (!dur.ok) return { status: 400, body: { error: 'invalid_duration' } };
+  if (!dur.ok) return { ok: false, error: 'invalid_duration' };
 
   const winners = Number(winnersCount);
-  if (!Number.isInteger(winners) || winners < 1 || winners > 100) return { status: 400, body: { error: 'invalid_winners' } };
+  if (!Number.isInteger(winners) || winners < 1 || winners > 100) return { ok: false, error: 'invalid_winners' };
 
   // Preise + Modus; im INDIVIDUAL-Modus ersetzt die Preisanzahl die Gewinnerzahl.
   const prizeInput = normalizePrizeInput({ prizes, mode: prizeMode, winnersCount: winners });
-  if (!prizeInput.ok) return { status: 400, body: { error: prizeInput.error } };
+  if (!prizeInput.ok) return { ok: false, error: prizeInput.error };
 
-  const channel = await client.channels.fetch(String(channelId)).catch(() => null);
+  const coupon = parseCouponInput(b);
+  if (!coupon.ok) return { ok: false, error: coupon.error };
+
+  const elig = parseEligibilityInput(b);
+  if (!elig.ok) return { ok: false, error: elig.error };
+
+  const draw = parseWinnerModeInput(b);
+  if (!draw.ok) return { ok: false, error: draw.error };
+
+  // Optional start time. With one the giveaway is SCHEDULED and the duration
+  // counts from the start, not from now.
+  const start = parseStartAt(b.startAt);
+  if (!start.ok) return { ok: false, error: start.error };
+  const from = start.startAt ? start.startAt.getTime() : Date.now();
+
+  return {
+    ok: true,
+    channelId: channelId == null ? null : String(channelId),
+    coupon: coupon.data,
+    input: {
+      title: String(title).slice(0, 256),
+      description: String(description).slice(0, 2000),
+      prizes: prizeInput.prizes,
+      prizeMode: prizeInput.mode,
+      winnerMode: draw.mode ?? 'RANDOM',
+      winnersCount: prizeInput.winnersCount,
+      startAt: start.startAt,
+      endAt: new Date(from + dur.ms),
+      ...elig.values, // stehen im Embed, müssen also vor dem Posten im Datensatz sein
+    },
+  };
+}
+
+async function createGiveawayEndpoint(client, guildId, body) {
+  const parsed = parseCreateBody(body);
+  if (!parsed.ok) return { status: 400, body: { error: parsed.error } };
+
+  const channel = await client.channels.fetch(parsed.channelId).catch(() => null);
   if (!channel || channel.guildId !== guildId || typeof channel.isTextBased !== 'function' || !channel.isTextBased()) {
     return { status: 400, body: { error: 'invalid_channel' } };
   }
 
-  const coupon = parseCouponInput(body || {});
-  if (!coupon.ok) return { status: 400, body: { error: coupon.error } };
-
-  const elig = parseEligibilityInput(body || {});
-  if (!elig.ok) return { status: 400, body: { error: elig.error } };
-
-  const draw = parseWinnerModeInput(body || {});
-  if (!draw.ok) return { status: 400, body: { error: draw.error } };
-
   const settings = await getSettings(guildId);
-  const endAt = new Date(Date.now() + dur.ms);
-  const id = await postGiveaway(client, channel, settings, {
-    guildId,
-    hostId: client.user.id,
-    title: String(title).slice(0, 256),
-    description: String(description).slice(0, 2000),
-    prizes: prizeInput.prizes,
-    prizeMode: prizeInput.mode,
-    winnerMode: draw.mode ?? 'RANDOM',
-    winnersCount: prizeInput.winnersCount,
-    endAt,
-    ...elig.values, // stehen im Embed, müssen also vor dem Posten im Datensatz sein
-  });
+  const input = { guildId, hostId: client.user.id, ...parsed.input };
+  // A start time means: store it now, post it then (the scheduler does that).
+  const id = input.startAt
+    ? await scheduleGiveaway(client, channel, settings, input)
+    : await postGiveaway(client, channel, settings, input);
 
   // Coupon-Konfiguration nachtragen: sie steht in keinem Embed, die Nachricht
   // muss dafür also nicht neu gebaut werden.
-  if (Object.keys(coupon.data).length) {
-    await prisma.giveaway.update({ where: { id }, data: coupon.data });
+  if (Object.keys(parsed.coupon).length) {
+    await prisma.giveaway.update({ where: { id }, data: parsed.coupon });
   }
-  return { status: 200, body: { id } };
+  return {
+    status: 200,
+    body: {
+      id,
+      status: input.startAt ? 'SCHEDULED' : 'ACTIVE',
+      startAt: input.startAt ? input.startAt.toISOString() : null,
+      endAt: input.endAt.toISOString(),
+    },
+  };
+}
+
+// Statuses in which a giveaway's content can still be edited. A SCHEDULED one
+// has no message yet, so editing it only changes the row it will be posted from.
+const EDITABLE_STATUSES = ['ACTIVE', 'PAUSED', 'SCHEDULED'];
+
+/**
+ * `startAt` and `duration` in an edit: only for a SCHEDULED giveaway.
+ *
+ * A new start keeps the duration (endAt moves with it), a new duration counts
+ * from the (new or existing) start. Sending either for a giveaway that already
+ * runs is refused with 409 not_scheduled instead of being ignored, so the
+ * dashboard cannot believe it moved something it did not.
+ *
+ * @returns {{ok: true, touched: boolean, data: object} | {ok: false, status: number, error: string}}
+ */
+function parseScheduleEdit(giveaway, body) {
+  const wantsStart = body?.startAt != null && body.startAt !== '';
+  const wantsDuration = body?.duration != null && body.duration !== '';
+  if (!wantsStart && !wantsDuration) return { ok: true, touched: false, data: {} };
+  if (giveaway.status !== 'SCHEDULED') return { ok: false, status: 409, error: 'not_scheduled' };
+
+  const currentStart = new Date(giveaway.startAt ?? giveaway.createdAt).getTime();
+  let startMs = currentStart;
+  if (wantsStart) {
+    const start = parseStartAt(body.startAt);
+    if (!start.ok) return { ok: false, status: 400, error: start.error };
+    startMs = start.startAt.getTime();
+  }
+
+  let durationMs = new Date(giveaway.endAt).getTime() - currentStart;
+  if (wantsDuration) {
+    const dur = parseDuration(String(body.duration));
+    if (!dur.ok) return { ok: false, status: 400, error: 'invalid_duration' };
+    durationMs = dur.ms;
+  }
+
+  return { ok: true, touched: true, data: { startAt: new Date(startMs), endAt: new Date(startMs + durationMs) } };
 }
 
 async function editGiveawayEndpoint(client, guildId, body) {
@@ -431,10 +516,17 @@ async function editGiveawayEndpoint(client, guildId, body) {
   if (!ID_RE.test(id)) return { status: 400, body: { error: 'invalid_id' } };
   const giveaway = await getGiveaway(id, guildId);
   if (!giveaway) return { status: 404, body: { error: 'not_found' } };
-  if (giveaway.status !== 'ACTIVE' && giveaway.status !== 'PAUSED') return { status: 409, body: { error: 'not_active' } };
+  if (!EDITABLE_STATUSES.includes(giveaway.status)) return { status: 409, body: { error: 'not_active' } };
 
   const settings = await getSettings(guildId);
   const data = {};
+
+  // Start time and duration can only move while the giveaway has not started.
+  // Once it runs, its end is changed with /giveaway/extend.
+  const timing = parseScheduleEdit(giveaway, body);
+  if (!timing.ok) return { status: timing.status, body: { error: timing.error } };
+  Object.assign(data, timing.data);
+
   if (body.title != null) data.title = String(body.title).trim().slice(0, 256);
   if (body.description != null) data.description = String(body.description).trim().slice(0, 2000);
   if (body.winnersCount != null) {
@@ -477,7 +569,17 @@ async function editGiveawayEndpoint(client, guildId, body) {
 
   if (Object.keys(data).length === 0) return { status: 400, body: { error: 'nothing' } };
 
-  const updated = await prisma.giveaway.update({ where: { id }, data });
+  // Moving the start is conditional on the giveaway still being SCHEDULED: the
+  // scheduler may have started it since the read above, and a running giveaway
+  // must not get its end time rewritten by a schedule edit.
+  let updated;
+  if (timing.touched) {
+    const res = await prisma.giveaway.updateMany({ where: { id, guildId, status: 'SCHEDULED' }, data });
+    if (res.count === 0) return { status: 409, body: { error: 'not_scheduled' } };
+    updated = await prisma.giveaway.findUnique({ where: { id } });
+  } else {
+    updated = await prisma.giveaway.update({ where: { id }, data });
+  }
   await editActiveMessage(client, updated, settings, {
     disabled: updated.status !== 'ACTIVE',
     paused: updated.status === 'PAUSED',
@@ -491,6 +593,8 @@ async function extendGiveawayEndpoint(client, guildId, body) {
   if (!ID_RE.test(id)) return { status: 400, body: { error: 'invalid_id' } };
   const giveaway = await getGiveaway(id, guildId);
   if (!giveaway) return { status: 404, body: { error: 'not_found' } };
+  // Not started yet: its end moves with a schedule edit (startAt/duration).
+  if (giveaway.status === 'SCHEDULED') return { status: 409, body: { error: 'not_started' } };
   if (giveaway.status !== 'ACTIVE' && giveaway.status !== 'PAUSED') return { status: 409, body: { error: 'not_active' } };
 
   const dur = parseDuration(String(body?.duration ?? ''));
@@ -598,6 +702,12 @@ async function lifecycleEndpoint(client, guildId, action, body) {
   if (!giveaway) return { status: 404, body: { error: 'not_found' } };
   const settings = await getSettings(guildId);
 
+  // A scheduled giveaway has no message, no entries and no winners yet. The
+  // only lifecycle action that makes sense for it is cancelling.
+  if (giveaway.status === 'SCHEDULED' && action !== 'cancel') {
+    return { status: 409, body: { error: 'not_started' } };
+  }
+
   switch (action) {
     case 'end': {
       if (giveaway.status !== 'ACTIVE') return { status: 409, body: { error: 'not_active' } };
@@ -606,7 +716,7 @@ async function lifecycleEndpoint(client, guildId, action, body) {
       return { status: 200, body: { ok: true, winners: result } };
     }
     case 'cancel':
-      if (giveaway.status !== 'ACTIVE') return { status: 409, body: { error: 'not_active' } };
+      if (giveaway.status !== 'ACTIVE' && giveaway.status !== 'SCHEDULED') return { status: 409, body: { error: 'not_active' } };
       await cancelAndFinalize(client, giveaway, settings, { actor: ACTOR });
       return { status: 200, body: { ok: true } };
     case 'pause':

@@ -11,6 +11,7 @@
   "giveaway.status.paused": "Pausiert",
   "giveaway.status.ended": "Beendet",
   "giveaway.status.cancelled": "Abgebrochen",
+  "giveaway.status.scheduled": "Geplant",
 
   "join.success": "✅ Deine Teilnahme wurde bestätigt.",
   "join.removed": "↩️ Deine Teilnahme wurde zurückgezogen.",
@@ -18,6 +19,7 @@
 
   "error.not_found": "❌ Kein Giveaway mit dieser ID gefunden.",
   "error.not_active": "⚠️ Dieses Giveaway ist nicht aktiv (bereits beendet oder abgebrochen).",
+  "error.scheduled": "⏳ Dieses Giveaway hat noch nicht begonnen. Es startet {starts}.",
   "error.not_ended": "⚠️ Ein Reroll ist nur für beendete Giveaways möglich.",
   "error.no_permission": "⛔ Dazu hast du keine Berechtigung.",
   "error.generic": "❌ Ein Fehler ist aufgetreten. Bitte versuche es erneut.",
@@ -35,8 +37,10 @@
   "modal.placeholder.prizes": "Ein Preis pro Zeile",
 
   "create.invalid_duration": "❌ Ungültige Dauer. Beispiele: `1d`, `2h30m`, `45m` (min. 10s, max. 1 Jahr).",
+  "create.invalid_start": "❌ Ungültiger Start. Beispiele: `2h`, `1d`, `1d12h` (min. 10s, max. 1 Jahr).",
   "create.invalid_winners": "❌ Die Gewinneranzahl muss eine ganze Zahl zwischen 1 und 100 sein.",
   "create.success": "✅ Giveaway erstellt! ID: `{id}`",
+  "create.scheduled": "🗓️ Giveaway geplant! ID: `{id}`. Es startet {starts}, erst dann wird die Nachricht gepostet.",
 
   "end.winners": "🎉 Glückwunsch {winners}! Du hast **{title}** gewonnen.",
   "end.no_entries": "🎉 Giveaway **{title}** beendet — niemand hat teilgenommen.",
@@ -52,6 +56,8 @@
   "list.title": "🎉 Aktive Giveaways",
   "list.empty": "Es gibt keine aktiven Giveaways.",
   "list.entry": "`{id}` — **{title}** in <#{channel}> · endet {ends} · Gewinner: {winners}",
+  "list.scheduled_title": "⏳ Geplant",
+  "list.entry_scheduled": "`{id}` · **{title}** in <#{channel}> · startet {starts} · Gewinner: {winners}",
 
   "info.title": "Giveaway {id}",
   "info.field.status": "Status",
@@ -59,13 +65,14 @@
   "info.field.channel": "Channel",
   "info.field.created": "Erstellt",
   "info.field.ends": "Endet",
+  "info.field.starts": "Startet",
   "info.field.ended": "Beendet",
   "info.field.entries": "Teilnehmer",
   "info.field.winners": "Gewinner",
   "info.none": "—",
 
   "help.title": "🎉 Giveaway Bot — Commands",
-  "help.gcreate": "Öffnet ein Modal und erstellt ein Giveaway im aktuellen Channel (Option `mode` für einen Preis pro Gewinner, `draw` für: wer zuerst klickt, gewinnt).",
+  "help.gcreate": "Öffnet ein Modal und erstellt ein Giveaway im aktuellen Channel (Option `mode` für einen Preis pro Gewinner, `draw` für: wer zuerst klickt, gewinnt, `start_in` für einen späteren Start, z. B. `2h`).",
   "help.gcancel": "Bricht ein aktives Giveaway ab (kein Gewinner).",
   "help.gend": "Beendet ein aktives Giveaway sofort und zieht Gewinner.",
   "help.greroll": "Zieht neue Gewinner für ein beendetes Giveaway.",
@@ -113,6 +120,9 @@
   "resume.success": "▶️ Giveaway `{id}` fortgesetzt.",
 
   "log.created": "🟢 Giveaway `{id}` **{title}** erstellt von {user}.",
+  "log.scheduled": "🗓️ Giveaway `{id}` **{title}** geplant von {user}, Start {starts}.",
+  "log.started": "🟢 Geplantes Giveaway `{id}` **{title}** gestartet.",
+  "log.start_failed": "⚠️ Geplantes Giveaway `{id}` **{title}** konnte nicht gepostet werden und wurde abgebrochen: {reason}",
   "log.ended": "🏁 Giveaway `{id}` **{title}** beendet ({count} Gewinner).",
   "log.cancelled": "🚫 Giveaway `{id}` **{title}** abgebrochen von {user}.",
   "log.rerolled": "🔁 Giveaway `{id}` **{title}** neu ausgelost von {user}.",

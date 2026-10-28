@@ -51,7 +51,9 @@ export default {
     if (!giveaway) {
       return interaction.reply({ content: t(guildId, 'error.not_found'), flags: MessageFlags.Ephemeral });
     }
-    if (giveaway.status !== 'ACTIVE' && giveaway.status !== 'PAUSED') {
+    // A scheduled giveaway can be edited before it starts; the edit changes the
+    // row it will be posted from (editActiveMessage skips it, there is no message).
+    if (giveaway.status !== 'ACTIVE' && giveaway.status !== 'PAUSED' && giveaway.status !== 'SCHEDULED') {
       return interaction.reply({ content: t(guildId, 'error.not_active'), flags: MessageFlags.Ephemeral });
     }
 

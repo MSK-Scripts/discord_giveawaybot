@@ -289,6 +289,7 @@ export function buildStatsEmbed(guildId, settings, stats) {
     .setTitle(t(g, 'stats.title'))
     .addFields(
       { name: t(g, 'stats.total'), value: String(stats.total), inline: true },
+      { name: t(g, 'giveaway.status.scheduled'), value: String(stats.scheduled ?? 0), inline: true },
       { name: t(g, 'giveaway.status.active'), value: String(stats.active), inline: true },
       { name: t(g, 'giveaway.status.paused'), value: String(stats.paused), inline: true },
       { name: t(g, 'giveaway.status.ended'), value: String(stats.ended), inline: true },
@@ -299,24 +300,47 @@ export function buildStatsEmbed(guildId, settings, stats) {
     );
 }
 
-/** Liste aktiver Giveaways. */
+/**
+ * Liste aktiver Giveaways, darunter die geplanten in einem eigenen Feld.
+ *
+ * Scheduled ones stand apart because they have no message yet: there is
+ * nothing to click, and the time that matters is the start, not the end.
+ */
 export function buildListEmbed(guildId, giveaways, settings) {
   const g = guildId;
   const embed = new EmbedBuilder().setColor(resolveColor(settings?.embedColor)).setTitle(t(g, 'list.title'));
-  if (!giveaways.length) {
+  const running = giveaways.filter((gw) => gw.status !== 'SCHEDULED');
+  const scheduled = giveaways
+    .filter((gw) => gw.status === 'SCHEDULED')
+    .sort((a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime());
+
+  if (!running.length) {
     embed.setDescription(t(g, 'list.empty'));
-    return embed;
+  } else {
+    const lines = running.map((gw) =>
+      t(g, 'list.entry', {
+        id: gw.id,
+        title: gw.title,
+        channel: gw.channelId,
+        ends: rel(gw.endAt),
+        winners: gw.winnersCount,
+      }),
+    );
+    embed.setDescription(lines.join('\n'));
   }
-  const lines = giveaways.map((gw) =>
-    t(g, 'list.entry', {
-      id: gw.id,
-      title: gw.title,
-      channel: gw.channelId,
-      ends: rel(gw.endAt),
-      winners: gw.winnersCount,
-    }),
-  );
-  embed.setDescription(lines.join('\n'));
+
+  if (scheduled.length) {
+    const lines = scheduled.map((gw) =>
+      t(g, 'list.entry_scheduled', {
+        id: gw.id,
+        title: gw.title,
+        channel: gw.channelId,
+        starts: rel(gw.startAt),
+        winners: gw.winnersCount,
+      }),
+    );
+    embed.addFields({ name: t(g, 'list.scheduled_title'), value: lines.join('\n').slice(0, 1024), inline: false });
+  }
   return embed;
 }
 
@@ -339,6 +363,11 @@ export function buildInfoEmbed(guildId, giveaway, { entryCount = 0, winnerIds = 
 
   if (giveaway.status === 'ACTIVE') {
     embed.addFields({ name: t(g, 'info.field.ends'), value: rel(giveaway.endAt), inline: true });
+  } else if (giveaway.status === 'SCHEDULED') {
+    embed.addFields(
+      { name: t(g, 'info.field.starts'), value: rel(giveaway.startAt), inline: true },
+      { name: t(g, 'info.field.ends'), value: rel(giveaway.endAt), inline: true },
+    );
   } else if (giveaway.endedAt) {
     embed.addFields({ name: t(g, 'info.field.ended'), value: rel(giveaway.endedAt), inline: true });
   }

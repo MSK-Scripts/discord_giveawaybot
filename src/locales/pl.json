@@ -11,6 +11,7 @@
   "giveaway.status.paused": "Wstrzymany",
   "giveaway.status.ended": "Zakończony",
   "giveaway.status.cancelled": "Anulowany",
+  "giveaway.status.scheduled": "Zaplanowany",
 
   "join.success": "✅ Twoje zgłoszenie zostało potwierdzone.",
   "join.removed": "↩️ Twoje zgłoszenie zostało wycofane.",
@@ -18,6 +19,7 @@
 
   "error.not_found": "❌ Nie znaleziono konkursu o tym ID.",
   "error.not_active": "⚠️ Ten konkurs nie jest aktywny (został już zakończony lub anulowany).",
+  "error.scheduled": "⏳ Ten konkurs jeszcze się nie rozpoczął. Start {starts}.",
   "error.not_ended": "⚠️ Ponowne losowanie jest możliwe tylko w zakończonych konkursach.",
   "error.no_permission": "⛔ Nie masz uprawnień, aby to zrobić.",
   "error.generic": "❌ Wystąpił błąd. Spróbuj ponownie.",
@@ -35,8 +37,10 @@
   "modal.placeholder.prizes": "Jedna nagroda na linię",
 
   "create.invalid_duration": "❌ Nieprawidłowy czas trwania. Przykłady: `1d`, `2h30m`, `45m` (min. 10 s, maks. 1 rok).",
+  "create.invalid_start": "❌ Nieprawidłowy start. Przykłady: `2h`, `1d`, `1d12h` (min. 10 s, maks. 1 rok).",
   "create.invalid_winners": "❌ Liczba zwycięzców musi być liczbą całkowitą od 1 do 100.",
   "create.success": "✅ Konkurs utworzony! ID: `{id}`",
+  "create.scheduled": "🗓️ Konkurs zaplanowany! ID: `{id}`. Start {starts}, wtedy pojawi się wiadomość.",
 
   "end.winners": "🎉 Gratulacje, {winners}! Nagroda: **{title}**.",
   "end.no_entries": "🎉 Konkurs **{title}** zakończony — nikt nie wziął udziału.",
@@ -52,6 +56,8 @@
   "list.title": "🎉 Aktywne konkursy",
   "list.empty": "Nie ma żadnych aktywnych konkursów.",
   "list.entry": "`{id}` — **{title}** na <#{channel}> · koniec {ends} · zwycięzcy: {winners}",
+  "list.scheduled_title": "⏳ Zaplanowane",
+  "list.entry_scheduled": "`{id}` · **{title}** na <#{channel}> · start {starts} · zwycięzcy: {winners}",
 
   "info.title": "Konkurs {id}",
   "info.field.status": "Status",
@@ -59,13 +65,14 @@
   "info.field.channel": "Kanał",
   "info.field.created": "Utworzono",
   "info.field.ends": "Koniec",
+  "info.field.starts": "Start",
   "info.field.ended": "Zakończono",
   "info.field.entries": "Uczestnicy",
   "info.field.winners": "Zwycięzcy",
   "info.none": "—",
 
   "help.title": "🎉 Giveaway Bot — komendy",
-  "help.gcreate": "Otwiera okno i tworzy konkurs na tym kanale (opcja `mode` dla jednej nagrody na zwycięzcę, `draw` dla wygranej za pierwsze kliknięcie).",
+  "help.gcreate": "Otwiera okno i tworzy konkurs na tym kanale (opcja `mode` dla jednej nagrody na zwycięzcę, `draw` dla wygranej za pierwsze kliknięcie, `start_in`, aby wystartować później, np. `2h`).",
   "help.gcancel": "Anuluje aktywny konkurs (bez zwycięzcy).",
   "help.gend": "Natychmiast kończy aktywny konkurs i losuje zwycięzców.",
   "help.greroll": "Losuje nowych zwycięzców zakończonego konkursu.",
@@ -113,6 +120,9 @@
   "resume.success": "▶️ Konkurs `{id}` wznowiony.",
 
   "log.created": "🟢 Konkurs `{id}` **{title}** utworzony przez {user}.",
+  "log.scheduled": "🗓️ Konkurs `{id}` **{title}** zaplanowany przez {user}, start {starts}.",
+  "log.started": "🟢 Zaplanowany konkurs `{id}` **{title}** wystartował.",
+  "log.start_failed": "⚠️ Zaplanowanego konkursu `{id}` **{title}** nie udało się opublikować, został anulowany: {reason}",
   "log.ended": "🏁 Konkurs `{id}` **{title}** zakończony (zwycięzcy: {count}).",
   "log.cancelled": "🚫 Konkurs `{id}` **{title}** anulowany przez {user}.",
   "log.rerolled": "🔁 Konkurs `{id}` **{title}** wylosowany ponownie przez {user}.",

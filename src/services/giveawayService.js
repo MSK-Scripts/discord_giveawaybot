@@ -10,6 +10,7 @@ import { serializeRoleArray, serializeBonusRoles } from '../utils/roles.js';
 import { normalizeWinnerMode, isFirstClick } from '../utils/winnerMode.js';
 import { generateGiveawayId } from '../utils/id.js';
 import { memberProfile } from '../utils/profile.js';
+import { activationTimes, startsLabel } from '../utils/schedule.js';
 import { publishResult } from './resultPublisher.js';
 import { issueCoupons, revokeCoupons, manualCodeForWinner } from './tebexService.js';
 import { t } from '../utils/i18n.js';
@@ -55,9 +56,10 @@ export async function resetGiveawayEligibility(id) {
   });
 }
 
+/** Running and scheduled giveaways (for /glist; the embed shows them apart). */
 export async function listActive(guildId) {
   return prisma.giveaway.findMany({
-    where: { guildId, status: 'ACTIVE' },
+    where: { guildId, status: { in: ['ACTIVE', 'SCHEDULED'] } },
     orderBy: { endAt: 'asc' },
   });
 }
@@ -565,57 +567,173 @@ export async function sendGuildLog(client, settings, content) {
 }
 
 // ── Gemeinsame Erstellung (Modal + Vorlage nutzen dies) ──────────────────────
+
+/** "Ending soon" reminder for an end time, or null when off or already past. */
+function reminderFor(settings, endAt, now = Date.now()) {
+  const reminderMin = Number(settings?.reminderMinutes) || 0;
+  if (reminderMin <= 0) return null;
+  const r = new Date(endAt.getTime() - reminderMin * 60000);
+  return r.getTime() > now ? r : null;
+}
+
 /**
- * Legt ein Giveaway an, postet die Nachricht und speichert die messageId.
- * Bei Sende-Fehler wird der DB-Eintrag wieder entfernt (kein verwaistes Giveaway).
- * @returns {Promise<string>} die Giveaway-ID
+ * The database row of a new giveaway.
+ *
+ * One function for posting now, scheduling for later and the dashboard
+ * preview, so the three cannot drift apart: the preview renders exactly the row
+ * that creating would store.
+ *
+ * A `startAt` (Date) makes it SCHEDULED. Its reminder is planned only when it
+ * starts, because the reminder setting may change until then.
  */
-export async function postGiveaway(client, channel, settings, {
-  guildId, hostId, title, description, prizes = [], prizeMode = 'ALL', winnerMode = 'RANDOM',
-  winnersCount, endAt, blacklistRoles, whitelistRoles, bonusRoles,
+export function giveawayRecord(settings, {
+  id, guildId, channelId, hostId, title, description, prizes = [], prizeMode = 'ALL', winnerMode = 'RANDOM',
+  winnersCount, endAt, startAt = null, blacklistRoles, whitelistRoles, bonusRoles,
 }) {
-  const id = await generateGiveawayId();
   // In INDIVIDUAL mode the number of winners is the number of prizes, not the
   // input. Resolved centrally here so no call site can forget it.
   const mode = normalizePrizeMode(prizeMode);
   const prizeList = Array.isArray(prizes) ? prizes : [];
   const winners = mode === 'INDIVIDUAL' && prizeList.length ? prizeList.length : winnersCount;
-  // "Ending soon"-Reminder einplanen, falls in der Guild aktiviert und noch in der Zukunft.
-  const reminderMin = Number(settings.reminderMinutes) || 0;
-  let reminderAt = null;
-  if (reminderMin > 0) {
-    const r = new Date(endAt.getTime() - reminderMin * 60000);
-    if (r.getTime() > Date.now()) reminderAt = r;
-  }
+  const scheduled = startAt instanceof Date;
   // Bedingungen je Giveaway gehören in den Datensatz, BEVOR die Nachricht rausgeht:
   // Blacklist, Whitelist und Bonus-Lose stehen im Embed. Nachträglich gesetzt
   // (wie die Coupon-Felder) würde die erste Fassung sie verschweigen.
   //
   // Nichts übergeben heißt NULL, also "es gilt die serverweite Einstellung".
   // Eine übergebene (auch leere) Liste ersetzt sie für dieses Giveaway.
-  const giveaway = await createGiveaway({
-    id, guildId, channelId: channel.id, hostId, title, description,
+  return {
+    id, guildId, channelId, hostId, title, description,
     prizes: serializePrizes(prizeList), prizeMode: mode,
     winnerMode: normalizeWinnerMode(winnerMode),
-    winnersCount: winners, endAt, status: 'ACTIVE', reminderAt,
+    winnersCount: winners, endAt,
+    startAt: scheduled ? startAt : null,
+    status: scheduled ? 'SCHEDULED' : 'ACTIVE',
+    reminderAt: scheduled ? null : reminderFor(settings, endAt),
     blacklistRoles: blacklistRoles == null ? null : serializeRoleArray(blacklistRoles),
     whitelistRoles: whitelistRoles == null ? null : serializeRoleArray(whitelistRoles),
     bonusRoles: bonusRoles == null ? null : serializeBonusRoles(bonusRoles),
+  };
+}
+
+/** Sends the giveaway message: embed, button and the optional notify ping. */
+export async function sendGiveawayMessage(channel, settings, giveaway) {
+  const content = settings.notifyRole ? `<@&${settings.notifyRole}>` : undefined;
+  return channel.send({
+    content,
+    embeds: [buildGiveawayEmbed(giveaway, settings, { entryCount: 0 })],
+    components: [buildButtonRow(giveaway, settings, { disabled: false })],
+    allowedMentions: { roles: settings.notifyRole ? [settings.notifyRole] : [] },
   });
+}
+
+/**
+ * Legt ein Giveaway an, postet die Nachricht und speichert die messageId.
+ * Bei Sende-Fehler wird der DB-Eintrag wieder entfernt (kein verwaistes Giveaway).
+ * @returns {Promise<string>} die Giveaway-ID
+ */
+export async function postGiveaway(client, channel, settings, input) {
+  const id = await generateGiveawayId();
+  const giveaway = await createGiveaway(giveawayRecord(settings, { ...input, id, channelId: channel.id, startAt: null }));
   try {
-    const content = settings.notifyRole ? `<@&${settings.notifyRole}>` : undefined;
-    const msg = await channel.send({
-      content,
-      embeds: [buildGiveawayEmbed(giveaway, settings, { entryCount: 0 })],
-      components: [buildButtonRow(giveaway, settings, { disabled: false })],
-      allowedMentions: { roles: settings.notifyRole ? [settings.notifyRole] : [] },
-    });
+    const msg = await sendGiveawayMessage(channel, settings, giveaway);
     await prisma.giveaway.update({ where: { id }, data: { messageId: msg.id } });
-    await sendGuildLog(client, settings, t(guildId, 'log.created', { id, title, user: `<@${hostId}>` }));
+    await sendGuildLog(client, settings, t(input.guildId, 'log.created', { id, title: input.title, user: `<@${input.hostId}>` }));
     return id;
   } catch (err) {
     await prisma.giveaway.delete({ where: { id } }).catch(() => {});
     throw err;
+  }
+}
+
+/**
+ * Stores a giveaway that starts later. No Discord message yet: the scheduler
+ * posts it at `startAt` (see startScheduledGiveaway). The channel is passed so
+ * the caller has checked it exists now; whether posting works is only known
+ * then.
+ * @returns {Promise<string>} the giveaway ID
+ */
+export async function scheduleGiveaway(client, channel, settings, input) {
+  if (!(input.startAt instanceof Date)) throw new TypeError('scheduleGiveaway needs a startAt date');
+  const id = await generateGiveawayId();
+  const giveaway = await createGiveaway(giveawayRecord(settings, { ...input, id, channelId: channel.id }));
+  await sendGuildLog(client, settings, t(input.guildId, 'log.scheduled', {
+    id, title: giveaway.title, user: `<@${input.hostId}>`, starts: startsLabel(giveaway, 'F'),
+  }));
+  return id;
+}
+
+/** A short, log-safe reason for a failed post. */
+function failureReason(err) {
+  return String(err?.message ?? err ?? 'unknown error').replace(/\s+/g, ' ').slice(0, 200);
+}
+
+/**
+ * Starts a scheduled giveaway: claims SCHEDULED -> ACTIVE, then posts the message.
+ *
+ * Same pattern as endGiveaway. The claim is a single conditional UPDATE, so
+ * overlapping ticks (or a second process) post at most once. It sits BEFORE the
+ * post, which leaves one window: a crash between claim and post leaves an
+ * ACTIVE giveaway without a message, which then ends at endAt without entries.
+ * The opposite order could post the message twice.
+ *
+ * If posting fails (channel gone, permissions missing) the giveaway becomes
+ * CANCELLED and the log channel says why. It is never deleted: the shop shows it,
+ * and the organiser can see what was planned and create it again.
+ *
+ * If the giveaway is cancelled or deleted while the message goes out, the
+ * message is taken down again instead of being left with a dead button.
+ *
+ * @returns {Promise<{ok: true, messageId: string} | {ok: false, error: 'post_failed'|'gone'} | null>}
+ *          null when there was nothing to do (not due or claimed elsewhere)
+ */
+export async function startScheduledGiveaway(client, giveaway) {
+  const id = giveaway.id;
+  let settings;
+  try {
+    settings = await getSettings(giveaway.guildId);
+  } catch (err) {
+    logger.error(`startScheduledGiveaway(${id}): settings unavailable, retrying next tick:`, err?.message ?? err);
+    return null;
+  }
+
+  const { startAt, endAt } = activationTimes(giveaway);
+  let claimed;
+  try {
+    claimed = await prisma.giveaway.updateMany({
+      where: { id, status: 'SCHEDULED' },
+      data: { status: 'ACTIVE', startAt, endAt, reminderAt: reminderFor(settings, endAt), reminderSent: false },
+    });
+  } catch (err) {
+    logger.error(`startScheduledGiveaway(${id}): claim failed:`, err);
+    return null;
+  }
+  if (claimed.count === 0) return null;
+
+  const fresh = await prisma.giveaway.findUnique({ where: { id } });
+  if (!fresh) return null;
+
+  let msg = null;
+  try {
+    const channel = await client.channels.fetch(fresh.channelId);
+    if (!channel || typeof channel.send !== 'function') throw new Error('channel not found');
+    msg = await sendGiveawayMessage(channel, settings, fresh);
+    const stored = await prisma.giveaway.updateMany({ where: { id, status: 'ACTIVE' }, data: { messageId: msg.id } });
+    if (stored.count === 0) {
+      await msg.delete?.().catch(() => {});
+      return { ok: false, error: 'gone' };
+    }
+    await sendGuildLog(client, settings, t(fresh.guildId, 'log.started', { id, title: fresh.title }));
+    return { ok: true, messageId: msg.id };
+  } catch (err) {
+    logger.error(`startScheduledGiveaway(${id}): posting failed, the giveaway is cancelled:`, err?.message ?? err);
+    if (msg) await msg.delete?.().catch(() => {});
+    await prisma.giveaway.updateMany({
+      where: { id, status: 'ACTIVE' },
+      data: { status: 'CANCELLED', endedAt: new Date() },
+    }).catch((e) => logger.error(`startScheduledGiveaway(${id}): could not mark as cancelled:`, e?.message ?? e));
+    await sendGuildLog(client, settings, t(fresh.guildId, 'log.start_failed', { id, title: fresh.title, reason: failureReason(err) }));
+    return { ok: false, error: 'post_failed' };
   }
 }
 
@@ -737,13 +855,16 @@ export async function replaceWinner(giveaway, guild, settings, oldUserId) {
  */
 export async function cancelAndFinalize(client, giveaway, settings, { actor } = {}) {
   const updated = await cancelGiveaway(giveaway.id, giveaway.guildId);
-  if (giveaway.messageId) {
+  // The message ID comes from the row as it is now, not from the caller's copy:
+  // a scheduled giveaway can have been posted between that read and this cancel.
+  // A SCHEDULED one that was not posted has no message, and nothing to edit.
+  if (updated.messageId) {
     try {
-      const channel = await client.channels.fetch(giveaway.channelId);
-      const msg = await channel.messages.fetch(giveaway.messageId);
+      const channel = await client.channels.fetch(updated.channelId);
+      const msg = await channel.messages.fetch(updated.messageId);
       await msg.edit({
-        embeds: [buildCancelledEmbed(giveaway, settings)],
-        components: [buildButtonRow(giveaway, settings, { disabled: true })],
+        embeds: [buildCancelledEmbed(updated, settings)],
+        components: [buildButtonRow(updated, settings, { disabled: true })],
       });
     } catch (err) {
       logger.warn(`cancelAndFinalize(${giveaway.id}): Original-Nachricht nicht editierbar:`, err?.message ?? err);
@@ -858,7 +979,8 @@ export async function rerollSingle(client, giveaway, settings, oldUserId, { acto
 
 // ── Statistik pro Guild ──────────────────────────────────────────────────────
 export async function getGuildStats(guildId) {
-  const [active, paused, ended, cancelled, entries, winners] = await prisma.$transaction([
+  const [scheduled, active, paused, ended, cancelled, entries, winners] = await prisma.$transaction([
+    prisma.giveaway.count({ where: { guildId, status: 'SCHEDULED' } }),
     prisma.giveaway.count({ where: { guildId, status: 'ACTIVE' } }),
     prisma.giveaway.count({ where: { guildId, status: 'PAUSED' } }),
     prisma.giveaway.count({ where: { guildId, status: 'ENDED' } }),
@@ -866,5 +988,8 @@ export async function getGuildStats(guildId) {
     prisma.entry.count({ where: { giveaway: { guildId } } }),
     prisma.winner.count({ where: { giveaway: { guildId }, rerolled: false } }),
   ]);
-  return { total: active + paused + ended + cancelled, active, paused, ended, cancelled, entries, winners };
+  return {
+    total: scheduled + active + paused + ended + cancelled,
+    scheduled, active, paused, ended, cancelled, entries, winners,
+  };
 }

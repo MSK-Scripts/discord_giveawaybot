@@ -2,6 +2,7 @@ import { SlashCommandBuilder, MessageFlags } from 'discord.js';
 import { getSettings } from '../services/settingsService.js';
 import { getGiveaway, rerollAll, rerollSingle } from '../services/giveawayService.js';
 import { isManager } from '../utils/permissions.js';
+import { startsLabel } from '../utils/schedule.js';
 import { t } from '../utils/i18n.js';
 
 export default {
@@ -24,6 +25,9 @@ export default {
     const giveaway = await getGiveaway(id, guildId);
     if (!giveaway) {
       return interaction.reply({ content: t(guildId, 'error.not_found'), flags: MessageFlags.Ephemeral });
+    }
+    if (giveaway.status === 'SCHEDULED') {
+      return interaction.reply({ content: t(guildId, 'error.scheduled', { starts: startsLabel(giveaway) }), flags: MessageFlags.Ephemeral });
     }
     if (giveaway.status !== 'ENDED') {
       return interaction.reply({ content: t(guildId, 'error.not_ended'), flags: MessageFlags.Ephemeral });

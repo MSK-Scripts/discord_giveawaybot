@@ -247,3 +247,109 @@ test('GET /giveaway refuses a malformed id before any lookup', { skip }, async (
   assert.equal((await call(`/giveaway?guildId=${guildId}&id=ZZZZ9999`)).status, 404);
   assert.equal(state.userFetches, 0);
 });
+
+// ── scheduled giveaways over the control endpoint ──────────────────────────
+
+const createBody = (extra = {}) => ({
+  channelId: CHANNEL, title: 'Scheduled', description: 'Text', winnersCount: 1, duration: '1h', prizes: ['Prize'], ...extra,
+});
+
+test('POST /giveaway/create with a startAt stores a SCHEDULED giveaway and posts nothing', { skip }, async () => {
+  const startAt = new Date(Math.ceil((Date.now() + 2 * 3_600_000) / 1000) * 1000);
+  const { status, json } = await post('/giveaway/create', createBody({ startAt: startAt.toISOString(), couponPercent: 10 }));
+  assert.equal(status, 200);
+  assert.equal(json.status, 'SCHEDULED');
+  assert.equal(json.startAt, startAt.toISOString());
+  assert.equal(json.endAt, new Date(startAt.getTime() + 3_600_000).toISOString(), 'the duration counts from the start');
+
+  const gw = await prisma.giveaway.findUnique({ where: { id: json.id } });
+  assert.equal(gw.status, 'SCHEDULED');
+  assert.equal(gw.messageId, null);
+  assert.equal(gw.startAt.getTime(), startAt.getTime());
+  assert.equal(gw.couponPercent, 10, 'coupon settings are stored for later as well');
+  assert.equal(state.sent.length, 0, 'no Discord message before the start');
+  assert.ok(state.logs.some((l) => l.includes(json.id) && l.includes('scheduled')), 'logged like a create');
+
+  const detail = await call(`/giveaway?guildId=${guildId}&id=${json.id}`);
+  assert.equal(detail.json.giveaway.startAt, startAt.toISOString());
+
+  // Epoch milliseconds work the same way.
+  const epoch = await post('/giveaway/create', createBody({ startAt: startAt.getTime() }));
+  assert.equal(epoch.status, 200);
+  assert.equal(epoch.json.status, 'SCHEDULED');
+});
+
+test('POST /giveaway/create without a startAt still posts right away', { skip }, async () => {
+  const { status, json } = await post('/giveaway/create', createBody());
+  assert.equal(status, 200);
+  assert.equal(json.status, 'ACTIVE');
+  assert.equal(json.startAt, null);
+  assert.equal(state.sent.length, 1);
+});
+
+test('POST /giveaway/create refuses a bad startAt and creates nothing', { skip }, async () => {
+  const before = await prisma.giveaway.count({ where: { guildId } });
+  const cases = [
+    ['2026-10-28T14:00', 'invalid_start'],
+    ['next week', 'invalid_start'],
+    [{ when: 'later' }, 'invalid_start'],
+    [new Date(Date.now() - 60_000).toISOString(), 'start_in_past'],
+    [Date.now() + 366 * 24 * 3_600_000, 'start_too_far'],
+  ];
+  for (const [startAt, error] of cases) {
+    const res = await post('/giveaway/create', createBody({ startAt }));
+    assert.equal(res.status, 400, JSON.stringify(startAt));
+    assert.equal(res.json.error, error, JSON.stringify(startAt));
+  }
+  assert.equal(await prisma.giveaway.count({ where: { guildId } }), before);
+  assert.equal(state.sent.length, 0);
+});
+
+test('a scheduled giveaway can be cancelled, but not extended, paused, ended, resumed or rerolled', { skip }, async () => {
+  const gw = await giveawayRow({ status: 'SCHEDULED', startAt: new Date(Date.now() + 3_600_000), endAt: new Date(Date.now() + 7_200_000) });
+  for (const action of ['extend', 'pause', 'end', 'resume', 'reroll']) {
+    const res = await post(`/giveaway/${action}`, { id: gw.id, duration: '1h' });
+    assert.equal(res.status, 409, action);
+    assert.equal(res.json.error, 'not_started', action);
+  }
+  assert.equal((await prisma.giveaway.findUnique({ where: { id: gw.id } })).status, 'SCHEDULED');
+
+  const cancel = await post('/giveaway/cancel', { id: gw.id });
+  assert.equal(cancel.status, 200);
+  assert.equal((await prisma.giveaway.findUnique({ where: { id: gw.id } })).status, 'CANCELLED');
+  assert.equal(state.edits.length, 0, 'there was no message to edit');
+});
+
+test('editing a scheduled giveaway can move its start and duration', { skip }, async () => {
+  const start = Date.now() + 3_600_000;
+  const gw = await giveawayRow({ status: 'SCHEDULED', startAt: new Date(start), endAt: new Date(start + 2 * 3_600_000) });
+
+  const title = await post('/giveaway/edit', { id: gw.id, title: 'New title' });
+  assert.equal(title.status, 200);
+  assert.equal(title.json.giveaway.title, 'New title');
+  assert.equal(state.edits.length, 0, 'no message to edit yet');
+
+  const later = start + 24 * 3_600_000;
+  const moved = await post('/giveaway/edit', { id: gw.id, startAt: later });
+  assert.equal(moved.status, 200);
+  assert.equal(moved.json.giveaway.startAt, new Date(later).toISOString());
+  assert.equal(moved.json.giveaway.endAt, new Date(later + 2 * 3_600_000).toISOString(), 'the duration moves along');
+
+  const shorter = await post('/giveaway/edit', { id: gw.id, duration: '30m' });
+  assert.equal(shorter.status, 200);
+  assert.equal(shorter.json.giveaway.endAt, new Date(later + 30 * 60_000).toISOString(), 'from the start, not from now');
+
+  assert.equal((await post('/giveaway/edit', { id: gw.id, startAt: 'whenever' })).json.error, 'invalid_start');
+  assert.equal((await post('/giveaway/edit', { id: gw.id, duration: '5' })).json.error, 'invalid_duration');
+});
+
+test('start and duration cannot be moved through an edit once a giveaway runs', { skip }, async () => {
+  const gw = await giveawayRow({ status: 'ACTIVE', messageId: '800000000000000099' });
+  for (const patch of [{ startAt: Date.now() + 3_600_000 }, { duration: '2h' }]) {
+    const res = await post('/giveaway/edit', { id: gw.id, ...patch });
+    assert.equal(res.status, 409);
+    assert.equal(res.json.error, 'not_scheduled');
+  }
+  const row = await prisma.giveaway.findUnique({ where: { id: gw.id } });
+  assert.equal(row.endAt.getTime(), gw.endAt.getTime(), 'the end did not move');
+});

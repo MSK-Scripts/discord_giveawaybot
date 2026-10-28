@@ -1,8 +1,9 @@
 // Poll-basierter, restart-sicherer Scheduler.
-// Alle 10s: "Ending soon"-Reminder versenden + fällige ACTIVE-Giveaways beenden.
+// Every 10 s: start scheduled giveaways, post "ending soon" reminders, end the
+// ACTIVE giveaways that are due.
 import { prisma } from '../database/prisma.js';
 import { logger } from '../utils/logger.js';
-import { endGiveaway, sendGuildLog } from './giveawayService.js';
+import { endGiveaway, sendGuildLog, startScheduledGiveaway } from './giveawayService.js';
 import { getSettings } from './settingsService.js';
 import { t } from '../utils/i18n.js';
 
@@ -56,11 +57,36 @@ async function sendReminders(client) {
 }
 
 /**
- * Ein Durchlauf: Reminder posten, fällige Giveaways beenden.
+ * Posts the scheduled giveaways whose start time has come.
+ *
+ * startScheduledGiveaway claims SCHEDULED -> ACTIVE atomically and only posts
+ * when the claim wins, so overlapping ticks post each giveaway once. Runs first
+ * in the tick: after a longer downtime a giveaway is started before the end
+ * check below looks at it (its endAt moves by the delay, see activationTimes).
+ */
+async function startDueScheduled(client) {
+  let due;
+  try {
+    due = await prisma.giveaway.findMany({
+      where: { status: 'SCHEDULED', startAt: { lte: new Date() } },
+      orderBy: { startAt: 'asc' },
+    });
+  } catch (err) {
+    logger.error('Scheduler start query (DB error):', err?.message ?? err);
+    return;
+  }
+  for (const giveaway of due) {
+    await startScheduledGiveaway(client, giveaway);
+  }
+}
+
+/**
+ * One pass: start scheduled giveaways, post reminders, end the due ones.
  * Exportiert als `runSchedulerTick`, damit Tests einen Tick deterministisch
  * auslösen können, statt 10 Sekunden auf das Intervall zu warten.
  */
 async function tick(client) {
+  await startDueScheduled(client);
   await sendReminders(client);
 
   let due;

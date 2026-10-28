@@ -10,6 +10,7 @@ import { getSettings } from '../services/settingsService.js';
 import { isManager } from '../utils/permissions.js';
 import { normalizePrizeMode } from '../utils/prizes.js';
 import { normalizeWinnerMode } from '../utils/winnerMode.js';
+import { parseDuration } from '../utils/duration.js';
 import { t } from '../utils/i18n.js';
 
 export default {
@@ -43,6 +44,17 @@ export default {
           { name: 'Random draw when it ends', value: 'RANDOM' },
           { name: 'First click wins (ends instantly)', value: 'FIRST_CLICK' },
         ),
+    )
+    // Start later: an offset in the same format as the duration. The message is
+    // posted only then, and the duration counts from the start. An offset and
+    // not a date, because a slash option has no date picker and "2h" is what
+    // people type anyway (the dashboard takes an exact time).
+    .addStringOption((o) =>
+      o
+        .setName('start_in')
+        .setDescription('Start later instead of now, e.g. 2h or 1d (the duration counts from the start)')
+        .setMaxLength(32)
+        .setRequired(false),
     ),
 
   async execute(client, interaction) {
@@ -62,8 +74,21 @@ export default {
     // between showModal and submit there is no state the bot holds.
     const winnerMode = normalizeWinnerMode(interaction.options.getString('draw', false));
 
+    // Checked before the modal opens, so a typo does not cost the filled-in form.
+    // The offset travels in the customId like the two modes; the start itself is
+    // computed on submit, because "in 2 hours" means from when it is created.
+    const startRaw = interaction.options.getString('start_in', false)?.trim();
+    let startOffset = 0;
+    if (startRaw) {
+      const parsed = parseDuration(startRaw);
+      if (!parsed.ok) {
+        return interaction.reply({ content: t(guildId, 'create.invalid_start'), flags: MessageFlags.Ephemeral });
+      }
+      startOffset = parsed.ms;
+    }
+
     const modal = new ModalBuilder()
-      .setCustomId(`gw:create:${mode}:${winnerMode}`)
+      .setCustomId(`gw:create:${mode}:${winnerMode}${startOffset ? `:${startOffset}` : ''}`)
       .setTitle(t(guildId, winnerMode === 'FIRST_CLICK' ? 'modal.title_fast' : 'modal.title'));
 
     const titleInput = new TextInputBuilder()
