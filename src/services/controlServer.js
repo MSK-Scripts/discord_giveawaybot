@@ -711,6 +711,27 @@ async function setTebexStore(guildId, body) {
   return { status: 200, body: { ok: true } };
 }
 
+/**
+ * Name, icon and member count of the guild, straight from the client cache.
+ *
+ * No REST call: the gateway delivers all of it with GUILD_CREATE, and the guild
+ * check in front of every endpoint has already proved the guild is cached.
+ * Without the GuildMembers intent `memberCount` is the number Discord sent at
+ * that moment and is not kept up to date by join/leave events, so it is a
+ * display value, not a statistic.
+ */
+function guildInfo(client, guildId) {
+  const guild = client.guilds.cache.get(guildId);
+  if (!guild) return null;
+  const iconUrl = typeof guild.iconURL === 'function' ? guild.iconURL({ size: 128 }) : null;
+  return {
+    id: guild.id ?? guildId,
+    name: guild.name ?? null,
+    iconUrl: iconUrl ?? null,
+    memberCount: Number.isInteger(guild.memberCount) ? guild.memberCount : null,
+  };
+}
+
 function listRoles(client, guildId) {
   const guild = client.guilds.cache.get(guildId);
   if (!guild) return [];
@@ -755,6 +776,10 @@ async function handle(client, req, res) {
       const id = String(url.searchParams.get('id') ?? '').trim().toUpperCase();
       const detail = await getGiveawayDetail(guildId, id);
       return detail ? send(res, 200, { giveaway: detail }) : send(res, 404, { error: 'not_found' });
+    }
+    if (method === 'GET' && path === '/guild') {
+      const info = guildInfo(client, guildId);
+      return info ? send(res, 200, { guild: info }) : send(res, 403, { error: 'bot_not_in_guild' });
     }
     if (method === 'GET' && path === '/settings') return send(res, 200, { settings: publicSettings(await getSettings(guildId)) });
     if (method === 'GET' && path === '/roles') return send(res, 200, { roles: listRoles(client, guildId) });

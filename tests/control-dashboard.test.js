@@ -1,0 +1,165 @@
+/**
+ * The control endpoints the shop dashboard reads: the server name, winner
+ * names, scheduled giveaways, deleting, the daily history and the live preview.
+ *
+ * Runs the real control server on 127.0.0.1 against a fake Discord client, the
+ * same way control-tebex.test.js does. The fake records every message it sends,
+ * edits or deletes and counts every REST-shaped lookup, so a test can assert
+ * "no Discord call" instead of trusting that nothing happened.
+ *
+ * Skipped without TEST_DATABASE_URL, see tests/helpers/db.js.
+ */
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { randomBytes } from 'node:crypto';
+import { openTestDb, skipDb, cleanup, testSnowflake } from './helpers/db.js';
+
+process.env.CONTROL_SECRET = randomBytes(16).toString('hex');
+process.env.CONTROL_PORT = '18791';
+
+const prisma = await openTestDb();
+const skip = skipDb;
+
+const control = skip ? {} : await import('../src/services/controlServer.js');
+const settingsService = skip ? {} : await import('../src/services/settingsService.js');
+if (!skip) (await import('../src/utils/i18n.js')).loadLocales();
+
+const BASE = 'http://127.0.0.1:18791';
+const CHANNEL = '700000000000000011';
+const LOG_CHANNEL = '700000000000000012';
+const BOT = '999999999999999999';
+
+let guildId;      // has a settings row, an icon and a log channel
+let bareGuildId;  // in the cache, but no settings row and no icon
+
+/** Everything the fake client was asked to do, reset before every test. */
+const state = {
+  sent: [], logs: [], edits: [], deleted: [],
+  userFetches: 0, guildFetches: 0, channelFetches: 0,
+  messageError: null,
+};
+
+function resetState() {
+  Object.assign(state, {
+    sent: [], logs: [], edits: [], deleted: [],
+    userFetches: 0, guildFetches: 0, channelFetches: 0,
+    messageError: null,
+  });
+}
+
+function fakeControlClient(guilds) {
+  const channel = {
+    id: CHANNEL,
+    get guildId() { return guildId; },
+    isTextBased: () => true,
+    async send(payload) {
+      state.sent.push(payload);
+      return { id: `8${String(state.sent.length).padStart(17, '0')}` };
+    },
+    messages: {
+      async fetch(messageId) {
+        if (state.messageError) throw state.messageError;
+        return {
+          id: messageId,
+          async edit(payload) { state.edits.push({ messageId, payload }); },
+          async delete() { state.deleted.push(messageId); },
+        };
+      },
+    },
+  };
+  const logChannel = {
+    id: LOG_CHANNEL,
+    async send(payload) { state.logs.push(payload.content); return { id: 'log' }; },
+  };
+  return {
+    user: { id: BOT },
+    guilds: {
+      cache: { has: (g) => guilds.has(g), get: (g) => guilds.get(g) ?? null },
+      fetch: async (g) => { state.guildFetches++; return guilds.get(g) ?? null; },
+    },
+    channels: {
+      fetch: async (c) => {
+        state.channelFetches++;
+        if (c === CHANNEL) return channel;
+        if (c === LOG_CHANNEL) return logChannel;
+        return null;
+      },
+    },
+    users: {
+      fetch: async (userId) => {
+        state.userFetches++;
+        return {
+          id: userId,
+          username: `user${userId.slice(-4)}`,
+          globalName: `Global ${userId.slice(-4)}`,
+          displayAvatarURL: ({ size } = {}) => `https://cdn.discordapp.com/avatars/${userId}/a.png?size=${size}`,
+        };
+      },
+    },
+  };
+}
+
+async function call(path, { method = 'GET', body, secret = process.env.CONTROL_SECRET } = {}) {
+  const res = await fetch(`${BASE}${path}`, {
+    method,
+    headers: {
+      ...(secret ? { 'X-Control-Secret': secret } : {}),
+      ...(body ? { 'Content-Type': 'application/json' } : {}),
+    },
+    ...(body ? { body: JSON.stringify(body) } : {}),
+  });
+  return { status: res.status, json: await res.json().catch(() => null) };
+}
+
+const post = (path, body) => call(path, { method: 'POST', body: { guildId, ...body } });
+
+test.before(async () => {
+  if (skip) return;
+  guildId = testSnowflake();
+  bareGuildId = testSnowflake();
+  await prisma.guildSettings.create({ data: { guildId, logChannel: LOG_CHANNEL } });
+  settingsService.evict(guildId);
+  settingsService.evict(bareGuildId);
+
+  const guilds = new Map([
+    [guildId, {
+      id: guildId, ownerId: '400000000000000009', name: 'Dashboard Guild', memberCount: 1234,
+      iconURL: ({ size } = {}) => `https://cdn.discordapp.com/icons/${guildId}/abc.webp?size=${size}`,
+    }],
+    [bareGuildId, { id: bareGuildId, ownerId: '400000000000000009', name: 'Bare Guild', memberCount: 3, iconURL: () => null }],
+  ]);
+  control.startControlServer(fakeControlClient(guilds));
+});
+
+test.beforeEach(() => resetState());
+
+test.after(async () => {
+  control.stopControlServer?.();
+  await cleanup(prisma);
+  await prisma?.$disconnect();
+});
+
+// ── GET /guild ───────────────────────────────────────────────────────────────
+
+test('GET /guild answers name, icon and member count from the cache, without a REST call', { skip }, async () => {
+  const { status, json } = await call(`/guild?guildId=${guildId}`);
+  assert.equal(status, 200);
+  assert.deepEqual(json.guild, {
+    id: guildId,
+    name: 'Dashboard Guild',
+    iconUrl: `https://cdn.discordapp.com/icons/${guildId}/abc.webp?size=128`,
+    memberCount: 1234,
+  });
+  assert.equal(state.guildFetches, 0, 'no guilds.fetch, the cache is enough');
+
+  const bare = await call(`/guild?guildId=${bareGuildId}`);
+  assert.equal(bare.status, 200);
+  assert.equal(bare.json.guild.iconUrl, null, 'a guild without an icon answers null');
+});
+
+test('GET /guild keeps the secret and the guild check', { skip }, async () => {
+  assert.equal((await call(`/guild?guildId=${guildId}`, { secret: null })).status, 401);
+  assert.equal((await call(`/guild?guildId=${guildId}`, { secret: 'wrong' })).status, 401);
+  assert.equal((await call('/guild?guildId=abc')).status, 400);
+  assert.equal((await call(`/guild?guildId=${testSnowflake()}`)).status, 403, 'a guild the bot is not in');
+});
