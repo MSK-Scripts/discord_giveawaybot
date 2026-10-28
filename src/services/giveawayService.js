@@ -874,6 +874,75 @@ export async function cancelAndFinalize(client, giveaway, settings, { actor } = 
   return updated;
 }
 
+// ── Delete (dashboard) ───────────────────────────────────────────────────────
+
+// Only giveaways that are over or have not started can be deleted. A running
+// one (ACTIVE, PAUSED) would take its entrants' chance with it; it has to be
+// ended or cancelled first.
+export const DELETABLE_STATUSES = ['ENDED', 'CANCELLED', 'SCHEDULED'];
+
+// Discord error codes that mean the message is already gone.
+const UNKNOWN_CHANNEL = 10003;
+const UNKNOWN_MESSAGE = 10008;
+
+/**
+ * Removes the giveaway's Discord message, if it has one.
+ * @returns {Promise<'none'|'deleted'|'gone'|'failed'>}
+ */
+async function deleteGiveawayMessage(client, giveaway) {
+  if (!giveaway.messageId) return 'none';
+  try {
+    const channel = await client.channels.fetch(giveaway.channelId);
+    if (!channel) return 'gone';
+    const msg = await channel.messages.fetch(giveaway.messageId);
+    await msg.delete();
+    return 'deleted';
+  } catch (err) {
+    if (err?.code === UNKNOWN_MESSAGE || err?.code === UNKNOWN_CHANNEL) return 'gone';
+    logger.warn(`deleteGiveaway(${giveaway.id}): message ${giveaway.messageId} not deleted:`, err?.message ?? err);
+    return 'failed';
+  }
+}
+
+/** Coupon codes handed out for a giveaway and not revoked (they stay valid in the store). */
+export async function countIssuedCoupons(giveawayId) {
+  return prisma.giveawayCoupon.count({ where: { giveawayId, revokedAt: null } });
+}
+
+/**
+ * Deletes a giveaway that is over or has not started, together with its
+ * message, entries, winners and coupon records (the last three cascade).
+ *
+ * The message goes first and the row second. If the row delete fails, a retry
+ * finds the message gone and finishes; the other order could leave a message
+ * behind whose button points at nothing.
+ *
+ * The row delete is conditional on the status: a SCHEDULED giveaway can be
+ * started by the scheduler between the caller's read and this call, and a
+ * running one must not vanish. Issued coupon codes are not revoked in the
+ * store; `couponsIssued` tells the dashboard how many there were.
+ *
+ * @returns {Promise<{ok: true, couponsIssued: number, message: 'none'|'deleted'|'gone'|'failed'}
+ *          | {ok: false, error: 'still_running'|'not_found'}>}
+ */
+export async function deleteGiveaway(client, giveaway, settings, { actor } = {}) {
+  if (!DELETABLE_STATUSES.includes(giveaway.status)) return { ok: false, error: 'still_running' };
+
+  const couponsIssued = await countIssuedCoupons(giveaway.id);
+  const message = await deleteGiveawayMessage(client, giveaway);
+
+  const removed = await prisma.giveaway.deleteMany({
+    where: { id: giveaway.id, guildId: giveaway.guildId, status: { in: DELETABLE_STATUSES } },
+  });
+  if (removed.count === 0) {
+    const still = await prisma.giveaway.findUnique({ where: { id: giveaway.id } });
+    return { ok: false, error: still ? 'still_running' : 'not_found' };
+  }
+
+  await sendGuildLog(client, settings, t(giveaway.guildId, 'log.deleted', { id: giveaway.id, title: giveaway.title, user: actor }));
+  return { ok: true, couponsIssued, message };
+}
+
 // ── Reroll (Command + Dashboard teilen sich dies) ────────────────────────────
 /**
  * Warnt im Log-Channel, wenn ein neu gezogener Gewinner einen fest eingetragenen

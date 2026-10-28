@@ -125,6 +125,7 @@
   "log.start_failed": "⚠️ Zaplanowanego konkursu `{id}` **{title}** nie udało się opublikować, został anulowany: {reason}",
   "log.ended": "🏁 Konkurs `{id}` **{title}** zakończony (zwycięzcy: {count}).",
   "log.cancelled": "🚫 Konkurs `{id}` **{title}** anulowany przez {user}.",
+  "log.deleted": "🗑️ Konkurs `{id}` **{title}** usunięty przez {user}.",
   "log.rerolled": "🔁 Konkurs `{id}` **{title}** wylosowany ponownie przez {user}.",
   "log.paused": "⏸️ Konkurs `{id}` **{title}** wstrzymany.",
   "log.resumed": "▶️ Konkurs `{id}` **{title}** wznowiony.",

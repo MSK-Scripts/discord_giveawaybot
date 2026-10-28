@@ -125,6 +125,7 @@
   "log.start_failed": "⚠️ Geplantes Giveaway `{id}` **{title}** konnte nicht gepostet werden und wurde abgebrochen: {reason}",
   "log.ended": "🏁 Giveaway `{id}` **{title}** beendet ({count} Gewinner).",
   "log.cancelled": "🚫 Giveaway `{id}` **{title}** abgebrochen von {user}.",
+  "log.deleted": "🗑️ Giveaway `{id}` **{title}** gelöscht von {user}.",
   "log.rerolled": "🔁 Giveaway `{id}` **{title}** neu ausgelost von {user}.",
   "log.paused": "⏸️ Giveaway `{id}` **{title}** pausiert.",
   "log.resumed": "▶️ Giveaway `{id}` **{title}** fortgesetzt.",

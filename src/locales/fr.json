@@ -125,6 +125,7 @@
   "log.start_failed": "⚠️ Le giveaway planifié `{id}` **{title}** n'a pas pu être publié et a été annulé : {reason}",
   "log.ended": "🏁 Giveaway `{id}` **{title}** terminé ({count} gagnant(s)).",
   "log.cancelled": "🚫 Giveaway `{id}` **{title}** annulé par {user}.",
+  "log.deleted": "🗑️ Giveaway `{id}` **{title}** supprimé par {user}.",
   "log.rerolled": "🔁 Giveaway `{id}` **{title}** relancé par {user}.",
   "log.paused": "⏸️ Giveaway `{id}` **{title}** mis en pause.",
   "log.resumed": "▶️ Giveaway `{id}` **{title}** repris.",

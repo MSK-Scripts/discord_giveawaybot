@@ -125,6 +125,7 @@
   "log.start_failed": "⚠️ El sorteo programado `{id}` **{title}** no se pudo publicar y se canceló: {reason}",
   "log.ended": "🏁 Sorteo `{id}` **{title}** finalizado ({count} ganador(es)).",
   "log.cancelled": "🚫 Sorteo `{id}` **{title}** cancelado por {user}.",
+  "log.deleted": "🗑️ Sorteo `{id}` **{title}** eliminado por {user}.",
   "log.rerolled": "🔁 Sorteo `{id}` **{title}** vuelto a sortear por {user}.",
   "log.paused": "⏸️ Sorteo `{id}` **{title}** pausado.",
   "log.resumed": "▶️ Sorteo `{id}` **{title}** reanudado.",

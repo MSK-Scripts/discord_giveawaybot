@@ -24,6 +24,9 @@ import {
   rerollSingle,
   sendGuildLog,
   refreshActiveEmbeds,
+  deleteGiveaway,
+  countIssuedCoupons,
+  DELETABLE_STATUSES,
   EMBED_SETTINGS_KEYS,
 } from './giveawayService.js';
 import { verifySecret, listPackages } from './tebexService.js';
@@ -358,7 +361,28 @@ async function getGiveawayDetail(client, guildId, id) {
     orderBy: [{ prizeIndex: 'asc' }, { pickedAt: 'asc' }],
   });
   await fillMissingNames(client, winners);
-  return serializeGiveaway(g, { entryCount, winners });
+  // Codes handed out and not revoked. They stay valid in the store when the
+  // giveaway is deleted, which is what the dashboard warns about.
+  const couponsIssued = await countIssuedCoupons(id);
+  return serializeGiveaway(g, { entryCount, winners, couponsIssued });
+}
+
+/**
+ * POST /giveaway/delete: only for ENDED, CANCELLED and SCHEDULED giveaways.
+ * A running one answers 409 still_running and has to be ended or cancelled
+ * first. Answers with the number of coupon codes that were handed out.
+ */
+async function deleteGiveawayEndpoint(client, guildId, body) {
+  const id = String(body?.id ?? '').trim().toUpperCase();
+  if (!ID_RE.test(id)) return { status: 400, body: { error: 'invalid_id' } };
+  const giveaway = await getGiveaway(id, guildId);
+  if (!giveaway) return { status: 404, body: { error: 'not_found' } };
+  if (!DELETABLE_STATUSES.includes(giveaway.status)) return { status: 409, body: { error: 'still_running' } };
+
+  const settings = await getSettings(guildId);
+  const res = await deleteGiveaway(client, giveaway, settings, { actor: ACTOR });
+  if (!res.ok) return { status: res.error === 'not_found' ? 404 : 409, body: { error: res.error } };
+  return { status: 200, body: { ok: true, couponsIssued: res.couponsIssued, message: res.message } };
 }
 
 /**
@@ -976,6 +1000,9 @@ async function handle(client, req, res) {
     }
     if (method === 'POST' && path === '/giveaway/extend') {
       const r = await extendGiveawayEndpoint(client, guildId, body); return send(res, r.status, r.body);
+    }
+    if (method === 'POST' && path === '/giveaway/delete') {
+      const r = await deleteGiveawayEndpoint(client, guildId, body); return send(res, r.status, r.body);
     }
     if (method === 'POST' && ['/giveaway/end', '/giveaway/cancel', '/giveaway/pause', '/giveaway/resume', '/giveaway/reroll'].includes(path)) {
       const action = path.split('/').pop();

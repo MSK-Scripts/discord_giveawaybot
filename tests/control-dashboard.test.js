@@ -353,3 +353,106 @@ test('start and duration cannot be moved through an edit once a giveaway runs', 
   const row = await prisma.giveaway.findUnique({ where: { id: gw.id } });
   assert.equal(row.endAt.getTime(), gw.endAt.getTime(), 'the end did not move');
 });
+
+// ── deleting ────────────────────────────────────────────────────────────────
+
+async function withHistory(gw) {
+  await prisma.entry.createMany({ data: [{ giveawayId: gw.id, userId: userId(1) }, { giveawayId: gw.id, userId: userId(2) }] });
+  await prisma.winner.create({ data: { giveawayId: gw.id, userId: userId(1) } });
+  await prisma.giveawayCoupon.createMany({
+    data: [
+      { giveawayId: gw.id, userId: userId(1), code: 'CODE-LIVE', percent: 10 },
+      { giveawayId: gw.id, userId: userId(2), code: 'CODE-REVOKED', percent: 10, revokedAt: new Date() },
+    ],
+  });
+  return gw;
+}
+
+async function leftovers(id) {
+  const [giveaways, entries, winners, coupons] = await Promise.all([
+    prisma.giveaway.count({ where: { id } }),
+    prisma.entry.count({ where: { giveawayId: id } }),
+    prisma.winner.count({ where: { giveawayId: id } }),
+    prisma.giveawayCoupon.count({ where: { giveawayId: id } }),
+  ]);
+  return giveaways + entries + winners + coupons;
+}
+
+test('GET /giveaway reports the coupon codes still out, so the shop can warn before deleting', { skip }, async () => {
+  const gw = await withHistory(await giveawayRow({ status: 'ENDED', endedAt: new Date() }));
+  const { json } = await call(`/giveaway?guildId=${guildId}&id=${gw.id}`);
+  assert.equal(json.giveaway.couponsIssued, 1, 'the revoked code does not count');
+});
+
+test('POST /giveaway/delete removes ended, cancelled and scheduled giveaways with everything attached', { skip }, async () => {
+  const cases = [
+    { status: 'ENDED', endedAt: new Date(), messageId: '800000000000000001' },
+    { status: 'CANCELLED', endedAt: new Date(), messageId: '800000000000000002' },
+    { status: 'SCHEDULED', startAt: new Date(Date.now() + 3_600_000), endAt: new Date(Date.now() + 7_200_000) },
+  ];
+  for (const overrides of cases) {
+    resetState();
+    const gw = await withHistory(await giveawayRow(overrides));
+    const { status, json } = await post('/giveaway/delete', { id: gw.id });
+    assert.equal(status, 200, overrides.status);
+    assert.deepEqual(json, { ok: true, couponsIssued: 1, message: overrides.messageId ? 'deleted' : 'none' });
+    assert.equal(await leftovers(gw.id), 0, `${overrides.status}: giveaway, entries, winners and coupons are gone`);
+    assert.deepEqual(state.deleted, overrides.messageId ? [overrides.messageId] : []);
+    assert.ok(state.logs.some((l) => l.includes(gw.id) && l.includes('deleted')), 'logged like other admin actions');
+  }
+});
+
+test('a running giveaway cannot be deleted', { skip }, async () => {
+  for (const status of ['ACTIVE', 'PAUSED']) {
+    const gw = await withHistory(await giveawayRow({ status, messageId: '800000000000000003' }));
+    const res = await post('/giveaway/delete', { id: gw.id });
+    assert.equal(res.status, 409, status);
+    assert.equal(res.json.error, 'still_running', status);
+    assert.equal(await prisma.giveaway.count({ where: { id: gw.id } }), 1);
+    assert.equal(await prisma.entry.count({ where: { giveawayId: gw.id } }), 2, 'entries untouched');
+  }
+  assert.equal(state.deleted.length, 0, 'and its message stays');
+});
+
+test('a message that is already gone does not stop the delete, other failures are logged and skipped', { skip }, async () => {
+  state.messageError = Object.assign(new Error('Unknown Message'), { code: 10008 });
+  const gone = await giveawayRow({ status: 'ENDED', endedAt: new Date(), messageId: '800000000000000004' });
+  const res1 = await post('/giveaway/delete', { id: gone.id });
+  assert.equal(res1.status, 200);
+  assert.equal(res1.json.message, 'gone');
+  assert.equal(await leftovers(gone.id), 0);
+
+  state.messageError = Object.assign(new Error('Missing Access'), { code: 50001 });
+  const locked = await giveawayRow({ status: 'CANCELLED', endedAt: new Date(), messageId: '800000000000000005' });
+  const res2 = await post('/giveaway/delete', { id: locked.id });
+  assert.equal(res2.status, 200);
+  assert.equal(res2.json.message, 'failed', 'the shop learns the message could not be removed');
+  assert.equal(await leftovers(locked.id), 0, 'the record is deleted anyway');
+});
+
+test('a scheduled giveaway the scheduler started in the meantime is not deleted', { skip }, async () => {
+  const service = await import('../src/services/giveawayService.js');
+  const stale = await giveawayRow({ status: 'SCHEDULED', startAt: new Date(Date.now() - 1000) });
+  // The scheduler claims it between the read and the delete.
+  await prisma.giveaway.update({ where: { id: stale.id }, data: { status: 'ACTIVE', messageId: '800000000000000006' } });
+
+  const res = await service.deleteGiveaway({ channels: { fetch: async () => null } }, stale, {}, { actor: 'test' });
+  assert.deepEqual(res, { ok: false, error: 'still_running' });
+  assert.equal((await prisma.giveaway.findUnique({ where: { id: stale.id } })).status, 'ACTIVE');
+});
+
+test('POST /giveaway/delete validates the id and stays inside the guild', { skip }, async () => {
+  assert.equal((await post('/giveaway/delete', { id: 'bad id!' })).json.error, 'invalid_id');
+  assert.equal((await post('/giveaway/delete', {})).json.error, 'invalid_id');
+  assert.equal((await post('/giveaway/delete', { id: 'ZZZZ9999' })).status, 404);
+
+  // A giveaway of another guild is not found from this one.
+  const other = await prisma.giveaway.create({
+    data: {
+      id: controlId(), guildId: bareGuildId, channelId: CHANNEL, hostId: '100000000000000002',
+      title: 'Other guild', description: 'x', winnersCount: 1, endAt: new Date(), status: 'ENDED',
+    },
+  });
+  assert.equal((await post('/giveaway/delete', { id: other.id })).status, 404);
+  assert.equal(await prisma.giveaway.count({ where: { id: other.id } }), 1);
+});

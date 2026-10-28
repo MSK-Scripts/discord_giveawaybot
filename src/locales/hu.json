@@ -125,6 +125,7 @@
   "log.start_failed": "⚠️ Az ütemezett `{id}` **{title}** nyereményjátékot nem sikerült közzétenni, ezért törölve lett: {reason}",
   "log.ended": "🏁 A(z) `{id}` **{title}** nyereményjáték lezárult ({count} nyertes).",
   "log.cancelled": "🚫 A(z) `{id}` **{title}** nyereményjátékot törölte: {user}.",
+  "log.deleted": "🗑️ A(z) `{id}` **{title}** nyereményjátékot véglegesen törölte: {user}.",
   "log.rerolled": "🔁 A(z) `{id}` **{title}** nyereményjátékot újrasorsolta: {user}.",
   "log.paused": "⏸️ A(z) `{id}` **{title}** nyereményjáték szüneteltetve.",
   "log.resumed": "▶️ A(z) `{id}` **{title}** nyereményjáték folytatódik.",
