@@ -26,7 +26,10 @@ import {
   refreshActiveEmbeds,
   deleteGiveaway,
   countIssuedCoupons,
+  getGuildHistory,
   DELETABLE_STATUSES,
+  HISTORY_DEFAULT_DAYS,
+  HISTORY_MAX_DAYS,
   EMBED_SETTINGS_KEYS,
 } from './giveawayService.js';
 import { verifySecret, listPackages } from './tebexService.js';
@@ -365,6 +368,17 @@ async function getGiveawayDetail(client, guildId, id) {
   // giveaway is deleted, which is what the dashboard warns about.
   const couponsIssued = await countIssuedCoupons(id);
   return serializeGiveaway(g, { entryCount, winners, couponsIssued });
+}
+
+/**
+ * `days` of GET /history: a whole number 1..365, default 90 when absent.
+ * Anything else is refused rather than clamped, so a typo in the shop shows up.
+ */
+function parseHistoryDays(raw) {
+  if (raw === null || raw === '') return { ok: true, days: HISTORY_DEFAULT_DAYS };
+  if (!/^\d{1,3}$/.test(raw)) return { ok: false };
+  const days = Number(raw);
+  return days >= 1 && days <= HISTORY_MAX_DAYS ? { ok: true, days } : { ok: false };
 }
 
 /**
@@ -943,6 +957,11 @@ async function handle(client, req, res) {
       if (!ID_RE.test(id)) return send(res, 400, { error: 'invalid_id' });
       const detail = await getGiveawayDetail(client, guildId, id);
       return detail ? send(res, 200, { giveaway: detail }) : send(res, 404, { error: 'not_found' });
+    }
+    if (method === 'GET' && path === '/history') {
+      const parsed = parseHistoryDays(url.searchParams.get('days'));
+      if (!parsed.ok) return send(res, 400, { error: 'invalid_days' });
+      return send(res, 200, { days: parsed.days, history: await getGuildHistory(guildId, parsed.days) });
     }
     if (method === 'GET' && path === '/guild') {
       const info = guildInfo(client, guildId);

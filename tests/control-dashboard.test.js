@@ -31,6 +31,7 @@ const BOT = '999999999999999999';
 
 let guildId;      // has a settings row, an icon and a log channel
 let bareGuildId;  // in the cache, but no settings row and no icon
+const guilds = new Map(); // the bot's guild cache, by reference
 
 /** Everything the fake client was asked to do, reset before every test. */
 const state = {
@@ -121,15 +122,20 @@ test.before(async () => {
   settingsService.evict(guildId);
   settingsService.evict(bareGuildId);
 
-  const guilds = new Map([
-    [guildId, {
-      id: guildId, ownerId: '400000000000000009', name: 'Dashboard Guild', memberCount: 1234,
-      iconURL: ({ size } = {}) => `https://cdn.discordapp.com/icons/${guildId}/abc.webp?size=${size}`,
-    }],
-    [bareGuildId, { id: bareGuildId, ownerId: '400000000000000009', name: 'Bare Guild', memberCount: 3, iconURL: () => null }],
-  ]);
+  guilds.set(guildId, {
+    id: guildId, ownerId: '400000000000000009', name: 'Dashboard Guild', memberCount: 1234,
+    iconURL: ({ size } = {}) => `https://cdn.discordapp.com/icons/${guildId}/abc.webp?size=${size}`,
+  });
+  guilds.set(bareGuildId, { id: bareGuildId, ownerId: '400000000000000009', name: 'Bare Guild', memberCount: 3, iconURL: () => null });
   control.startControlServer(fakeControlClient(guilds));
 });
+
+/** Puts one more guild into the bot's cache, for tests that need their own. */
+function addGuild() {
+  const id = testSnowflake();
+  guilds.set(id, { id, ownerId: '400000000000000009', name: 'Extra Guild', memberCount: 1, iconURL: () => null });
+  return id;
+}
 
 test.beforeEach(() => resetState());
 
@@ -455,4 +461,74 @@ test('POST /giveaway/delete validates the id and stays inside the guild', { skip
   });
   assert.equal((await post('/giveaway/delete', { id: other.id })).status, 404);
   assert.equal(await prisma.giveaway.count({ where: { id: other.id } }), 1);
+});
+
+// ── GET /history ────────────────────────────────────────────────────────────
+
+const DAY = 24 * 3_600_000;
+const utcDate = (ms) => new Date(ms).toISOString().slice(0, 10);
+
+test('GET /history counts created, ended and entries per UTC day, for this guild only', { skip }, async () => {
+  const hist = addGuild();
+  const today = Date.parse(`${utcDate(Date.now())}T00:00:00Z`);
+  const at = (daysAgo, h = 12, m = 0, s = 0, ms = 0) => new Date(today - daysAgo * DAY + ((h * 60 + m) * 60 + s) * 1000 + ms);
+  const row = (overrides) => prisma.giveaway.create({
+    data: {
+      id: controlId(), guildId: hist, channelId: CHANNEL, hostId: '100000000000000002',
+      title: 'History', description: 'x', winnersCount: 1, endAt: at(0, 23), status: 'ACTIVE', ...overrides,
+    },
+  });
+  const entries = (gw, ...times) => prisma.entry.createMany({
+    data: times.map((joinedAt, i) => ({ giveawayId: gw.id, userId: userId(900 + i), joinedAt })),
+  });
+
+  // Ended yesterday, created the day before; one entry right before and one
+  // right after UTC midnight, so the day boundary is pinned down.
+  const ended = await row({ createdAt: at(2, 10), status: 'ENDED', endedAt: at(1, 12) });
+  await entries(ended, at(2, 11), at(2, 23, 59, 59, 999), at(1, 0, 0, 0, 0));
+  // Cancelled yesterday: created counts, ended does not.
+  const cancelled = await row({ createdAt: at(1, 8), status: 'CANCELLED', endedAt: at(1, 9) });
+  await entries(cancelled, at(1, 8, 30));
+  // Running, created today.
+  const running = await row({ createdAt: at(0, 1) });
+  await entries(running, at(0, 2), at(0, 3), at(0, 4));
+  // Five days ago: outside a three-day window.
+  const old = await row({ createdAt: at(5, 9), status: 'ENDED', endedAt: at(5, 10) });
+  await entries(old, at(5, 9, 30));
+  // Another guild's activity today must not leak in.
+  const foreign = await giveawayRow({ createdAt: at(0, 1) });
+  await prisma.entry.createMany({ data: [1, 2, 3, 4].map((n) => ({ giveawayId: foreign.id, userId: userId(950 + n), joinedAt: at(0, 5) })) });
+
+  const { status, json } = await call(`/history?guildId=${hist}&days=3`);
+  assert.equal(status, 200);
+  assert.equal(json.days, 3);
+  assert.deepEqual(json.history, [
+    { date: utcDate(today - 2 * DAY), created: 1, ended: 0, entries: 2 },
+    { date: utcDate(today - DAY), created: 1, ended: 1, entries: 2 },
+    { date: utcDate(today), created: 1, ended: 0, entries: 3 },
+  ]);
+
+  const week = await call(`/history?guildId=${hist}&days=7`);
+  assert.equal(week.json.history.length, 7, 'every day is present, quiet days as zeros');
+  assert.deepEqual(week.json.history[1], { date: utcDate(today - 5 * DAY), created: 1, ended: 1, entries: 1 });
+  assert.deepEqual(week.json.history[0], { date: utcDate(today - 6 * DAY), created: 0, ended: 0, entries: 0 });
+});
+
+test('GET /history defaults to 90 days and refuses anything outside 1..365', { skip }, async () => {
+  const hist = addGuild();
+  const def = await call(`/history?guildId=${hist}`);
+  assert.equal(def.status, 200);
+  assert.equal(def.json.days, 90);
+  assert.equal(def.json.history.length, 90);
+  assert.equal(def.json.history.at(-1).date, utcDate(Date.now()), 'today is the last day');
+
+  assert.equal((await call(`/history?guildId=${hist}&days=1`)).json.history.length, 1);
+  assert.equal((await call(`/history?guildId=${hist}&days=365`)).json.history.length, 365);
+
+  for (const days of ['0', '366', '-1', '1.5', 'abc', '1e2', '0090', ' 7']) {
+    const res = await call(`/history?guildId=${hist}&days=${encodeURIComponent(days)}`);
+    assert.equal(res.status, 400, days);
+    assert.equal(res.json.error, 'invalid_days', days);
+  }
+  assert.equal((await call(`/history?guildId=${testSnowflake()}&days=7`)).status, 403, 'the guild check applies');
 });

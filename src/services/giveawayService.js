@@ -1046,6 +1046,72 @@ export async function rerollSingle(client, giveaway, settings, oldUserId, { acto
   return { newWinner };
 }
 
+// ── Daily history per guild (dashboard chart) ────────────────────────────────
+
+export const HISTORY_DEFAULT_DAYS = 90;
+export const HISTORY_MAX_DAYS = 365;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+const utcDay = (ms) => new Date(ms).toISOString().slice(0, 10);
+
+/**
+ * Activity of a guild per UTC day, oldest first, with every day present (a day
+ * without activity is a row of zeros, so the dashboard can draw it directly).
+ *
+ * - created: giveaways created that day (scheduled and cancelled ones included)
+ * - ended:   giveaways that ended that day (status ENDED, by endedAt)
+ * - entries: entries made that day, across all of the guild's giveaways
+ *
+ * One aggregated query: three grouped SELECTs in a UNION ALL, the entries
+ * joined to Giveaway for the guild filter. It reads what is stored now, so a
+ * withdrawn entry, a deleted giveaway and a guild the bot left (its data is
+ * deleted) are not in it. The columns are DATETIME holding UTC, which is why
+ * DATE_FORMAT yields UTC days without a time zone conversion.
+ *
+ * @param {string} guildId
+ * @param {number} days 1..HISTORY_MAX_DAYS, today included
+ * @returns {Promise<{date: string, created: number, ended: number, entries: number}[]>}
+ */
+export async function getGuildHistory(guildId, days, now = Date.now()) {
+  const today = Date.parse(`${utcDay(now)}T00:00:00Z`);
+  const since = new Date(today - (days - 1) * DAY_MS);
+
+  const rows = await prisma.$queryRaw`
+    SELECT d, SUM(created) AS created, SUM(ended) AS ended, SUM(entries) AS entries
+    FROM (
+      SELECT DATE_FORMAT(g.createdAt, '%Y-%m-%d') AS d, COUNT(*) AS created, 0 AS ended, 0 AS entries
+        FROM \`Giveaway\` g
+        WHERE g.guildId = ${guildId} AND g.createdAt >= ${since}
+        GROUP BY 1
+      UNION ALL
+      SELECT DATE_FORMAT(g.endedAt, '%Y-%m-%d'), 0, COUNT(*), 0
+        FROM \`Giveaway\` g
+        WHERE g.guildId = ${guildId} AND g.status = 'ENDED' AND g.endedAt >= ${since}
+        GROUP BY 1
+      UNION ALL
+      SELECT DATE_FORMAT(e.joinedAt, '%Y-%m-%d'), 0, 0, COUNT(*)
+        FROM \`Entry\` e
+        JOIN \`Giveaway\` g ON g.id = e.giveawayId
+        WHERE g.guildId = ${guildId} AND e.joinedAt >= ${since}
+        GROUP BY 1
+    ) AS activity
+    GROUP BY d`;
+
+  // COUNT comes back as BigInt and SUM as Decimal; both fit a Number here.
+  const byDay = new Map(rows.map((r) => [String(r.d), {
+    created: Number(String(r.created)),
+    ended: Number(String(r.ended)),
+    entries: Number(String(r.entries)),
+  }]));
+
+  const out = [];
+  for (let i = 0; i < days; i++) {
+    const date = utcDay(since.getTime() + i * DAY_MS);
+    out.push({ date, ...(byDay.get(date) ?? { created: 0, ended: 0, entries: 0 }) });
+  }
+  return out;
+}
+
 // ── Statistik pro Guild ──────────────────────────────────────────────────────
 export async function getGuildStats(guildId) {
   const [scheduled, active, paused, ended, cancelled, entries, winners] = await prisma.$transaction([
