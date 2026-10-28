@@ -2,7 +2,7 @@
 
 All notable changes to the **MSK Giveaway Bot**. Format based on [Keep a Changelog](https://keepachangelog.com).
 
-## [Unreleased]
+## [1.12.0]
 
 ### Added
 - **Scheduled giveaways.** A giveaway can be created now and posted later: `/gcreate start_in:2h` (same format as the duration) or a `startAt` on `POST /giveaway/create` (ISO 8601 with offset, or epoch milliseconds; in the future and at most 365 days ahead). It is stored with the new status `SCHEDULED` and no Discord message, and the duration counts from the start. New column `Giveaway.startAt` with an index on `(status, startAt)` (migration `20261028110000_scheduled_start`); existing giveaways keep `NULL`.
