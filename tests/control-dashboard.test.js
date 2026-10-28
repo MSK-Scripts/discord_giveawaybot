@@ -532,3 +532,112 @@ test('GET /history defaults to 90 days and refuses anything outside 1..365', { s
   }
   assert.equal((await call(`/history?guildId=${testSnowflake()}&days=7`)).status, 403, 'the guild check applies');
 });
+
+// ── POST /giveaway/preview ──────────────────────────────────────────────────
+
+const ROLE_A = '600000000000000001';
+const ROLE_B = '600000000000000002';
+
+/** The parts of a message that differ between two renderings of the same giveaway. */
+function normalized(json, id) {
+  const text = JSON.stringify(json)
+    .replaceAll(id, 'PREVIEW')
+    .replace(/<t:\d+:R>/g, '<t:X:R>');
+  const out = JSON.parse(text);
+  delete out.timestamp;
+  return out;
+}
+
+const toJson = (x) => (typeof x?.toJSON === 'function' ? x.toJSON() : x);
+
+test('the preview is exactly the message a create posts, minus ID and clock', { skip }, async () => {
+  const bodies = [
+    createBody({
+      title: 'Big one', description: 'With **markdown**', winnersCount: 2, prizes: ['Key A', 'Key B'],
+      blacklistRoles: [ROLE_B], whitelistRoles: [ROLE_A], bonusRoles: { [ROLE_A]: 3 },
+    }),
+    createBody({ prizeMode: 'INDIVIDUAL', prizes: ['First', 'Second', 'Third'], winnerMode: 'FIRST_CLICK', duration: '2d' }),
+  ];
+  for (const body of bodies) {
+    resetState();
+    const created = await post('/giveaway/create', body);
+    assert.equal(created.status, 200);
+    const posted = state.sent[0];
+
+    resetState();
+    const preview = await post('/giveaway/preview', body);
+    assert.equal(preview.status, 200);
+    assert.equal(preview.json.lang, 'en');
+    assert.deepEqual(normalized(preview.json.embed, 'PREVIEW'), normalized(toJson(posted.embeds[0]), created.json.id));
+    assert.deepEqual(
+      normalized(preview.json.components, 'PREVIEW'),
+      normalized(posted.components.map(toJson), created.json.id),
+      'the same button, label, style and emoji',
+    );
+    assert.ok(preview.json.embed.fields.some((f) => f.value === `<@${BOT}>`), 'the bot is the host');
+    assert.equal(preview.json.embed.footer.text.includes('PREVIEW'), true, 'a placeholder ID');
+  }
+});
+
+test('the preview writes nothing and calls nothing on Discord', { skip }, async () => {
+  const before = await Promise.all([prisma.giveaway.count(), prisma.guildSettings.count()]);
+  const { status, json } = await call('/giveaway/preview', { method: 'POST', body: { guildId: bareGuildId, ...createBody() } });
+  assert.equal(status, 200);
+  assert.equal(json.status, 'ACTIVE');
+  const after = await Promise.all([prisma.giveaway.count(), prisma.guildSettings.count()]);
+  assert.deepEqual(after, before, 'no giveaway and no settings row, not even the default one');
+  assert.equal(await prisma.guildSettings.count({ where: { guildId: bareGuildId } }), 0);
+  assert.deepEqual(
+    { sent: state.sent.length, channels: state.channelFetches, users: state.userFetches, guilds: state.guildFetches },
+    { sent: 0, channels: 0, users: 0, guilds: 0 },
+  );
+});
+
+test('the preview speaks the guild language, or the one asked for', { skip }, async () => {
+  const french = addGuild();
+  await prisma.guildSettings.create({ data: { guildId: french, lang: 'fr' } });
+  settingsService.evict(french);
+
+  const asGuild = await call('/giveaway/preview', { method: 'POST', body: { guildId: french, ...createBody() } });
+  assert.equal(asGuild.json.lang, 'fr');
+  const i18n = await import('../src/utils/i18n.js');
+  assert.ok(asGuild.json.embed.fields.some((f) => f.name === i18n.t('fr', 'giveaway.field.ends')));
+
+  const asked = await call('/giveaway/preview', { method: 'POST', body: { guildId: french, lang: 'de', ...createBody() } });
+  assert.equal(asked.json.lang, 'de');
+  assert.ok(asked.json.embed.fields.some((f) => f.name === i18n.t('de', 'giveaway.field.ends')));
+  assert.equal(asked.json.components[0].components[0].label, i18n.t('de', 'giveaway.button'));
+
+  const bad = await call('/giveaway/preview', { method: 'POST', body: { guildId: french, lang: 'xx', ...createBody() } });
+  assert.equal(bad.status, 400);
+  assert.equal(bad.json.error, 'invalid_lang');
+});
+
+test('the preview validates like create, but needs no channel', { skip }, async () => {
+  const cases = [
+    [{ duration: '5' }, 'invalid_duration'],
+    [{ title: '' }, 'missing_fields'],
+    [{ winnersCount: 0 }, 'invalid_winners'],
+    [{ startAt: 'later' }, 'invalid_start'],
+    [{ winnerMode: 'FASTEST' }, 'invalid_winner_mode'],
+    [{ couponPercent: 500 }, 'invalid_percent'],
+    [{ channelId: 'abc' }, 'invalid_channel'],
+    [{ bonusRoles: { [ROLE_A]: 1000 } }, null],
+  ];
+  for (const [patch, error] of cases) {
+    const res = await post('/giveaway/preview', createBody(patch));
+    if (error) {
+      assert.equal(res.json.error, error, JSON.stringify(patch));
+    } else {
+      assert.equal(res.status, 400, `${JSON.stringify(patch)} is refused like on create`);
+    }
+  }
+  const noChannel = await post('/giveaway/preview', { ...createBody(), channelId: undefined });
+  assert.equal(noChannel.status, 200, 'a draft without a channel can be previewed');
+
+  const later = Date.now() + 5 * 3_600_000;
+  const scheduledPreview = await post('/giveaway/preview', createBody({ startAt: later }));
+  assert.equal(scheduledPreview.json.status, 'SCHEDULED');
+  assert.equal(scheduledPreview.json.endAt, new Date(later + 3_600_000).toISOString(), 'ends one hour after the start');
+  assert.equal(state.sent.length, 0);
+});

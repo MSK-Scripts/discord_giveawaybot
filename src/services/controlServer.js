@@ -10,11 +10,13 @@ import { createServer } from 'node:http';
 import { timingSafeEqual } from 'node:crypto';
 import { prisma } from '../database/prisma.js';
 import { logger } from '../utils/logger.js';
-import { getSettings, updateSettings, evict } from './settingsService.js';
+import { getSettings, peekSettings, updateSettings, evict } from './settingsService.js';
+import { buildGiveawayEmbed, buildButtonRow } from '../utils/embeds.js';
 import {
   getGiveaway,
   postGiveaway,
   scheduleGiveaway,
+  giveawayRecord,
   editActiveMessage,
   endGiveaway,
   cancelAndFinalize,
@@ -51,7 +53,7 @@ import { encryptSecret, decryptSecret, secretHint, checkEncryptionKey } from '..
 import { parseDuration } from '../utils/duration.js';
 import { userProfile } from '../utils/profile.js';
 import { parseStartAt } from '../utils/schedule.js';
-import { t, SUPPORTED_LANGS } from '../utils/i18n.js';
+import { t, SUPPORTED_LANGS, DEFAULT_LANG } from '../utils/i18n.js';
 
 let server = null;
 const GUILD_RE = /^\d{17,20}$/;
@@ -475,6 +477,55 @@ function parseCreateBody(body, { requireChannel = true } = {}) {
       startAt: start.startAt,
       endAt: new Date(from + dur.ms),
       ...elig.values, // stehen im Embed, müssen also vor dem Posten im Datensatz sein
+    },
+  };
+}
+
+// Stand-in ID of a preview. Matches the shape of a real one, so the footer and
+// the button look as they will; it never reaches the database.
+const PREVIEW_ID = 'PREVIEW';
+
+/**
+ * POST /giveaway/preview: the message a create with this body would post.
+ *
+ * Same body and same validation as /giveaway/create (parseCreateBody), the
+ * same row builder (giveawayRecord) and the real embed builders, so the preview
+ * cannot drift from what is posted. No database write and no Discord call: the
+ * settings are only read (peekSettings never inserts), the channel is not
+ * fetched and may be left out.
+ *
+ * The builders translate through `giveaway.guildId`; t() takes a language code
+ * in that place as well, which is how `lang` reaches them. Without one the
+ * guild's language applies.
+ */
+async function previewGiveawayEndpoint(client, guildId, body) {
+  const parsed = parseCreateBody(body, { requireChannel: false });
+  if (!parsed.ok) return { status: 400, body: { error: parsed.error } };
+
+  const wanted = body?.lang;
+  if (wanted != null && wanted !== '' && !SUPPORTED_LANGS.includes(wanted)) {
+    return { status: 400, body: { error: 'invalid_lang' } };
+  }
+
+  const settings = await peekSettings(guildId);
+  const lang = wanted || (SUPPORTED_LANGS.includes(settings.lang) ? settings.lang : DEFAULT_LANG);
+  const giveaway = giveawayRecord(settings, {
+    ...parsed.input,
+    id: PREVIEW_ID,
+    guildId: lang,
+    channelId: parsed.channelId,
+    hostId: client.user.id,
+  });
+
+  return {
+    status: 200,
+    body: {
+      embed: buildGiveawayEmbed(giveaway, settings, { entryCount: 0 }).toJSON(),
+      components: [buildButtonRow(giveaway, settings, { disabled: false }).toJSON()],
+      lang,
+      status: giveaway.status,
+      startAt: giveaway.startAt ? giveaway.startAt.toISOString() : null,
+      endAt: giveaway.endAt.toISOString(),
     },
   };
 }
@@ -1019,6 +1070,9 @@ async function handle(client, req, res) {
     }
     if (method === 'POST' && path === '/giveaway/extend') {
       const r = await extendGiveawayEndpoint(client, guildId, body); return send(res, r.status, r.body);
+    }
+    if (method === 'POST' && path === '/giveaway/preview') {
+      const r = await previewGiveawayEndpoint(client, guildId, body); return send(res, r.status, r.body);
     }
     if (method === 'POST' && path === '/giveaway/delete') {
       const r = await deleteGiveawayEndpoint(client, guildId, body); return send(res, r.status, r.body);

@@ -102,6 +102,22 @@ export async function getSettings(guildId) {
   return settings;
 }
 
+/**
+ * Settings without writing anything: cache, else the stored row, else the
+ * defaults. Unlike getSettings it never inserts a row, which is what the
+ * dashboard preview needs (it must not write). A stored row lands in the cache
+ * as getSettings would put it there; the defaults do not.
+ */
+export async function peekSettings(guildId) {
+  const cached = cache.get(guildId);
+  if (cached) return cached;
+  const row = await prisma.guildSettings.findUnique({ where: { guildId } });
+  if (!row) return { guildId, ...DEFAULTS };
+  const settings = deserialize(row);
+  cache.set(guildId, settings);
+  return settings;
+}
+
 /** Default-Settings anlegen (guildCreate). Idempotent. */
 export async function createDefaults(guildId) {
   try {
