@@ -14,6 +14,9 @@ npm-debug.log*
 /prisma/*.db
 /prisma/*.db-journal
 
+# Generierter Prisma Client (entsteht bei `prisma generate`)
+/src/generated/
+
 # Claude
 .claude
 CLAUDE.md

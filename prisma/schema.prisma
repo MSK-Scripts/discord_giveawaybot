@@ -2,12 +2,14 @@
 // MariaDB spricht das MySQL-Protokoll -> provider = "mysql".
 
 generator client {
-  provider = "prisma-client-js"
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  moduleFormat        = "esm"
+  importFileExtension = "ts"
 }
 
 datasource db {
   provider = "mysql"
-  url      = env("DATABASE_URL")
 }
 
 model GuildSettings {
