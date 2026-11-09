@@ -24,9 +24,9 @@
   "dependencies": {
     "@prisma/adapter-mariadb": "^7.10.1",
     "@prisma/client": "^7.10.1",
-    "discord.js": "^14.27.0",
+    "discord.js": "^14.28.1",
     "dotenv": "^18.0.6",
-    "mariadb": "^3.5.4",
+    "mariadb": "^3.5.5",
     "nanoid": "^6.0.2"
   },
   "devDependencies": {
